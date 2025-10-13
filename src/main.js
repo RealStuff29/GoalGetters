@@ -1,18 +1,36 @@
 // import './assets/main.css' I TOOK THIS OUT TEMPORARILY TO TRY AND FIX ISSUES WITH VIEWS LOADING ONLY IN THE CENTER OF SCREEN
 
 //vue stuff
-import { createApp } from 'vue'
-import App from './App.vue'
-import router from './router'
+import { createApp } from 'vue';
+import App from './App.vue';
+import router from './router';
 
-//booty strap
-import 'bootstrap/dist/css/bootstrap.min.css'
-import 'bootstrap/dist/js/bootstrap.bundle.min.js'
+//bootstrap
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 //Supabase stuff
-import { supabase } from '@/lib/supabase'
-console.log('Supabase connected:', !!supabase)
+import { supabase } from '@/lib/supabase';
+console.log('Supabase connected:', !!supabase);
+
+//Primevue stuff
+import PrimeVue from 'primevue/config';
+import Aura from '@primeuix/themes/aura'; //https://primevue.org/theming/styled
 
 
-createApp(App).use(router).mount('#app')
+//I'm not sure what to call this part, I am just following PrimeVue's guide: https://primevue.org/vite
+
+const app = createApp(App);
+app.use(router);
+app.use(PrimeVue, {
+    theme: {
+        preset:Aura
+    }
+})
+
+//Importing PrimeVue components we want to use
+import Button from "primevue/button"
+app.component('Button', Button);
+
+app.mount('#app');
 

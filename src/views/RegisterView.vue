@@ -36,7 +36,8 @@ async function handleRegister(){
                 <label class="form-label">Password</label>
                 <input v-model="password" type="password" class="form-control" required></input>
             </div>
-            <button class="btn btn-primary">Sign up</button>
+            <!-- <button class="btn btn-primary">Sign up</button> -->
+             <Button type="submit" label="Submit" />
         </form>
     </div>
 </template>
