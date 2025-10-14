@@ -14,7 +14,7 @@ export function useAuth() {
         const { data, error: err } = await supabase.auth.signUp( //error:err is destructuring Supabase's expected and given "error" as "err", because we already have an "error" we are using and do not want to overwrite (I think)
             {
                 email: email,
-                password: password,      //comma here why?
+                password: password,
             })
 
         loading.value = false;

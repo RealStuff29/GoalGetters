@@ -2,6 +2,11 @@
 import {ref} from 'vue';
 import {useAuth} from '@/composables/useAuth'
 
+//TEST FOR NAME GEN
+// import { generateName } from '@/services/nameService';
+// const name = generateName();
+// =========
+
 const email = ref('');
 const password = ref('');
 
@@ -19,11 +24,14 @@ async function handleRegister(){
         alert(error.value);
     } else{
         alert('Account created!');
+
+        //LINK to QL VIEW
     }
 }
 </script>
 
 <template>
+    <p>{{ name }}</p>
     <div class="container py-1">
         <h1 class="text-primary">Register test</h1>
         <h3>Create account</h3>
