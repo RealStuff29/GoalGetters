@@ -6,6 +6,7 @@
         <router-link to="/login" class="nav-link mx-3">Login</router-link>
         <router-link to="/crudview" class="nav-link mx-3">Crud Test</router-link>
         <router-link to="/registerview" class="nav-link mx-3">Register Test</router-link>
+        <router-link to="/profilesetupview" class="nav-link mx-3">Profile Setup</router-link>
       </div>
     </nav>
 
