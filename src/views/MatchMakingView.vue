@@ -221,14 +221,14 @@ function pi(name: string) { return `pi pi-${name}` }
 // ---------- State ----------
 const stage = ref<'landing' | 'searching' | 'match' | 'result' | 'chat'>('landing')
 const resultAccepted = ref(false)
-
+import { generateName } from '@/services/nameService.js'
 const match = ref({
   subject: 'WAD2',
   description: 'Homework discussion and review',
   time: '3:30 PM - 4:30 PM',
   duration: '1 hour',
   location: 'Library Level 2, Study Room 3',
-  partner: { name: 'Adjective Animal' } //Replace with random name
+  partner: { name: generateName() } //Replace with random name
 })
 
 const partnerInitials = computed(() => match.value.partner.name.split(' ').map(p => p[0]).join('').slice(0,2).toUpperCase())
