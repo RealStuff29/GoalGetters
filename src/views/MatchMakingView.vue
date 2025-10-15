@@ -153,9 +153,9 @@
                 </div>
               </div>
               <Divider />
-              <div class="flex gap-2 items-center">
+              <div class="flex gap-2 align-items-center">
                 <InputText v-model="draft" placeholder="Type a message..." class="flex-1" @keyup.enter="send" />
-                <Button size="small" @click="send" :icon="pi('send')" />
+                <Button size="small" @click="send" icon="pi pi-send" label="Send"/>
               </div>
             </div>
           </template>
