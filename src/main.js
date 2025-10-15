@@ -17,6 +17,9 @@ console.log('Supabase connected:', !!supabase);
 import PrimeVue from 'primevue/config';
 // import Aura from '@primeuix/themes/aura'; //https://primevue.org/theming/styled
 import Lara from '@primeuix/themes/lara'; //https://primevue.org/theming/styled
+import 'primeicons/primeicons.css';
+import PrimeVue from 'primevue/config';
+
 
 
 
@@ -33,9 +36,25 @@ app.use(PrimeVue, {
 
 //Importing PrimeVue components we want to use
 import Button from "primevue/button"
+// PrimeVue components (local registration)
+
+import Card from 'primevue/card'
+import Tag from 'primevue/tag'
+import InputText from 'primevue/inputtext'
+import Divider from 'primevue/divider'
+import Avatar from 'primevue/avatar'
+import ProgressBar from 'primevue/progressbar'
+import ProgressSpinner from 'primevue/progressspinner'
 import RadioButton from 'primevue/radiobutton'
 app.component('Button', Button);
 app.component('RadioButton', RadioButton);
+app.component('Card', Card);
+app.component('Tag', Tag);
+app.component('InputText', InputText);
+app.component('Divider', Divider);
+app.component('Avatar', Avatar);
+app.component('ProgressBar', ProgressBar);
+app.component('ProgressSpinner', ProgressSpinner);
 
 
 
