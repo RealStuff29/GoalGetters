@@ -239,8 +239,8 @@ const resultAccepted = ref(false)
 import { generateName } from '@/services/nameService.js'
 const match = ref({
   subject: 'WAD2',
-  description: 'Homework discussion and review',
-  time: '3:30 PM - 4:30 PM',
+  description: 'Homework discussion and review', // Replace in forms
+  time: '3:30 PM - 4:30 PM', // Replace in forms
   duration: '1 hour',
   location: 'Library Level 2, Study Room 3',
   partner: { name: generateName() } //Replace with random name
