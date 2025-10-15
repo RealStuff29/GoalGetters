@@ -7,6 +7,7 @@ const email = ref('');
 const password = ref('');
 
 import logo from '@/assets/images/Logo.png';
+import router from '@/router';
 
 
 const { registerUser, error, loading } = useAuth();
@@ -25,6 +26,7 @@ async function handleRegister() {
         alert('Account created!');
 
         //LINK to QL VIEW
+        router.push('/profilesetupview');
     }
 }
 </script>
@@ -35,7 +37,7 @@ async function handleRegister() {
             <div class="col-4 d-flex flex-column align-items-center justify-content-center shadow-lg m-0 p-0 com-md-12">
                 <!-- 
                     <form @submit.prevent="handleRegister()">
-                        <div class="mb-3">
+                        <div class="mb-3">  
                             <label class="form-label">Email</label>
                             <input v-model="email" type="email" class="form-control" required></input>
                         </div>

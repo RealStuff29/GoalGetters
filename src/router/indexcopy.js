@@ -1,3 +1,4 @@
+//Wait I just put this here in case the layout stuff is bricked, I know we should make a branch but submission tmr!!!
 
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
