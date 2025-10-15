@@ -11,7 +11,8 @@
       </div>
     </nav>
 
-    <div class="container mt-4 mx-5 p-0">
+    <!-- <div class="container mt-4 mx-5 p-0"> -->
+    <div class="mx-0 p-0">
       <router-view />
     </div>
   </div>
