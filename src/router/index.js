@@ -29,7 +29,7 @@ const router = createRouter({
       component: AuthLayout,
       children: [
         { path: 'login', name: 'login', component: LoginView, meta: { public: true } },
-        { path: 'registerview', name: 'register', component: RegisterView, meta: { public: true } },
+        { path: 'register', name: 'register', component: RegisterView, meta: { public: true } },
       ],
     },
     // { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFound }, COMMENTED OUT FOR NOW UNTIL VIEW IS MADE
