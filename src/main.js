@@ -18,7 +18,7 @@ import PrimeVue from 'primevue/config';
 // import Aura from '@primeuix/themes/aura'; //https://primevue.org/theming/styled
 import Lara from '@primeuix/themes/lara'; //https://primevue.org/theming/styled
 import 'primeicons/primeicons.css';
-import PrimeVue from 'primevue/config';
+
 
 
 

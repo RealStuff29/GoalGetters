@@ -8,7 +8,7 @@
           <h1 class="text-4xl font-semibold mb-2">Find Your Study Partner</h1>
           <p class="text-lg opacity-80">Connect with classmates for collaborative learning sessions</p>
         </div>
-        <Button size="large" severity="primary" @click="startMatchmaking" :icon="pi('users')" label="Start Matchmaking" />
+        <Button size="large" severity="primary" @click="startMatchmaking" label="Start Matchmaking" />
       </div>
 
       <!-- Searching State -->
@@ -68,8 +68,8 @@
         <ProgressBar :value="(secondsLeft/totalSeconds)*100" :showValue="false" style="height:6px" :pt="{value:{class:'bg-red-500'}}"/>
 
         <div class="grid grid-cols-2 gap-3">
-          <Button outlined @click="declineMatch" :icon="pi('times')" label="Decline" />
-          <Button @click="acceptMatch" severity="primary" :icon="pi('check')" label="Accept" />
+          <Button outlined @click="declineMatch" :icon="pi('times')" label="Decline"/>
+          <Button @click="acceptMatch" severity="primary" :icon="pi('check')" label="Accept"/>
         </div>
       </div>
 
@@ -78,7 +78,7 @@
         <Card>
           <template #title>
             <div class="flex justify-center mb-2">
-              <i :class="resultAccepted ? pi('check-circle') : pi('times-circle')" :style="{fontSize:'3rem'}" :class="resultAccepted ? 'text-green-500' : 'text-red-500'"/>
+              <i :class="['pi', resultAccepted ? 'pi-check-circle text-green-500' : 'pi-times-circle text-red-500']" :style="{ fontSize: '3rem' }"/>
             </div>
             <span class="text-xl font-semibold">{{ resultAccepted ? 'Match Accepted!' : 'Match Declined' }}</span>
           </template>
@@ -228,7 +228,7 @@ const match = ref({
   time: '3:30 PM - 4:30 PM',
   duration: '1 hour',
   location: 'Library Level 2, Study Room 3',
-  partner: { name: 'Sarah Chen' }
+  partner: { name: 'Adjective Animal' } //Replace with random name
 })
 
 const partnerInitials = computed(() => match.value.partner.name.split(' ').map(p => p[0]).join('').slice(0,2).toUpperCase())
