@@ -153,10 +153,23 @@
                 </div>
               </div>
               <Divider />
-              <div class="flex gap-2 items-center">
-                <InputText v-model="draft" placeholder="Type a message..." class="flex-1" @keyup.enter="send" />
-                <Button size="small" @click="send" :icon="pi('send')" />
-              </div>
+              <!-- Chat send bar -->
+              <IconField class="w-full">
+                <InputText
+                  v-model="draft"
+                  placeholder="Type a message..."
+                  @keyup.enter="send"
+                  class="w-full"
+                />
+                <InputIcon
+                  class="pi pi-arrow-right cursor-pointer"
+                  @click="send"
+                  aria-label="Send message"
+                />
+              </IconField>
+
+
+
             </div>
           </template>
         </Card>
@@ -212,6 +225,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onBeforeUnmount, nextTick } from 'vue'
+import IconField from 'primevue/iconfield'
+import InputIcon from 'primevue/inputicon'
 
 
 
@@ -312,7 +327,7 @@ onBeforeUnmount(() => stopCountdown())
 </script>
 
 <style scoped>
-/* Minimal utilities – PrimeVue handles most styling via the theme. */
+.chat-sendbar :deep(.p-button .pi) { font-size: 1rem; }
 .min-h-screen { min-height: 100vh; }
 .grid { display: grid; }
 .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
