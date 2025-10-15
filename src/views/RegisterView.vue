@@ -1,18 +1,17 @@
 <script setup>
-import {ref} from 'vue';
-import {useAuth} from '@/composables/useAuth'
+import { ref } from 'vue';
+import { useAuth } from '@/composables/useAuth'
 
-//TEST FOR NAME GEN
-// import { generateName } from '@/services/nameService';
-// const name = generateName();
-// =========
 
 const email = ref('');
 const password = ref('');
 
-const {registerUser, error, loading} = useAuth();
+import logo from '@/assets/images/Logo.png';
 
-async function handleRegister(){
+
+const { registerUser, error, loading } = useAuth();
+
+async function handleRegister() {
 
     //ADD LOGIC TO CHECK FOR EMPTY STUFF LATER
 
@@ -22,7 +21,7 @@ async function handleRegister(){
 
     if (error.value) {
         alert(error.value);
-    } else{
+    } else {
         alert('Account created!');
 
         //LINK to QL VIEW
@@ -31,21 +30,42 @@ async function handleRegister(){
 </script>
 
 <template>
-    <p>{{ name }}</p>
-    <div class="container py-1">
-        <h1 class="text-primary">Register test</h1>
-        <h3>Create account</h3>
-        <form @submit.prevent="handleRegister()">
-            <div class="mb-3">
-                <label class="form-label">Email</label>
-                <input v-model="email" type="email" class="form-control" required></input>
+    <div class="container-fluid vh-100">
+        <div class="row h-100">
+            <div class="col-4 d-flex flex-column align-items-center justify-content-center shadow-lg m-0 p-0 com-md-12">
+                <!-- 
+                    <form @submit.prevent="handleRegister()">
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input v-model="email" type="email" class="form-control" required></input>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input v-model="password" type="password" class="form-control" required></input>
+                        </div>
+                        <Button type="submit" label="Submit" />
+                    </form> -->
+
+                <img v-bind:src="logo" class="img-fluid w-50">
+
+                <form @submit.prevent="handleRegister()">
+
+                    <div class="mb-3">
+                        <label for="email">Email</label>
+                        <InputText type="email" v-model="email" fluid />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password">Password</label>
+                        <InputText type="password" v-model="password" fluid />
+                    </div>
+                    <Button type="submit" label="Submit" />
+
+                </form>
+
             </div>
-            <div class="mb-3">
-                <label class="form-label">Password</label>
-                <input v-model="password" type="password" class="form-control" required></input>
+            <div class="col-8 bg-dark">
             </div>
-            <!-- <button class="btn btn-primary">Sign up</button> -->
-             <Button type="submit" label="Submit" />
-        </form>
+        </div>
     </div>
 </template>
