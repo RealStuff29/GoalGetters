@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase.js';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 
 export function useAuth() {
     const user = ref(null);
@@ -52,7 +52,7 @@ export function useAuth() {
         loading.value = true;
         error.value = null;
 
-        const { data, error: err } = await supabase.auth.signOut();
+        const { error: err } = await supabase.auth.signOut();
 
         loading.value = false;
 
@@ -65,17 +65,37 @@ export function useAuth() {
         return true;
     }
 
+    // I am just following documentation for this code chunk, check here if you want to see: https://supabase.com/docs/reference/javascript/auth-onauthstatechange
+    // Please ignore the comments here, I will remove them for final submission. I keep forgetting what is going on here
     supabase.auth.onAuthStateChange((_event, session) => {
-        user.value = session?.user ?? null;
+        if (session && session.user){ //If session exists, AND session has a "user" property, then do whatever
+            user.value = session.user;
+        } else {
+            user.value = null;
+        }
     });
-    // See how this works
+    
+    //Following chunk is for checking if there is a logged in user when refreshing the page, so we don't boot the guy after a refresh
+    async function loadUser() {
+        const {data, error:err} = await supabase.auth.getUser();
+        if (err){
+            // console.error('Error getting user:' + err.message);
+            console.log('If you are seeing this, you are logged out');
+            return;
+        }
+
+        if (data && data.user){
+            user.value = data.user;
+        } else {
+            user.value = null;
+        }
+    }
+
+    onMounted(loadUser);
 
 
-    // onMounted(hydrateUser);
 
 
-
-
-    return { user, error, loading, registerUser, loginUser };
+    return { user, error, loading, registerUser, loginUser, logoutUser };
 }
 
