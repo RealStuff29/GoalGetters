@@ -8,6 +8,7 @@
         <router-link to="/register" class="nav-link mx-3">Register Test</router-link>
         <router-link to="/profilesetupview" class="nav-link mx-3">Profile Setup</router-link>
         <router-link to="/matchmakingview" class="nav-link mx-3">Matchmake Now</router-link>
+        <router-link to="/feedbackview" class="nav-link mx-3">Feedback</router-link>
       </div>
     </nav>
 

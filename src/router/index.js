@@ -6,6 +6,7 @@ import CrudView from '../views/CrudView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import ProfileSetupView from '../views/ProfileSetupView.vue'
 import MatchMakingView from '../views/MatchMakingView.vue'
+import FeedbackView from '../views/FeedbackView.vue'
 
 const MainLayout = () => import('@/layouts/MainLayout.vue')
 const AuthLayout = () => import('@/layouts/AuthLayout.vue')
@@ -22,6 +23,7 @@ const router = createRouter({
         { path: 'crudview', name: 'crud', component: CrudView },
         { path: 'profilesetupview', name: 'profile-setup', component: ProfileSetupView },
         { path: 'matchmakingview', name: 'matchmaking', component: MatchMakingView },
+        { path: 'feedbackview', name: 'feedback', component: FeedbackView },
       ],
     },
     {

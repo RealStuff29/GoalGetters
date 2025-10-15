@@ -7,6 +7,7 @@ import CrudView from '../views/CrudView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import ProfileSetupView from '../views/ProfileSetupView.vue'
 import MatchMakingView from '../views/MatchMakingView.vue'
+import FeedbackView from '../views/FeedbackView.vue'
 
 
 const routes = [
@@ -15,8 +16,8 @@ const routes = [
   { path: '/crudview', component: CrudView },
   { path: '/registerview', component: RegisterView },
   { path: '/profilesetupview', component: ProfileSetupView },
-  { path: '/matchmakingview', component: MatchMakingView}
-
+  { path: '/matchmakingview', component: MatchMakingView},
+  { path: 'feedback', name: 'feedback', component: FeedbackView }
 ]
 
 const router = createRouter({
