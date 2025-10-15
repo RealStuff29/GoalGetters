@@ -7,20 +7,38 @@ import RegisterView from '../views/RegisterView.vue'
 import ProfileSetupView from '../views/ProfileSetupView.vue'
 import MatchMakingView from '../views/MatchMakingView.vue'
 
+const MainLayout = () => import('@/layouts/MainLayout.vue')
+const AuthLayout = () => import('@/layouts/AuthLayout.vue')
 
-const routes = [
-  { path: '/', component: HomeView },
-  { path: '/login', component: LoginView },
-  { path: '/crudview', component: CrudView },
-  { path: '/registerview', component: RegisterView },
-  { path: '/profilesetupview', component: ProfileSetupView },
-  { path: '/matchmakingview', component: MatchMakingView}
-
-]
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes: [
+    {
+      path: '/',
+      component: MainLayout,
+      children: [
+        { path: '', name: 'home', component: HomeView },
+        { path: 'crudview', name: 'crud', component: CrudView },
+        { path: 'profilesetupview', name: 'profile-setup', component: ProfileSetupView },
+        { path: 'matchmakingview', name: 'matchmaking', component: MatchMakingView },
+      ],
+    },
+    {
+      path: '/',
+      component: AuthLayout,
+      children: [
+        { path: 'login', name: 'login', component: LoginView, meta: { public: true } },
+        { path: 'registerview', name: 'register', component: RegisterView, meta: { public: true } },
+      ],
+    },
+    // { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFound }, COMMENTED OUT FOR NOW UNTIL VIEW IS MADE
+
+
+  ],
+  scrollBehavior() {
+    return { top: 0 }
+  },
 })
 
 export default router
