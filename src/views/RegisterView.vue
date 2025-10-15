@@ -7,6 +7,7 @@ const email = ref('');
 const password = ref('');
 
 import logo from '@/assets/images/Logo.png';
+import locked from '@/assets/images/LOCKED.jpg';
 import router from '@/router';
 
 
