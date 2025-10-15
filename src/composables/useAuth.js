@@ -48,10 +48,30 @@ export function useAuth() {
         return data.user;
     }
 
-    // async function logoutUser() {
-    //     loading.value = true;
-    //     error.value = null;
-    // }
+    async function logoutUser() {
+        loading.value = true;
+        error.value = null;
+
+        const { data, error: err } = await supabase.auth.signOut();
+
+        loading.value = false;
+
+        if (err) {
+            error.value = err.message;
+            return null;
+        }
+
+        user.value = null;
+        return true;
+    }
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+        user.value = session?.user ?? null;
+    });
+    // See how this works
+
+
+    // onMounted(hydrateUser);
 
 
 

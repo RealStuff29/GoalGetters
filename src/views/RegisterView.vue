@@ -66,7 +66,8 @@ async function handleRegister() {
                 </form>
 
             </div>
-            <div class="col-8 bg-dark">
+            <div class="col-8 bg-dark p-0 h-100 overflow-hidden position-relative">
+                <img :src="locked" class="d-block w-100 vh-100 object-fit-cover" alt="Lock image" />
             </div>
         </div>
     </div>
