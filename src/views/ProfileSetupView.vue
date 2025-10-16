@@ -2,9 +2,10 @@
 import { generateName } from '@/services/nameService'
 import { ref, computed } from 'vue'
 
+
 const username = ref(generateName())
 const seed = ref(makeSeed())
-const gender = ref('') // 'boy', 'girl', ''(public)
+const gender = ref('') // 'boy', 'girl', ''
 const saving = ref(false)
 
 const base = 'https://avatar.iran.liara.run/public'
@@ -80,14 +81,13 @@ function randomiseUsername() {
 .label { font-weight: 600; }
 .username-section{display: flex; flex-direction: column; align-items: flex-start; gap: 8px;}
 .username{
-  padding:10px 12px;
-  border:1px solid #e5e7eb;
-  border-radius:8px;
-  background:#fff;
-  min-height:42px;
-  display:flex;
-  align-items:center;
-  font-weight:600;
+    display:flex;
+    padding:10px 12px;
+    border:1px solid #e5e7eb;
+    border-radius:8px;
+    min-height:42px;
+    align-items:center;
+    font-weight:600;
 }
 .radio-row{display:flex; gap:16px; flex-wrap:wrap;}
 .text-muted{color:#6b7280;}
