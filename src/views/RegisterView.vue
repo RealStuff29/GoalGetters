@@ -7,6 +7,8 @@ const email = ref('');
 const password = ref('');
 
 import logo from '@/assets/images/Logo.png';
+import locked from '@/assets/images/LOCKED.jpg';
+import router from '@/router';
 
 
 const { registerUser, error, loading } = useAuth();
@@ -25,6 +27,7 @@ async function handleRegister() {
         alert('Account created!');
 
         //LINK to QL VIEW
+        router.push('/profilesetupview');
     }
 }
 </script>
@@ -35,7 +38,7 @@ async function handleRegister() {
             <div class="col-4 d-flex flex-column align-items-center justify-content-center shadow-lg m-0 p-0 com-md-12">
                 <!-- 
                     <form @submit.prevent="handleRegister()">
-                        <div class="mb-3">
+                        <div class="mb-3">  
                             <label class="form-label">Email</label>
                             <input v-model="email" type="email" class="form-control" required></input>
                         </div>
@@ -64,7 +67,8 @@ async function handleRegister() {
                 </form>
 
             </div>
-            <div class="col-8 bg-dark">
+            <div class="col-8 bg-dark p-0 h-100 overflow-hidden position-relative">
+                <img :src="locked" class="d-block w-100 vh-100 object-fit-cover" alt="Lock image" />
             </div>
         </div>
     </div>

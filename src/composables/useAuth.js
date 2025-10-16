@@ -28,9 +28,54 @@ export function useAuth() {
         return data.user;
     }
 
+    async function loginUser(email, password) {
+        loading.value = true;
+        error.value = null;
+
+        const { data, error: err } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
+
+        loading.value = false;
+
+        if (err) {
+            error.value = err.message;
+            return null;
+        }
+
+        user.value = data.user;
+        return data.user;
+    }
+
+    async function logoutUser() {
+        loading.value = true;
+        error.value = null;
+
+        const { data, error: err } = await supabase.auth.signOut();
+
+        loading.value = false;
+
+        if (err) {
+            error.value = err.message;
+            return null;
+        }
+
+        user.value = null;
+        return true;
+    }
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+        user.value = session?.user ?? null;
+    });
+    // See how this works
+
+
+    // onMounted(hydrateUser);
 
 
 
-    return {user, error, loading, registerUser};
+
+    return { user, error, loading, registerUser, loginUser };
 }
 
