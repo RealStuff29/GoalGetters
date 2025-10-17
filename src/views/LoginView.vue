@@ -42,7 +42,14 @@ async function handleLogin() {
                     <div class="mb-3">
                         <label for="password">Password</label>
                         <InputText type="password" v-model="password" fluid />
+                        <div class="form-text">
+                            New to GoalGetters?
+                            <RouterLink v-bind:to="{name:'register'}" class="fw-medium text-decoration-none">
+                                Sign up!
+                            </RouterLink>
+                        </div>
                     </div>
+                    
                     <Button type="submit" label="Submit" />
 
                 </form>
