@@ -108,7 +108,7 @@ export const useMatchStore = defineStore('match', () => {
     stage.value = 'chat'
   }
 
-  function sendMessage(text: string) {
+  function sendMessage(text: string) {//testing message to update previous commit
     const t = text.trim()
     if (!t) return
     messages.value.push({ id: ++idSeq, from: 'me' as const, text: t })
