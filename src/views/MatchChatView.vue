@@ -1,4 +1,5 @@
 <!-- src/views/MatchChatView.vue -->
+
 <template>
   <div class="min-h-screen p-4 w-full max-w-6xl mx-auto grid lg:grid-cols-2 gap-6" v-if="store.stage === 'chat'">
     <!-- Left column: Header + Details + Chat -->
@@ -79,8 +80,7 @@
             <div class="absolute inset-4 border-2 border-dashed rounded flex items-center justify-center opacity-80">
               <div class="text-center">
                 <i :class="pi('map-marker')" style="font-size:1.5rem" class="mb-2 block"/>
-                <p class="text-sm">Google Maps Integration</p>
-                <small>API Key: YOUR_GOOGLE_MAPS_API_KEY</small>
+                <StudySpotMap :api-key="YOUR_GOOGLE_MAPS_API_KEY" height="400px" />
               </div>
             </div>
             <span class="absolute w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow" style="left:20%;top:30%"></span>
@@ -124,6 +124,15 @@ import { onMounted, ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMatchStore } from '@/stores/match'
 function pi(name: string) { return `pi pi-${name}` }
+
+import { usePrimeVue } from 'primevue/config';
+import Card from 'primevue/card';
+import StudySpotMap from './studyspotmap.vue'; // Import the map component
+
+// const { pi } = usePrimeVue().config;
+
+//API key goes here
+const YOUR_GOOGLE_MAPS_API_KEY = 'AIzaSyBsYx17BzYAVcN_4G4NPOvqNZRB_8I6l7g';
 
 const store = useMatchStore()
 const router = useRouter()
