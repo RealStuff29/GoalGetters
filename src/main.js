@@ -5,6 +5,8 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
 
+
+
 //bootstrap
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
@@ -32,6 +34,9 @@ app.use(PrimeVue, {
         preset:Lara
     }
 })
+
+import { createPinia } from 'pinia'
+app.use(createPinia())
 
 //Importing PrimeVue components we want to use
 import Button from "primevue/button"

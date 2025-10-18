@@ -15,6 +15,7 @@ a,
   padding: 3px;
 }
 
+
 @media (hover: hover) {
   a:hover {
     background-color: hsla(160, 100%, 37%, 0.2);
@@ -32,4 +33,24 @@ a,
     grid-template-columns: 1fr 1fr;
     padding: 0 2rem;
   }
+}
+/* ============ Utilities ============ */
+@layer utilities {
+  /* App-wide page wrapper used by MainLayout */
+  .page {
+    width: 100%;
+    max-width: var(--page-max);
+    margin-inline: auto;
+    padding: var(--page-pad);
+  }
+
+  /* Optional narrower page (e.g., landing/decision) */
+  .page--narrow { max-width: 42rem; }
+
+  /* Simple spacing helpers */
+  .gap { display: grid; gap: 1.5rem; }
+  .mt-1 { margin-top: .25rem; }
+  .mt-2 { margin-top: .5rem; }
+  .mt-4 { margin-top: 1rem; }
+  .mb-2 { margin-bottom: .5rem; }
 }

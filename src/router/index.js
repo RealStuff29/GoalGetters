@@ -1,17 +1,23 @@
+// src/router/index.js
+import { createRouter, createWebHistory } from 'vue-router'
+import { supabase } from '@/lib/supabase'
 
-import { createRouter, createWebHistory } from 'vue-router';
-import { supabase } from '@/lib/supabase';
-import HomeView from '../views/HomeView.vue';
-import LoginView from '../views/LoginView.vue';
-import CrudView from '../views/CrudView.vue';
-import RegisterView from '../views/RegisterView.vue';
-import ProfileSetupView from '../views/ProfileSetupView.vue';
-import MatchMakingView from '../views/MatchMakingView.vue';
-import FeedbackView from '../views/FeedbackView.vue';
+// Eager-loaded views
+import HomeView from '../views/HomeView.vue'
+import LoginView from '../views/LoginView.vue'
+import CrudView from '../views/CrudView.vue'
+import RegisterView from '../views/RegisterView.vue'
+import ProfileSetupView from '../views/ProfileSetupView.vue'
+import FeedbackView from '../views/FeedbackView.vue'
 
-const MainLayout = () => import('@/layouts/MainLayout.vue');
-const AuthLayout = () => import('@/layouts/AuthLayout.vue');
+// Layouts 
+const MainLayout = () => import('@/layouts/MainLayout.vue')
+const AuthLayout = () => import('@/layouts/AuthLayout.vue')
 
+// Match flow
+const MatchLanding = () => import('@/views/MatchLandingView.vue')
+const MatchDecision = () => import('@/views/MatchDecisionView.vue')
+const MatchChat = () => import('@/views/MatchChatView.vue')
 
 const router = createRouter({
   history: createWebHistory(),
@@ -20,11 +26,16 @@ const router = createRouter({
       path: '/',
       component: MainLayout,
       children: [
-        { path: '', name: 'home', component: HomeView, meta: {requiresAuth: true} },
-        { path: 'crudview', name: 'crud', component: CrudView, meta: {requiresAuth: true} },
-        { path: 'profilesetupview', name: 'profilesetup', component: ProfileSetupView, meta: {requiresAuth: true} },
-        { path: 'matchmakingview', name: 'matchmaking', component: MatchMakingView, meta: {requiresAuth: true} },
-        { path: 'feedbackview', name: 'feedback', component: FeedbackView, meta: {requiresAuth: true} },
+        { path: '', name: 'home', component: HomeView, meta: { requiresAuth: true } },
+        { path: 'crudview', name: 'crud', component: CrudView, meta: { requiresAuth: true } },
+        { path: 'profilesetupview', name: 'profilesetup', component: ProfileSetupView, meta: { requiresAuth: true } },
+        { path: 'feedbackview', name: 'feedback', component: FeedbackView, meta: { requiresAuth: true } },
+
+        // New 3-page matchmaking flow
+        { path: 'match', name: 'match-landing', component: MatchLanding, meta: { requiresAuth: true } },
+        { path: 'match/decision', name: 'match-decision', component: MatchDecision, meta: { requiresAuth: true } },
+        { path: 'match/chat', name: 'match-chat', component: MatchChat, meta: { requiresAuth: true } },
+        { path: 'matchmakingview', redirect: { name: 'match-landing' } }, //legacy
       ],
     },
     {
@@ -35,34 +46,25 @@ const router = createRouter({
         { path: 'register', name: 'register', component: RegisterView, meta: { requiresGuest: true } },
       ],
     },
-    // { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFound }, COMMENTED OUT FOR NOW UNTIL VIEW IS MADE
-
-
+    // Uncomment once you have a NotFound view
+    // { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFound },
   ],
   scrollBehavior() {
     return { top: 0 }
   },
 })
 
-
-//Barely understand what's going on next, shooting in the dark with stuff from https://router.vuejs.org/guide/advanced/navigation-guards.html and GPT. Please refactor if you see it's glaringly bad
+// Auth guards
 router.beforeEach(async (to) => {
-  const sessionResponse = await supabase.auth.getSession(); //Getting session from supabase
-  const session = sessionResponse.data.session; 
+  const { data: { session } } = await supabase.auth.getSession()
 
-  //booting user if not logged in and trying to route to a route that needs login
-  if (to.meta && to.meta.requiresAuth && !session){ //Checking meta, and if the meta is "requiresAuth", and if there is no session
-    return {name: 'login', query: { redirect: to.fullPath }} //the boot
+  if (to.meta?.requiresAuth && !session) {
+    return { name: 'login', query: { redirect: to.fullPath } }
   }
-
-  //idek tbh, I think this is to boot a logged in user from a non-logged in screen?
-  if (to.meta && to.meta.requiresGuest && session){
-    return {name: 'home'}
+  if (to.meta?.requiresGuest && session) {
+    return { name: 'home' }
   }
-
-  return true;
+  return true
 })
-
-
 
 export default router
