@@ -75,13 +75,15 @@ export const useMatchStore = defineStore('match', () => {
   }
 
   function startMatchmaking() {
-    stage.value = 'searching'
-    // simulate matchmaking delay
+  stage.value = 'searching'
+  return new Promise<void>((resolve) => {
     setTimeout(() => {
       stage.value = 'match'
       startCountdown(() => declineMatch())
+      resolve()
     }, 1200)
-  }
+  })
+}
 
   function acceptMatch() {
     stopCountdown()

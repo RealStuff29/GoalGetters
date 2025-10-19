@@ -33,10 +33,9 @@ function pi(name: string) { return `pi pi-${name}` } // if you need icons
 const router = useRouter()
 const store = useMatchStore()
 
-function onStart() {
-  store.startMatchmaking()
-  // After a short delay, user can land on decision page (when stage switches to 'match', we show there)
-  setTimeout(() => router.push({ name: 'match-decision' }), 300)
+async function onStart() {
+  await store.startMatchmaking()
+  router.push({ name: 'match-decision' })
 }
 </script>
 
