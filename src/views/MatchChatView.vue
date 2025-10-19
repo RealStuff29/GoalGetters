@@ -132,7 +132,10 @@ import StudySpotMap from './studyspotmap.vue'; // Import the map component
 // const { pi } = usePrimeVue().config;
 
 //API key goes here
-const YOUR_GOOGLE_MAPS_API_KEY = 'AIzaSyBsYx17BzYAVcN_4G4NPOvqNZRB_8I6l7g';
+
+//@jordan - I just put a @ts-ignore and did it the JS way, if you want to do it the proper ts way, theres some setup you need to do
+//@ts-ignore
+const YOUR_GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 const store = useMatchStore()
 const router = useRouter()
