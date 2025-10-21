@@ -11,7 +11,7 @@ import locked from '@/assets/images/LOCKED.jpg';
 import router from '@/router';
 
 
-const { loginUser, error, loading } = useAuth();
+const { loginUser, loginUserWithGoogle, error, loading } = useAuth();
 
 async function handleLogin() {
 
@@ -23,7 +23,17 @@ async function handleLogin() {
         router.push('/');
     }
 }
+
+async function handleGoogleLogin() {
+    if (!loading.value) {
+        await loginUserWithGoogle();
+    }
+}
+
+
 </script>
+
+
 
 <template>
     <div class="container-fluid vh-100 p-0">
@@ -32,6 +42,7 @@ async function handleLogin() {
 
                 <img v-bind:src="logo" class="img-fluid w-50">
 
+                <div class="mt-3 w-75">
                 <form @submit.prevent="handleLogin()">
 
                     <div class="mb-3">
@@ -44,15 +55,22 @@ async function handleLogin() {
                         <InputText type="password" v-model="password" fluid />
                         <div class="form-text">
                             New to GoalGetters?
-                            <RouterLink v-bind:to="{name:'register'}" class="fw-medium text-decoration-none">
+                            <RouterLink v-bind:to="{ name: 'register' }" class="fw-medium text-decoration-none">
                                 Sign up!
                             </RouterLink>
                         </div>
                     </div>
-                    
                     <Button type="submit" label="Submit" />
-
                 </form>
+
+                
+                    <hr class="my-3" />
+                    <button class="btn btn-outline-dark w-100 d-flex align-items-center justify-content-center gap-2"
+                        type="button" @click="handleGoogleLogin" v-bind:disabled="loading">
+                        <i class="pi pi-google"></i>
+                        Continue with Google
+                    </button>
+                </div>
 
             </div>
             <div class="col-8 bg-dark p-0 h-100 overflow-hidden position-relative">
@@ -61,6 +79,3 @@ async function handleLogin() {
         </div>
     </div>
 </template>
-
-<!-- <style scoped>
-</style> -->
