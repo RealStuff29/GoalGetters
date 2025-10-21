@@ -15,6 +15,7 @@ console.log('Supabase connected:', !!supabase);
 
 //Primevue stuff
 import PrimeVue from 'primevue/config';
+import 'primeicons/primeicons.css' 
 // import Aura from '@primeuix/themes/aura'; //https://primevue.org/theming/styled
 import Lara from '@primeuix/themes/lara'; //https://primevue.org/theming/styled
 import InputGroup from 'primevue/inputgroup';
@@ -35,8 +36,6 @@ app.use(PrimeVue, {
 
 //Importing PrimeVue components we want to use
 import Button from "primevue/button"
-// PrimeVue components (local registration)
-
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import InputText from 'primevue/inputtext'
@@ -45,6 +44,27 @@ import Avatar from 'primevue/avatar'
 import ProgressBar from 'primevue/progressbar'
 import ProgressSpinner from 'primevue/progressspinner'
 import RadioButton from 'primevue/radiobutton'
+import Carousel from 'primevue/carousel';
+import Message from 'primevue/message';
+import Slider from 'primevue/slider'
+import SelectButton from 'primevue/selectbutton'
+import AutoComplete from 'primevue/autocomplete'
+
+
+import Stepper from 'primevue/stepper'
+import StepList from 'primevue/steplist'
+import Step from 'primevue/step'
+import StepItem from 'primevue/stepitem'
+import StepPanel from 'primevue/steppanel'
+import Select from 'primevue/select'
+import InputChips from 'primevue/inputchips'
+
+
+// import Select from 'primevue/select'
+// import MultiSelect from 'primevue/multiselect'
+
+
+
 app.component('Button', Button);
 app.component('RadioButton', RadioButton);
 app.component('Card', Card);
@@ -54,6 +74,21 @@ app.component('Divider', Divider);
 app.component('Avatar', Avatar);
 app.component('ProgressBar', ProgressBar);
 app.component('ProgressSpinner', ProgressSpinner);
+app.component('Carousel', Carousel);
+app.component('Message', Message);
+app.component('Slider', Slider);
+app.component('SelectButton', SelectButton);
+app.component('AutoComplete', AutoComplete);
+app.component('Stepper', Stepper);
+app.component('StepList', StepList);
+app.component('Step', Step);
+app.component('StepItem', StepItem);
+app.component('StepPanel',StepPanel)
+app.component('Select',Select)
+app.component('InputChips',InputChips)
+
+
+
 
 
 

@@ -35,19 +35,8 @@ async function handleRegister() {
 <template>
     <div class="container-fluid vh-100">
         <div class="row h-100">
-            <div class="col-4 d-flex flex-column align-items-center justify-content-center shadow-lg m-0 p-0 com-md-12">
-                <!-- 
-                    <form @submit.prevent="handleRegister()">
-                        <div class="mb-3">  
-                            <label class="form-label">Email</label>
-                            <input v-model="email" type="email" class="form-control" required></input>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Password</label>
-                            <input v-model="password" type="password" class="form-control" required></input>
-                        </div>
-                        <Button type="submit" label="Submit" />
-                    </form> -->
+            <!-- THIS VERSION IS BETTER COMPARED TO MAIN AS I FIXED COLUMNS -->
+            <div class="col-4 d-flex flex-column align-items-center justify-content-center shadow-lg m-0 p-0">
 
                 <img v-bind:src="logo" class="img-fluid w-50">
 
@@ -61,7 +50,14 @@ async function handleRegister() {
                     <div class="mb-3">
                         <label for="password">Password</label>
                         <InputText type="password" v-model="password" fluid />
+                        <div class="form-text">
+                            Already have an account?
+                            <RouterLink v-bind:to="{name:'login'}" class="fw-medium text-decoration-none">
+                                Log in!
+                            </RouterLink>
+                        </div>
                     </div>
+                    
                     <Button type="submit" label="Submit" />
 
                 </form>
