@@ -65,6 +65,29 @@ export function useAuth() {
         return true;
     }
 
+    async function loginUserWithGoogle() {
+        loading.value = true;
+        error.value = null;
+
+        const {error : err} = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${window.location.origin}/auth/callback`
+
+            }
+        
+        });
+
+        loading.value = false;
+
+        if(err){
+            error.value = err.message;
+            return null;
+        }
+        return true;
+            
+    }
+
     // I am just following documentation for this code chunk, check here if you want to see: https://supabase.com/docs/reference/javascript/auth-onauthstatechange
     // Please ignore the comments here, I will remove them for final submission. I keep forgetting what is going on here
     supabase.auth.onAuthStateChange((_event, session) => {
@@ -96,6 +119,6 @@ export function useAuth() {
 
 
 
-    return { user, error, loading, registerUser, loginUser, logoutUser };
+    return { user, error, loading, registerUser, loginUser, logoutUser, loginUserWithGoogle };
 }
 
