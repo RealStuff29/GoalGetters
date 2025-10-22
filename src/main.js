@@ -44,27 +44,6 @@ import Avatar from 'primevue/avatar'
 import ProgressBar from 'primevue/progressbar'
 import ProgressSpinner from 'primevue/progressspinner'
 import RadioButton from 'primevue/radiobutton'
-import Carousel from 'primevue/carousel';
-import Message from 'primevue/message';
-import Slider from 'primevue/slider'
-import SelectButton from 'primevue/selectbutton'
-import AutoComplete from 'primevue/autocomplete'
-
-
-import Stepper from 'primevue/stepper'
-import StepList from 'primevue/steplist'
-import Step from 'primevue/step'
-import StepItem from 'primevue/stepitem'
-import StepPanel from 'primevue/steppanel'
-import Select from 'primevue/select'
-import InputChips from 'primevue/inputchips'
-
-
-// import Select from 'primevue/select'
-// import MultiSelect from 'primevue/multiselect'
-
-
-
 app.component('Button', Button);
 app.component('RadioButton', RadioButton);
 app.component('Card', Card);
