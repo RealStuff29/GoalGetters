@@ -10,8 +10,11 @@ import { degrees } from '@/constants/degrees'
 const router = useRouter()
 const { username, gender, avatarUrl, isComplete, errors, shuffleAvatar, randomiseUsername } = useProfileSetup()
 
+// Step 1 
 const activeStep = ref('1')
 const avatarLoaded = ref(false)
+
+// Check if the required fields are filled in step 1
 const isStep1Valid = computed(() => !!isComplete.value)
 
 function handleShuffle() {
@@ -19,15 +22,17 @@ function handleShuffle() {
   shuffleAvatar()
 }
 
-// when gender changes, loading spinner appears
+// watch when gender changes, loading spinner appears
 watch(gender, () => {
   avatarLoaded.value = false
 })
 
+// Step 2
 const degree = ref('')
 const modules = ref([])
 const studyHours = ref(4)
 
+// Check if the required fields are filled in step 2
 const isStep2Valid = computed(() => {
   const hasDegree = !!degree.value
   const hasModules =
@@ -36,6 +41,7 @@ const isStep2Valid = computed(() => {
 })
 
 const saving = ref(false)
+
 
 async function handleSave() {
   if (!isStep2Valid.value) return
@@ -46,18 +52,19 @@ async function handleSave() {
     if (userErr || !user) throw new Error('You are not signed in')
 
     await updateProfile(user.id, {
-      // Step 1
+      // Step 1 data
       username: username.value,
       gender: gender.value,
       profile_photo: avatarUrl.value,
-      // Step 2
+      // Step 2 data
       degree: degree.value,
       modules: modules.value,
       study_hours: studyHours.value
     })
-
+    alert('Profile successfully created!')
     router.push('/')
   } catch (e) {
+    // e? will avoid crashing when non-Error values are thrown
     alert(e?.message || 'Failed to save profile')
   } finally {
     saving.value = false
