@@ -77,23 +77,6 @@ app.component('Divider', Divider);
 app.component('Avatar', Avatar);
 app.component('ProgressBar', ProgressBar);
 app.component('ProgressSpinner', ProgressSpinner);
-app.component('Carousel', Carousel);
-app.component('Message', Message);
-app.component('Slider', Slider);
-app.component('SelectButton', SelectButton);
-app.component('AutoComplete', AutoComplete);
-app.component('Stepper', Stepper);
-app.component('StepList', StepList);
-app.component('Step', Step);
-app.component('StepItem', StepItem);
-app.component('StepPanel',StepPanel)
-app.component('Select',Select)
-app.component('InputChips',InputChips)
-
-
-
-
-
 
 app.mount('#app');
 
