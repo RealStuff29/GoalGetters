@@ -54,7 +54,6 @@ import Carousel from 'primevue/carousel';
 import Message from 'primevue/message';
 import Slider from 'primevue/slider'
 import SelectButton from 'primevue/selectbutton'
-import AutoComplete from 'primevue/autocomplete'
 
 
 import Stepper from 'primevue/stepper'
@@ -64,21 +63,14 @@ import StepItem from 'primevue/stepitem'
 import StepPanel from 'primevue/steppanel'
 import Select from 'primevue/select'
 import InputChips from 'primevue/inputchips'
-import Chip from 'primevue/chip';
-
 
 import InputGroup from 'primevue/inputgroup';
 
-import Splitter from 'primevue/splitter';
-import SplitterPanel from 'primevue/splitterpanel';
 import Image from 'primevue/image';
 import Password from 'primevue/password';
-import Inplace from 'primevue/inplace';
-import Knob from 'primevue/knob';
-import Toolbar from 'primevue/toolbar';
-import Dialog from 'primevue/dialog';
-import IftaLabel from 'primevue/iftalabel';
 import MeterGroup from 'primevue/metergroup';
+import ScrollPanel from 'primevue/scrollpanel';
+
 
 
 
@@ -104,7 +96,6 @@ app.component('Carousel', Carousel);
 app.component('Message', Message);
 app.component('Slider', Slider);
 app.component('SelectButton', SelectButton);
-app.component('AutoComplete', AutoComplete);
 app.component('Stepper', Stepper);
 app.component('StepList', StepList);
 app.component('Step', Step);
@@ -112,18 +103,11 @@ app.component('StepItem', StepItem);
 app.component('StepPanel',StepPanel);
 app.component('Select',Select);
 app.component('InputChips',InputChips);
-app.component('Chip',Chip);
 app.component('InputGroup', InputGroup);
-app.component('Splitter',Splitter)
-app.component('SplitterPanel', SplitterPanel);
 app.component('Image', Image);
 app.component('Password', Password);
-app.component('Inplace', Inplace);
-app.component('Knob', Knob);
-app.component('Toolbar', Toolbar);
-app.component('Dialog', Dialog);
-app.component('IftaLabel', IftaLabel);
 app.component('MeterGroup', MeterGroup);
+app.component('ScrollPanel', ScrollPanel);
 
 
 app.mount('#app');
