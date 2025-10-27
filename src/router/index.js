@@ -8,6 +8,7 @@ import LoginView from '../views/LoginView.vue'
 import CrudView from '../views/CrudView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import ProfileSetupView from '../views/ProfileSetupView.vue'
+import ProfileSettingsView from '../views/ProfileSettingsView.vue'
 import FeedbackView from '../views/FeedbackView.vue'
 
 // Layouts 
@@ -29,6 +30,7 @@ const router = createRouter({
         { path: '', name: 'home', component: HomeView, meta: { requiresAuth: true } },
         { path: 'crudview', name: 'crud', component: CrudView, meta: { requiresAuth: true } },
         { path: 'profilesetupview', name: 'profilesetup', component: ProfileSetupView, meta: { requiresAuth: true } },
+        { path: 'profilesettingsview', name: 'profilesettings', component: ProfileSettingsView, meta: { requiresAuth: true } },
         { path: 'feedbackview', name: 'feedback', component: FeedbackView, meta: { requiresAuth: true } },
 
         // New 3-page matchmaking flow
