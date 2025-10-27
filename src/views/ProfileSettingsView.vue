@@ -53,7 +53,7 @@ onMounted(async () => {
     // 2) Profile row (handle "no row" gracefully)
     const { data: prof, error: perr } = await supabase
       .from('profiles')
-      .select('user_id, username, profile_photo, mbti, degree, modules, study_hours, rating_avg, rating_count')
+      .select('user_id, username, profile_photo, personality, gender, degree, modules, study_hours, avg_rating, rating_count')
       .eq('user_id', user.id)
       .maybeSingle() // <-- won't throw on 0 rows
 
@@ -147,7 +147,6 @@ async function saveAll() {
   }
 }
 
-
 // Uppercase + de-dupe modules as you type
 watch(modules, (arr) => {
   const norm = Array.from(
@@ -164,7 +163,7 @@ watch(modules, (arr) => {
 
 // Actions
 function randomiseAvatar() {
-  avatarUrl.value = `https://api.dicebear.com/7.x/notionists/svg?seed=${Math.random().toString(36).slice(2)}`
+  avatarUrl.value = ``
 }
 
 async function changePassword() {
@@ -210,144 +209,146 @@ function redoMbti() { router.push({ name: 'mbti-quiz' }) }
     <h1 class="text-center mb-4 fw-semibold">Profile Settings</h1>
 
     <div class="row g-4">
-      <!-- LEFT COLUMN -->
-      <div class="col-lg-7">
+        <!-- LEFT COLUMN -->
+        <div class="col-lg-7">
+            <!-- Profile Info -->
+            <div class="card p-4 mb-4 shadow-sm rounded-4">
+                <h5 class="fw-bold mb-3">Profile Information</h5>
 
-        <!-- Profile Info -->
-        <div class="card p-4 mb-4 shadow-sm rounded-4">
-          <h5 class="fw-bold mb-3">Profile Information</h5>
+                <!-- Avatar -->
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <img :src="avatarUrl"
+                    alt="Avatar"
+                    class="rounded-circle border shadow-sm"
+                    width="100"
+                    height="100"
+                    />
+                    <div>
+                    <Button
+                        label="Randomise"
+                        icon="pi pi-refresh"
+                        size="small"
+                        @click="randomiseAvatar"
+                    />
+                    </div>
+                </div>
 
-          <!-- Avatar -->
-          <div class="d-flex align-items-center gap-3 mb-3">
-            <img
-              :src="avatarUrl"
-              alt="Avatar"
-              class="rounded-circle border shadow-sm"
-              width="100"
-              height="100"
-            />
-            <div>
-              <Button
-                label="Randomise"
-                icon="pi pi-refresh"
-                size="small"
-                @click="randomiseAvatar"
-              />
+                <!-- Email -->
+                <div class="mb-3">
+                    <label for="email" class="form-label fw-semibold">Email</label>
+                    <div class="position-relative">
+                    <InputText
+                        id="email"
+                        :value="email"
+                        disabled
+                        class="w-100"
+                        style="padding-right: 90px;"
+                    />
+                    <Tag
+                        v-if="emailVerified"
+                        severity="success"
+                        value="Verified"
+                        class="position-absolute top-50 end-0 translate-middle-y me-2"
+                        style="font-size: .75rem;"
+                    />
+                    </div>
+                </div>
+
+                <!-- Username -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Username</label>
+                    <InputText :value="username" disabled fluid />
+                </div>
+
+                <!-- Change Password -->
+                <div class="mb-4">
+                    <label class="form-label fw-semibold mb-2">Change Password</label>
+                    <div class="d-flex align-items-start gap-2">
+                        <Password v-model="newPassword" toggleMask :feedback="true" placeholder="New password" class="flex-grow-1" input-class="w-100">
+                            <template #header>
+                                <div class="fw-semibold mb-2">Reset Password</div>
+                            </template>
+
+                            <template #footer>
+                            <Divider />
+                            <ul class="ps-3 mb-0 small text-muted">
+                                <li>At least one lowercase</li>
+                                <li>At least one uppercase</li>
+                                <li>At least one numeric</li>
+                                <li>Minimum 6 characters</li>
+                            </ul>
+                            </template>
+                        </Password>
+
+                        <Button label="Update" icon="pi pi-lock" @click="changePassword" class="flex-shrink-0" />
+                    </div>
+                </div>
             </div>
-          </div>
 
-          <!-- Email + Username -->
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Email</label>
-            <div class="d-flex align-items-center gap-2">
-              <InputText :value="email" disabled class="flex-grow-1" />
-              <Tag v-if="emailVerified" severity="success" value="Verified" />
+            <!-- Academic -->
+            <div class="card p-4 shadow-sm rounded-4">
+                <h5 class="fw-bold mb-3">Academic</h5>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Primary Degree</label>
+                    <Select v-model="degree" :options="degrees" optionLabel="label" optionValue="value" placeholder="Select your degree" fluid />
+                </div>
+
+                <div class="my-3">
+                    <label class="fw-semibold mb-2 d-block ">
+                        Your Current Modules
+                    </label>
+                    <InputChips v-model="modules" :allowDuplicate="false" class="w-100" placeholder="Add a module code and press Enter" fluid />
+                    <small class="text-muted d-block mt-1">e.g. IS216</small>
+                </div>
+
+                <!-- Study Hours -->
+                <div class="my-3">
+                <label class="form-label fw-semibold">Study Hours / per day</label>
+                <div class="d-flex align-items-center gap-3">
+                    <Slider v-model="studyHours" :min="1" :max="12" :step="1" class="flex-grow-1" />
+                </div>
+                <small class="text-muted d-block mt-2">{{ studyHours }} hrs</small>
+                </div>
             </div>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Username</label>
-            <InputText :value="username" disabled fluid />
-          </div>
-
-          <!-- Change Password -->
-          <div>
-            <label class="form-label fw-semibold">Change Password</label>
-            <div class="d-flex gap-2">
-              <Password v-model="newPassword" toggleMask :feedback="false" placeholder="New password" />
-              <Button label="Update" icon="pi pi-lock" @click="changePassword" />
-            </div>
-          </div>
         </div>
 
-        <!-- Academic -->
-        <div class="card p-4 shadow-sm rounded-4">
-          <h5 class="fw-bold mb-3">Academic</h5>
+        <!-- RIGHT COLUMN -->
+        <div class="col-lg-5">
+            <div class="card p-4 shadow-sm rounded-4">
+                <h5 class="fw-bold mb-3">Rating & Reviews</h5>
 
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Primary Degree</label>
-            <Select
-              v-model="degree"
-              :options="degrees"
-              optionLabel="label"
-              optionValue="value"
-              placeholder="Select your degree"
-              fluid
-            />
-          </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="pi pi-star text-warning"></i>
+                            <span class="fs-4 fw-bold">{{ ratingValue.toFixed(1) }}</span>
+                        </div>
+                        <small class="text-muted">{{ reviewCount }} reviews</small>
+                    </div>
 
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Modules this term</label>
-            <InputChips
-              v-model="modules"
-              :allowDuplicate="false"
-              placeholder="Add a module and press Enter"
-              fluid
-            />
-          </div>
+                    <Button label="Match History" icon="pi pi-history" @click="gotoMatchHistory"/>
+                </div>
 
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Study Hours / Day</label>
-            <div class="d-flex align-items-center gap-3">
-              <Slider v-model="studyHours" :min="1" :max="12" :step="1" class="flex-grow-1" />
-              <Knob v-model="studyHours" :min="1" :max="12" :step="1" valueTemplate="{value}h" size="80" />
+                <MeterGroup :value="ratingBreakdown" class="w-100" />
+
+                <ScrollPanel style="height: 220px" class="p-3 bg-light rounded-4 mt-3">
+                    <div v-if="reviewCount === 0" class="text-center text-muted">
+                        No reviews yet
+                    </div>
+                </ScrollPanel>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
 
-      <!-- RIGHT COLUMN -->
-      <div class="col-lg-5">
-        <div class="card p-4 shadow-sm rounded-4">
-          <h5 class="fw-bold mb-3">Rating & Reviews</h5>
-
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-              <div class="d-flex align-items-center gap-2">
-                <i class="pi pi-star text-warning"></i>
-                <span class="fs-4 fw-bold">{{ ratingValue.toFixed(1) }}</span>
-              </div>
-              <small class="text-muted">{{ reviewCount }} reviews</small>
-            </div>
-            <Button label="Match History" icon="pi pi-history" @click="gotoMatchHistory" />
-          </div>
-
-          <MeterGroup :value="ratingBreakdown" class="w-100" />
-
-          <ScrollPanel style="height: 220px" class="p-3 bg-light rounded-4 mt-3">
-            <div v-if="reviewCount === 0" class="text-center text-muted">No reviews yet</div>
-          </ScrollPanel>
+        <!-- Save Button -->
+        <div class="text-center mt-4">
+            <Button label="Save Changes" icon="pi pi-check" :loading="saving" :disabled="!canSave" @click="saveAll" />
         </div>
-      </div>
-    </div>
-
-    <!-- Save Button -->
-    <div class="text-end mt-4">
-      <Button label="Save Changes" icon="pi pi-check" :loading="saving" :disabled="!canSave" @click="saveAll" />
-    </div>
-  </section>
+    </section>
 </template>
 
 
 <style scoped>
-.page { max-width: 1200px; margin: 0 auto; }
 
-
-
-/* Small screens: stack vertically, full width panels, no gutter */
-@media (max-width: 768px) {
-  .fixed-splitter {
-    flex-direction: column !important;
-    height: auto !important;
-    min-height: 0 !important;
-  }
-  .fixed-splitter :deep(.p-splitter-panel) {
-    flex-basis: auto !important;   /* ignore :size on mobile */
-    width: 100% !important;
-    overflow: visible;              /* avoid double scrollbars */
-  }
-  .fixed-splitter :deep(.p-splitter-gutter) {
-    display: none;                  /* hide drag handle on mobile */
-  }
-}
 </style>

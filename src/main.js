@@ -77,6 +77,10 @@ import Inplace from 'primevue/inplace';
 import Knob from 'primevue/knob';
 import Toolbar from 'primevue/toolbar';
 import Dialog from 'primevue/dialog';
+import IftaLabel from 'primevue/iftalabel';
+import MeterGroup from 'primevue/metergroup';
+
+
 
 
 
@@ -118,6 +122,8 @@ app.component('Inplace', Inplace);
 app.component('Knob', Knob);
 app.component('Toolbar', Toolbar);
 app.component('Dialog', Dialog);
+app.component('IftaLabel', IftaLabel);
+app.component('MeterGroup', MeterGroup);
 
 
 app.mount('#app');
