@@ -127,14 +127,13 @@ function pi(name: string) { return `pi pi-${name}` }
 
 //import { usePrimeVue } from 'primevue/config';
 import Card from 'primevue/card';
-//@ts-ignore
-<<<<<<< Updated upstream
+//@ts-ignore;
+
 import StudySpotMap from './studyspotmap.vue'; // Import the map component
-=======
-import StudySpotMap from './studyspotmap.vue'; 
+
 
 // Import the map component
->>>>>>> Stashed changes
+
 
 // const { pi } = usePrimeVue().config;
 
