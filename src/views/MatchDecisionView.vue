@@ -38,7 +38,7 @@
         </template>
       </Card>
 
-      <ProgressBar :value="(store.secondsLeft/store.totalSeconds)*100" :showValue="false" style="height:6px" :pt="{value:{class:'bg-red-500'}}"/>
+      <ProgressBar :value="(store.secondsLeft/store.totalSeconds)*100" :showValue="false" style="height:6px" :pt="{value:{class:'bg-red-500'}}"/> 
 
       <div class="grid grid-cols-2 gap-3">
         <Button outlined @click="onDecline" :icon="pi('times')" label="Decline"/>

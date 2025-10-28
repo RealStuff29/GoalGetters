@@ -34,7 +34,7 @@ const router = useRouter()
 const store = useMatchStore()
 
 async function onStart() {
-  await store.startMatchmaking()
+  await store.startMatchmaking() //make the filter and matchmaking logic here
   router.push({ name: 'match-decision' })
 }
 </script>
