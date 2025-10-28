@@ -4,7 +4,12 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
+//To create a persist state that fixes hard refreshing bug during matchmaking
+import { createPinia } from 'pinia'
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 
+const pinia = createPinia()
+pinia.use(piniaPluginPersistedstate)
 
 
 //bootstrap
@@ -36,8 +41,8 @@ app.use(PrimeVue, {
     }
 })
 
-// import { createPinia } from 'pinia'
-// app.use(createPinia())
+import { createPinia } from 'pinia'
+app.use(createPinia())
 
 //Importing PrimeVue components we want to use
 import Button from "primevue/button"

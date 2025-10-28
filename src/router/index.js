@@ -34,10 +34,9 @@ const router = createRouter({
         { path: 'feedbackview', name: 'feedback', component: FeedbackView, meta: { requiresAuth: true } },
 
         // New 3-page matchmaking flow
-        { path: 'match', name: 'match-landing', component: MatchLanding, meta: { requiresAuth: true } },
-        { path: 'match/decision', name: 'match-decision', component: MatchDecision, meta: { requiresAuth: true } },
-        { path: 'match/chat', name: 'match-chat', component: MatchChat, meta: { requiresAuth: true } },
-        { path: 'matchmakingview', redirect: { name: 'match-landing' } }, //legacy
+        { path: 'matchlandingview', name: 'matchlanding', component: MatchLanding, meta: { requiresAuth: true } },
+        { path: 'matchdecisionview', name: 'matchdecision', component: MatchDecision, meta: { requiresAuth: true } },
+        { path: 'matchchatview', name: 'matchchat', component: MatchChat, meta: { requiresAuth: true } },
       ],
     },
     {

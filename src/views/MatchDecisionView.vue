@@ -92,12 +92,12 @@ function onDecline() {
 
 function goChat() {
   store.goToChat()
-  router.push({ name: 'match-chat' })
+  router.push({ name: 'matchchat' })
 }
 
 function startOver() {
   store.startOver()
-  router.push({ name: 'match-landing' })
+  router.push({ name: 'matchlanding' })
 }
 </script>
 

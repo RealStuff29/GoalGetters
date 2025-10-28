@@ -161,7 +161,7 @@ function send() {
 
 function restart() {
   store.startOver()
-  router.push({ name: 'match-landing' })
+  router.push({ name: 'matchlanding' })
 }
 
 onMounted(() => nextTick(scrollToBottom))

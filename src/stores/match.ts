@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { generateName } from '@/services/nameService.js'
 
+
 export const useMatchStore = defineStore('match', () => {
   // ---------- State ----------
   const stage = ref<'landing' | 'searching' | 'match' | 'result' | 'chat'>('landing')
