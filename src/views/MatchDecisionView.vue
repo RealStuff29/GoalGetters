@@ -68,7 +68,9 @@
 
     <div v-else class="opacity-70">
       <p>Loading your match…</p>
-    <Button class="mt-3" label="Back to Matchmaking" @click="startOver" /> <!--allow users to go back mainpage if stuck here-->
+    <Button class="mt-3" label="Back to Matchmaking" @click="startOver" /> <!--allow-->
+      
+    </div>
   </div>
 </template>
 
@@ -82,7 +84,7 @@ const store = useMatchStore()
 const router = useRouter()
 const route = useRoute()
 
-onMounted(async () => {
+onMounted(async () => { //To fix the bug for hard refresh
   // Restore any cached state (IDs etc.)
   await store.hydrateFromCache()
   // Ensure we have a match id: use route param first, else cached currentMatchId
@@ -106,7 +108,7 @@ function onDecline() {
 
 function goChat() {
   store.goToChat()
-  router.push({ name: 'matchchat', params: { chatId: store.chatId } }) //added ID 
+  router.push({ name: 'matchchat', params: { chatId: store.chatId } }) //added ID
 }
 
 function startOver() {

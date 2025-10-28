@@ -121,7 +121,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useMatchStore } from '@/stores/match'
 function pi(name: string) { return `pi pi-${name}` }
 
@@ -145,6 +145,7 @@ const YOUR_GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 const store = useMatchStore()
 const router = useRouter()
+const route = useRoute()
 const chatScroller = ref<HTMLElement | null>(null)
 
 function scrollToBottom() {
@@ -161,10 +162,25 @@ function send() {
 
 function restart() {
   store.startOver()
-  router.push({ name: 'matchlanding' })
+  router.push({ name: 'matchchat', params: { chatId: store.chatId }}) //to fix hard refresh on chat
 }
 
-onMounted(() => nextTick(scrollToBottom))
+onMounted(async () => {
+  // 1) restore
+  await store.hydrateFromCache()
+  // 2) ensure a match exists (needed for header/details)
+  const hasMatch = await store.ensureMatch(store.currentMatchId || undefined)
+  if (!hasMatch) {
+    router.replace({ name: 'matchlanding' })
+    return
+  }
+  // 3) ensure chat id (from route or cache)
+  await store.ensureChat(route.params.chatId as string | undefined)
+  // 4) set stage so template renders
+  store.stage = 'chat'
+  // 5) scroll once ready
+  nextTick(scrollToBottom)
+  setTimeout(() => nextTick(scrollToBottom), 500)})
 </script>
 
 <style scoped>
