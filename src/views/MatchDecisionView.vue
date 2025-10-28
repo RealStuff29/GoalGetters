@@ -67,20 +67,34 @@
     </div>
 
     <div v-else class="opacity-70">
-      <!-- in case someone lands here out of order -->
-      Loading...
-    </div>
+      <p>Loading your match…</p>
+    <Button class="mt-3" label="Back to Matchmaking" @click="startOver" /> <!--allow users to go back mainpage if stuck here-->
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { onMounted } from 'vue'
 import { useMatchStore } from '@/stores/match'
 function pi(name: string) { return `pi pi-${name}` }
 
 const store = useMatchStore()
 const router = useRouter()
+const route = useRoute()
 
+onMounted(async () => {
+  // Restore any cached state (IDs etc.)
+  await store.hydrateFromCache()
+  // Ensure we have a match id: use route param first, else cached currentMatchId
+  const ok = await store.ensureMatch(route.params.id as string | undefined)
+  if (!ok) {
+    // No match to show → back to landing
+    router.replace({ name: 'matchlanding' })
+    return
+  }
+ // If user already accepted before refresh, show result; otherwise show match card
+  store.stage = store.resultAccepted ? 'result' : 'match'
+})
 function onAccept() {
   store.acceptMatch()
   // show result on same page (stage changes to 'result')
@@ -92,7 +106,7 @@ function onDecline() {
 
 function goChat() {
   store.goToChat()
-  router.push({ name: 'matchchat' })
+  router.push({ name: 'matchchat', params: { chatId: store.chatId } }) //added ID 
 }
 
 function startOver() {

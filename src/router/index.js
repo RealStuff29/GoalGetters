@@ -33,10 +33,11 @@ const router = createRouter({
         { path: 'profilesettingsview', name: 'profilesettings', component: ProfileSettingsView, meta: { requiresAuth: true } },
         { path: 'feedbackview', name: 'feedback', component: FeedbackView, meta: { requiresAuth: true } },
 
-        // New 3-page matchmaking flow
+        // New 3-page matchmaking flow 
         { path: 'matchlandingview', name: 'matchlanding', component: MatchLanding, meta: { requiresAuth: true } },
-        { path: 'matchdecisionview', name: 'matchdecision', component: MatchDecision, meta: { requiresAuth: true } },
-        { path: 'matchchatview', name: 'matchchat', component: MatchChat, meta: { requiresAuth: true } },
+        //Added chatid and id
+        { path: 'matchdecisionview/:id?', name: 'matchdecision', component: MatchDecision, meta: { requiresAuth: true } },
+        { path: 'matchchatview/:chatId?', name: 'matchchat', component: MatchChat, meta: { requiresAuth: true } },
       ],
     },
     {

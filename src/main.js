@@ -41,7 +41,6 @@ app.use(PrimeVue, {
     }
 })
 
-import { createPinia } from 'pinia'
 app.use(createPinia())
 
 //Importing PrimeVue components we want to use

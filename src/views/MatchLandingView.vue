@@ -35,7 +35,7 @@ const store = useMatchStore()
 
 async function onStart() {
   await store.startMatchmaking() //make the filter and matchmaking logic here
-  router.push({ name: 'matchdecision' })
+  router.push({ name: 'matchdecision', params: { id: store.currentMatchId } })
 }
 </script>
 
