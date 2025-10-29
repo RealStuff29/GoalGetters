@@ -12,7 +12,7 @@
 
 | Photo | Full Name | Role / Features Responsible For |
 |:--:|:--|:--|
-| <img src="photos/member1.jpg" width="80"> | Muhammad Mikhail Ghazi bin Ridzuan | Team Lead / Developer / Database - Login System & Supabase Integration |
+| <img src="photos/member1.jpg" width="80"> | Muhammad Mikhail Ghazi bin Ridzuan | Team Lead / Developer / Database - Register/Login with Auth & Supabase Integration |
 | <img src="photos/alec.jpg" width="80"> | Ong Zhe Hwee Alec | Core Developer - Matchmaking Algorithm & Chat Functionailty |
 | <img src="photos/qingling.jpg" width="80"> | Mok Qing Ling | Developer - Profiles, Match History + Review & API endpoints  |
 | <img src="photos/member4.jpg" width="80"> | Tan Jordan | Developer - Map Integration & API endpoints |
