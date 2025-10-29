@@ -27,7 +27,7 @@
 
 Many students find it difficult to stay consistent, focused, and motivated when working toward their goals. They often have friends, but not the right peers who can help keep them accountable. Existing social or productivity applications do not effectively combine peer accountability with privacy and flexibility. Students need a simple and safe way to find others with similar goals and motivation levels who can support them in maintaining discipline and progress.
   
-**GoalGetters** solves this by pairing/connecting students with anonymous like-minded partners who share similar objectives, ensuring both privacy and productivity at the same time.
+> **GoalGetters** solves this by pairing/connecting students with anonymous like-minded partners who share similar objectives, ensuring both privacy and productivity at the same time.
 
 
 ---
@@ -40,7 +40,7 @@ The primary users of GoalGetters are **SMU students** who are motivated to achie
 
 
 ### 🚀 What Users Can Do & Benefits
-Explain the core features and the benefit each provides.  
+Core features and the benefit each provides:  
 
 | Feature | Description | User Benefit |
 |:--|:--|:--|
@@ -63,14 +63,13 @@ Explain the core features and the benefit each provides.
 | <img src="https://raw.githubusercontent.com/github/explore/main/topics/javascript/javascript.png" width="40"> | **JavaScript (ES6)** | Client-side logic and interactivity |
 | <img src="https://vitejs.dev/logo.svg" width="40"> | **Vite** | Development server and build tool |
 | <img src="https://vuejs.org/images/logo.png" width="40"> | **Vue.js 3** | Component-based frontend framework |
-| <img src="photos/primevue-logo" width="40"> | **PrimeVue.js** | Component-based frontend framework |
-| <img src="photos/supbase-logo.png" width="40"> | **Supabase** | Authentication and database services |
+| <img src="photos/primevue-logo.png" width="40"> | **PrimeVue.js** | Component-based frontend framework |
+| <img src="photos/supabase-logo.png" width="40"> | **Supabase** | Authentication and database services |
 
-> Add or remove technologies depending on your project stack (e.g., Express.js, Supabase, MongoDB Atlas, AWS S3).
 
 ---
 
-## Use Case & User Journey
+## Use Case & User Journey (TO DO: Once each of our Individual Functions is done!)
 
 Provide screenshots and captions showing how users interact with your app.
 
