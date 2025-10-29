@@ -1,29 +1,33 @@
-# goalgetters
-# �� IS216 Web Application Development II
+# GoalGetters
+# 🏆 IS216 Web Application Development II
 
 ---
 
 ## Section & Group Number
-**Example:** G3 Group 10  
+** G3 Group 18 **
 
 ---
 
-## Group Members
+## 👥 Group Members
 
 | Photo | Full Name | Role / Features Responsible For |
 |:--:|:--|:--|
-| <img src="photos/member1.jpg" width="80"> | Alice Tan | Frontend Developer - Search & Filter UI |
-| <img src="photos/member2.jpg" width="80"> | Ben Lee | Backend Developer - API endpoints |
-| <img src="photos/member3.jpg" width="80"> | Chloe Lim | UI/UX Designer - Layout & Color Themes |
-| <img src="photos/member4.jpg" width="80"> | David Ong | Database & Auth - Firebase Integration |
+| <img src="photos/member1.jpg" width="80"> | Muhammad Mikhail Ghazi bin Ridzuan | Team Lead / Developer / Database - Login System & Supabase Integration |
+| <img src="photos/alec.jpg" width="80"> | Ong Zhe Hwee Alec | Core Developer - Matchmaking Algorithm & Chat Functionailty |
+| <img src="photos/qingling.jpg" width="80"> | Mok Qing Ling | Developer - Profiles, Match History + Review & API endpoints  |
+| <img src="photos/member4.jpg" width="80"> | Tan Jordan | Developer - Map Integration & API endpoints |
+| <img src="photos/member3.jpg" width="80"> | Yu Yan Chang | Developer - Onboarding Screens |
+| <img src="photos/member4.jpg" width="80"> | Parikshit Sanganeria | Developer - App Feedback |
 
 > Place all headshot thumbnails in the `/photos` folder (JPEG or PNG).
 
 ---
 
-## Business Problem
+## 💡 Business Problem
 
-Describe the **real-world business or community problem** your project addresses.
+Many students find it difficult to stay consistent, focused, and motivated when working toward their goals. They often have friends, but not the right peers who can help keep them accountable. Existing social or productivity applications do not effectively combine peer accountability with privacy and flexibility. Students need a simple and safe way to find others with similar goals and motivation levels who can support them in maintaining discipline and progress.
+  
+**GoalGetters** solves this by pairing/connecting students with anonymous like-minded partners who share similar objectives, ensuring both privacy and productivity at the same time.
 
 > *Example:*  
 > Small local businesses struggle to maintain an online presence, limiting visibility to customers.  
@@ -31,25 +35,34 @@ Describe the **real-world business or community problem** your project addresses
 
 ---
 
-## Web Solution Overview
+## 🌐 Web Solution Overview
 
-### �� Intended Users
-Identify your target user groups.  
-Examples: small-business owners, caregivers, students, pet adopters, etc.
+### 👤 Intended Users
 
-### �� What Users Can Do & Benefits
+The primary users of GoalGetters are **SMU students** who are motivated to achieve their goals but struggle to maintain focus or consistency on their own. These students are eager to complete assignments, prepare for exams, or work toward personal objectives, but may get distracted or lose motivation without support from others. GoalGetters provides them with an easy way to find study or accountability partners who share similar ambitions.
+
+> Examples: small-business owners, caregivers, students, pet adopters, etc.
+
+### 🚀 What Users Can Do & Benefits
 Explain the core features and the benefit each provides.  
 
 | Feature | Description | User Benefit |
 |:--|:--|:--|
 | Register & Login | Secure authentication system | Personalized experience and data security |
-| Search & Filter | Find items by category or location | Saves time finding relevant results |
+| Filter | Find items by category or location | Saves time finding relevant results |
 | Favorites | Bookmark preferred items or places | Quick access to commonly used data |
 | Reviews | Submit ratings and comments | Builds trust and community feedback |
+| 🔐 **Register/Login with Student Verification System** | Users can register/login using their SMU student email to ensure a safe and verified community | Builds trust by ensuring only legitimate students are part of the platform |
+| 🕵️ **Anonymous Matching** | Each user is given a random avatar and a generated nickname to stay anonymous | Protects user identity |
+| ⏳ **Filter** | Users can filter their prefered gender, modules, and study hours | Helps users find the most suitable potiential partners efficiently |
+| 🗺️ **Map Suggestion Feature** | Google Maps API recommends meet-up spots | Simplifies planning and helps users locate available meeting/studying spots |
+| 🤝 **Matching Algorithm** | The platform automatically matches users with others who share similar goals and schedules | Saves time and increases the chance of finding compatible potential study partners |
+| 💬 **Chat Functionality** | Users can communicate through an in-app chat system to plan sessions or motivate each other | Encourages communication and support without the need for personal contact information being exchanged |
+| ⭐ **Rating + Review System** | AAfter each session, users can rate and review the experience. All reviews remain private and anonymous | Encourages reflection and improvement for future sessions |
 
 ---
 
-## Tech Stack
+## 🧰 Tech Stack
 
 | Logo | Technology | Purpose / Usage |
 |:--:|:--|:--|
@@ -58,7 +71,8 @@ Explain the core features and the benefit each provides.
 | <img src="https://raw.githubusercontent.com/github/explore/main/topics/javascript/javascript.png" width="40"> | **JavaScript (ES6)** | Client-side logic and interactivity |
 | <img src="https://vitejs.dev/logo.svg" width="40"> | **Vite** | Development server and build tool |
 | <img src="https://vuejs.org/images/logo.png" width="40"> | **Vue.js 3** | Component-based frontend framework |
-| <img src="https://firebase.google.com/downloads/brand-guidelines/PNG/logo-logomark.png" width="40"> | **Firebase** | Authentication and database services |
+| <img src="photos/primevue-logo" width="40"> | **PrimeVue.js** | Component-based frontend framework |
+| <img src="photos/supbase-logo.png" width="40"> | **Supabase** | Authentication and database services |
 
 > Add or remove technologies depending on your project stack (e.g., Express.js, Supabase, MongoDB Atlas, AWS S3).
 
@@ -126,7 +140,7 @@ VITE_FIREBASE_APP_ID=<your_app_id>
 
 ### 3) Backend / Cloud Service Setup
 
-#### Firebase
+#### Supabase (To Do: Change the content below)
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Create a new project.
 3. Enable the following:
