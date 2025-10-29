@@ -1,19 +1,20 @@
 <template>
   <div class="study-spot-map-container">
-    <div class="search-controls p-4 bg-white border-b">
+    <div class="search-controls p-4 ps-0 bg-white border-b">
       <!-- Search Input and Button -->
-      <div class="flex flex-col sm:flex-row gap-3 mb-2 sm:items-start">
-        <input
-          type="text"
+      <div class="d-flex justify-content-start align-items-center w-100">
+        <input type="text"
           v-model="locationQuery"
           @keyup.enter="searchLocation"
           placeholder="Enter an address or landmark..."
-          class="flex-grow p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+          class="p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+          style="width:70%;"
         />
         <button
           @click="searchLocation"
           :disabled="isLoading || !isApiLoaded"
-          class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center whitespace-nowrap"
+          class="px-4 py-2 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center justify-center whitespace-nowrap"
+          style="width:20%; margin-left: 10px;"
         >
           <svg v-if="isLoading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -45,7 +46,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineProps } from 'vue';
+import { ref, onMounted, defineProps, defineEmits } from 'vue';
+const emit = defineEmits(['placesUpdated']);
 
 // Props for customization
 const props = defineProps({
@@ -233,7 +235,7 @@ const findNearbyStudyLocations = (location) => {
   // Search 1: Libraries and university libraries
   const libraryRequest = {
     location: location,
-    radius: 2000, // 2km radius
+    radius: 1000, // 2km radius
     keyword: 'library NTU NUS SMU university',
     type: 'library'
   };
@@ -241,7 +243,7 @@ const findNearbyStudyLocations = (location) => {
   // Search 2: Cafes
   const cafeRequest = {
     location: location,
-    radius: 2000, // 2km radius
+    radius: 1000, // 2km radius
     keyword: 'cafe coffee study',
     type: 'cafe'
   };
@@ -249,7 +251,7 @@ const findNearbyStudyLocations = (location) => {
   // Search 3: General study spaces
   const studyRequest = {
     location: location,
-    radius: 2000, // 2km radius
+    radius: 1000, // 2km radius
     keyword: 'study space coworking workspace reading room',
   };
 
@@ -343,10 +345,18 @@ const displayMarkers = () => {
   
   if (!allPlaces || allPlaces.length === 0) {
     isLoading.value = false;
+    console.log('⚠️ Emitting 0 places');
+    emit('placesUpdated', []);
     return;
   }
 
+  console.log('✅ About to emit places:', allPlaces.length);
+  console.log('✅ Places data:', allPlaces);
+  
   debugInfo.value = `Displaying ${allPlaces.length} study spots`;
+
+  // Emit the places data to parent component
+  emit('placesUpdated', allPlaces);
   
   // Add markers with a slight delay for animation effect
   for (let i = 0; i < allPlaces.length; i++) {

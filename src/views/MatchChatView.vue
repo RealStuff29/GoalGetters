@@ -1,6 +1,11 @@
 <!-- src/views/MatchChatView.vue -->
 
 <template>
+  <!-- Debug line
+  <div class="bg-blue-100 p-2">
+    Stage: {{ store.stage }} | StudySpots: {{ studySpots.length }}
+  </div> -->
+
   <div class="min-h-screen p-4 w-full max-w-6xl mx-auto grid lg:grid-cols-2 gap-6" v-if="store.stage === 'chat'">
     <!-- Left column: Header + Details + Chat -->
     <div class="space-y-4">
@@ -76,39 +81,77 @@
           <span class="text-base font-medium"><i :class="pi('direction')" class="mr-2"/> Nearby Study Locations</span>
         </template>
         <template #content>
-          <div class="relative h-64 rounded-lg overflow-hidden" style="background:linear-gradient(135deg,#dbeafe,#dcfce7)">
-            <div class="absolute inset-4 border-2 border-dashed rounded flex items-center justify-center opacity-80">
-              <div class="text-center">
-                <i :class="pi('map-marker')" style="font-size:1.5rem" class="mb-2 block"/>
-                <StudySpotMap :api-key="YOUR_GOOGLE_MAPS_API_KEY" height="400px" />
-              </div>
-            </div>
-            <span class="absolute w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow" style="left:20%;top:30%"></span>
-            <span class="absolute w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow" style="left:45%;top:50%"></span>
-            <span class="absolute w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow" style="left:70%;top:70%"></span>
-          </div>
+          <StudySpotMap :api-key="YOUR_GOOGLE_MAPS_API_KEY" height="400px" @places-updated="handlePlacesUpdate"/>
         </template>
       </Card>
-
-      <Card>
+      <!-- <Card>
+        <template #content>
+          <div class="bg-yellow-100 p-4">
+            <strong>DEBUG:</strong> studySpots.length = {{ studySpots.length }}
+            <br>
+            <strong>First spot:</strong> {{ studySpots[0]?.name || 'none' }}
+          </div>
+        </template>
+      </Card> -->
+      <Card :key="studySpots.length">
         <template #title>
           <div>
             <div class="text-base font-medium">Suggested Study Spots</div>
-            <small class="opacity-70">Based on your location and study needs</small>
+            <small class="opacity-70">{{ studySpots.length }} spots found</small>
           </div>
         </template>
         <template #content>
-          <div class="max-h-64 overflow-auto space-y-2">
-            <div v-for="(spot, idx) in store.locationSuggestions" :key="idx" class="flex items-start justify-between p-3 rounded border surface-border">
-              <div>
-                <div class="font-medium">{{ spot.name }}</div>
-                <small class="opacity-70">{{ spot.desc }}</small>
+          <div v-if="studySpots.length === 0" class="text-center p-4 opacity-70">
+            Search for a location to find study spots
+          </div>
+          <div v-else>
+            <div class="space-y-2 mb-3">
+
+              <div v-for="spot in paginatedSpots" :key="spot.place_id" 
+                  class="flex items-start justify-between p-3 rounded border surface-border hover:bg-gray-50 transition-colors">
+                <div class="flex-1">
+                  <div class="font-medium">{{ spot.name }}</div>
+                  <small class="opacity-70 block">{{ spot.vicinity || spot.formatted_address }}</small>
+                  <small v-if="spot.rating" class="text-yellow-600">
+                    ★ {{ spot.rating }} {{ spot.user_ratings_total ? `(${spot.user_ratings_total} reviews)` : '' }}
+                  </small>
+                </div>
+                <Button 
+                  outlined 
+                  size="small" 
+                  icon="pi pi-map-marker" 
+                  label="View" 
+                  @click="focusOnSpot(spot)"
+                />
               </div>
-              <Button outlined size="small" :icon="pi('thumbtack')" label="Use" @click="store.chooseSpot(spot)"/>
             </div>
           </div>
+
+          <!-- Pagination Controls -->
+          <div class="flex justify-between items-center pt-2 border-t">
+            <Button 
+              :disabled="currentPage === 1" 
+              @click="currentPage--" 
+              icon="pi pi-chevron-left" 
+              text 
+              size="small"
+              label="Previous"
+            />
+            <small class="opacity-70">
+              Page {{ currentPage }} of {{ totalPages }}
+            </small>
+            <Button 
+              :disabled="currentPage === totalPages" 
+              @click="currentPage++" 
+              icon="pi pi-chevron-right" 
+              iconPos="right"
+              text 
+              size="small"
+              label="Next"
+            />
+          </div>
         </template>
-      </Card>
+  </Card>
 
       <Button outlined class="w-full" :icon="pi('refresh')" label="Find Another Match" @click="restart"/>
     </div>
@@ -120,20 +163,15 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onMounted, ref, nextTick, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useMatchStore } from '@/stores/match'
 function pi(name: string) { return `pi pi-${name}` }
 
 //import { usePrimeVue } from 'primevue/config';
 import Card from 'primevue/card';
-//@ts-ignore;
-
-import StudySpotMap from './studyspotmap.vue'; // Import the map component
-
-
-// Import the map component
-
+import Button from 'primevue/button';
+import StudySpotMap from './StudySpotMap.vue'; // Import the map component
 
 // const { pi } = usePrimeVue().config;
 
@@ -142,6 +180,34 @@ import StudySpotMap from './studyspotmap.vue'; // Import the map component
 //@jordan - I just put a @ts-ignore and did it the JS way, if you want to do it the proper ts way, theres some setup you need to do
 //@ts-ignore
 const YOUR_GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+//studyspots
+const studySpots = ref<any[]>([]);
+const currentPage = ref(1);
+const itemsPerPage = 4;
+
+// Computed property for pagination
+const totalPages = computed(() => Math.ceil(studySpots.value.length / itemsPerPage));
+
+const paginatedSpots = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return studySpots.value.slice(start, end);
+});
+
+
+const handlePlacesUpdate = (places:any) => {
+  console.log('🎯 Parent received places:', places.length);
+  console.log('🎯 Places:', places);
+  studySpots.value = [...places];
+  currentPage.value = 1; // Reset to first page on new search
+  console.log('🎯 studySpots.value updated to:', studySpots.value.length);
+};
+
+const focusOnSpot = (spot:any) => {
+  console.log('Focus on:', spot.name);
+  // Can add map focusing logic here later
+};
 
 const store = useMatchStore()
 const router = useRouter()
