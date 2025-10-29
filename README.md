@@ -4,7 +4,7 @@
 ---
 
 ## Section & Group Number
-** G3 Group 18 **
+**G3 Group 18**
 
 ---
 
@@ -19,7 +19,7 @@
 | <img src="photos/member3.jpg" width="80"> | Yu Yan Chang | Developer - Onboarding Screens |
 | <img src="photos/member4.jpg" width="80"> | Parikshit Sanganeria | Developer - App Feedback |
 
-> Place all headshot thumbnails in the `/photos` folder (JPEG or PNG).
+> Remeber to place your headshot thumbnails in the `/photos` folder (JPEG or PNG).
 
 ---
 
@@ -29,9 +29,6 @@ Many students find it difficult to stay consistent, focused, and motivated when 
   
 **GoalGetters** solves this by pairing/connecting students with anonymous like-minded partners who share similar objectives, ensuring both privacy and productivity at the same time.
 
-> *Example:*  
-> Small local businesses struggle to maintain an online presence, limiting visibility to customers.  
-> Our web application helps them list menus, accept feedback, and attract more customers.
 
 ---
 
@@ -41,17 +38,12 @@ Many students find it difficult to stay consistent, focused, and motivated when 
 
 The primary users of GoalGetters are **SMU students** who are motivated to achieve their goals but struggle to maintain focus or consistency on their own. These students are eager to complete assignments, prepare for exams, or work toward personal objectives, but may get distracted or lose motivation without support from others. GoalGetters provides them with an easy way to find study or accountability partners who share similar ambitions.
 
-> Examples: small-business owners, caregivers, students, pet adopters, etc.
 
 ### 🚀 What Users Can Do & Benefits
 Explain the core features and the benefit each provides.  
 
 | Feature | Description | User Benefit |
 |:--|:--|:--|
-| Register & Login | Secure authentication system | Personalized experience and data security |
-| Filter | Find items by category or location | Saves time finding relevant results |
-| Favorites | Bookmark preferred items or places | Quick access to commonly used data |
-| Reviews | Submit ratings and comments | Builds trust and community feedback |
 | 🔐 **Register/Login with Student Verification System** | Users can register/login using their SMU student email to ensure a safe and verified community | Builds trust by ensuring only legitimate students are part of the platform |
 | 🕵️ **Anonymous Matching** | Each user is given a random avatar and a generated nickname to stay anonymous | Protects user identity |
 | ⏳ **Filter** | Users can filter their prefered gender, modules, and study hours | Helps users find the most suitable potiential partners efficiently |
