@@ -55,7 +55,7 @@
         </template>
         <template #content>
           <div class="flex flex-col h-72">
-            <div class="flex-1 overflow-auto pr-2" ref="chatScroller">
+            <div class="flex-1 overflow-auto pr-2 space-y-4" ref="chatScroller">
               <div v-for="m in store.messages" :key="m.id" class="mb-2">
                 <div :class="m.from==='me' ? 'text-right' : 'text-left'">
                   <span :class="['inline-block px-3 py-2 rounded-lg', m.from==='me' ? 'bg-primary-500 text-white' : 'bg-surface-200']">
@@ -105,7 +105,7 @@
             Search for a location to find study spots
           </div>
           <div v-else>
-            <div class="space-y-2 mb-3">
+            <div class="space-y-4 mb-3">
 
               <div v-for="spot in paginatedSpots" :key="spot.place_id" 
                   class="flex items-start justify-between p-3 rounded border surface-border hover:bg-gray-50 transition-colors">
@@ -116,13 +116,23 @@
                     ★ {{ spot.rating }} {{ spot.user_ratings_total ? `(${spot.user_ratings_total} reviews)` : '' }}
                   </small>
                 </div>
-                <Button 
-                  outlined 
-                  size="small" 
-                  icon="pi pi-map-marker" 
-                  label="View" 
-                  @click="focusOnSpot(spot)"
-                />
+                <div class="flex gap-3 space-y-4">
+                  <Button
+                    outlined 
+                    size="small" 
+                    icon="pi pi-map-marker" 
+                    label="View" 
+                    @click="focusOnSpot(spot)">
+                  </Button>
+                  <Button 
+                    outlined 
+                    size="small" 
+                    icon="pi pi-plus" 
+                    label="Suggest" 
+                    @click="suggestSpot(spot)">
+                  </Button>
+                </div>
+
               </div>
             </div>
           </div>
@@ -212,6 +222,15 @@ const focusOnSpot = (spot:any) => {
   }
 };
 
+//suggestSpot function 
+const suggestSpot = (spot: any) => {
+  const message = `Let's meet at ${spot.name}! Location @${spot.vicinity || spot.formatted_address || ''}`;
+  store.sendMessage(message);
+  store.draft = '';
+  nextTick(scrollToBottom);
+  setTimeout(() => nextTick(scrollToBottom), 750);
+};
+
 const store = useMatchStore()
 const router = useRouter()
 const route = useRoute()
@@ -249,7 +268,9 @@ onMounted(async () => {
   store.stage = 'chat'
   // 5) scroll once ready
   nextTick(scrollToBottom)
-  setTimeout(() => nextTick(scrollToBottom), 500)})
+  setTimeout(() => nextTick(scrollToBottom), 500)}
+)
+  
 </script>
 
 <style scoped>

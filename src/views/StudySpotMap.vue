@@ -10,18 +10,16 @@
           class="p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           style="width:70%;"
         />
-        <button
+        <Button
+          outlined
+          size="medium"
           @click="searchLocation"
           :disabled="isLoading || !isApiLoaded"
-          class="px-4 py-2 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center justify-center whitespace-nowrap"
+          :icon="isLoading ? 'pi pi-spin pi-spinner' : 'pi pi-search'"
+          :label="isLoading ? 'Searching...' : 'Search'"
           style="width:20%; margin-left: 10px;"
         >
-          <svg v-if="isLoading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          {{ isLoading ? 'Searching...' : 'Search' }}
-        </button>
+        </Button>
       </div>
 
       <!-- Debug Info Display -->
@@ -46,7 +44,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineProps, defineEmits } from 'vue';
+import { ref, onMounted, defineProps } from 'vue';
+import Button from 'primevue/button';
+
 const emit = defineEmits(['placesUpdated']);
 
 // Props for customization
@@ -235,7 +235,7 @@ const findNearbyStudyLocations = (location) => {
   // Search 1: Libraries and university libraries
   const libraryRequest = {
     location: location,
-    radius: 1000, // 2km radius
+    radius: 1000, // 1km radius
     keyword: 'library NTU NUS SMU university',
     type: 'library'
   };
@@ -243,7 +243,7 @@ const findNearbyStudyLocations = (location) => {
   // Search 2: Cafes
   const cafeRequest = {
     location: location,
-    radius: 1000, // 2km radius
+    radius: 1000, // 1km radius
     keyword: 'cafe coffee study',
     type: 'cafe'
   };
@@ -251,7 +251,7 @@ const findNearbyStudyLocations = (location) => {
   // Search 3: General study spaces
   const studyRequest = {
     location: location,
-    radius: 1000, // 2km radius
+    radius: 1000, // 1km radius
     keyword: 'study space coworking workspace reading room',
   };
 
