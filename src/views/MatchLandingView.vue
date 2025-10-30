@@ -33,10 +33,22 @@ function pi(name: string) { return `pi pi-${name}` } // if you need icons
 const router = useRouter()
 const store = useMatchStore()
 
+// async function onStart() {
+//   await store.startMatchmaking() //make the filter and matchmaking logic here
+//   router.push({ name: 'matchdecision', params: { id: store.currentMatchId } })
+// }
+
 async function onStart() {
-  await store.startMatchmaking() //make the filter and matchmaking logic here
-  router.push({ name: 'matchdecision', params: { id: store.currentMatchId } })
+  // 1) show spinner on this page
+  store.stage = 'searching'
+
+  // 2) enqueue + poll (we’ll implement this in the store next)
+  const roomId = await store.queueAndPoll()
+
+  // 3) only navigate once a match is confirmed
+  router.push({ name: 'matchdecision', params: { id: roomId } })
 }
+
 </script>
 
 <style scoped>

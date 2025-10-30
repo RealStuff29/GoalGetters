@@ -2,10 +2,32 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { generateName } from '@/services/nameService.js'
+import { supabase } from '@/lib/supabase'
+
+
+
 
 type Stage = 'landing' | 'searching' | 'match' | 'result' | 'chat'
 type Message = { id: number; from: 'me' | 'them'; text: string }
 type Spot = { name: string; desc: string }
+// type Match = {
+//   id?: string
+//   subject: string
+//   description: string
+//   time: string
+//   duration: string
+//   location: string
+//   partner: { name: string }
+// }
+
+
+//CHANGED HOW PARTNER IS DEFINED, AND THUS HOW MATCH IS DONE ACCORDINGLY. LEFT ORIGINAL CODE COMMENTED ABOVE!
+type Partner = {
+  name: string
+  photo?: string | null
+  description?: string | null
+}
+
 type Match = {
   id?: string
   subject: string
@@ -13,7 +35,7 @@ type Match = {
   time: string
   duration: string
   location: string
-  partner: { name: string }
+  partner: Partner
 }
 
 const STORAGE_KEY = 'match-store-v1'
@@ -32,7 +54,8 @@ export const useMatchStore = defineStore('match', () => {
     time: '3:30 PM - 4:30 PM',
     duration: '1 hour',
     location: 'Library Level 2, Study Room 3',
-    partner: { name: generateName() }
+    //partner: { name: '' }    // modified this here - mik
+    partner: { name: generateName() } //I kept this here first, as I can't seem to get the partner's name to load dynamically
   })
 
   const partnerInitials = computed(() =>
@@ -237,6 +260,225 @@ export const useMatchStore = defineStore('match', () => {
     return true
   }
 
+
+
+
+
+  // =============================== True matchmaking code below ===============================
+  // Bro idk typescript idk what you did here but I'll try to build upon it with GPT
+
+  async function queueAndPoll(): Promise<string> {
+    // show "Searching..."
+    stage.value = 'searching';
+
+    // 0) who am I?
+    const { data: auth } = await supabase.auth.getUser();
+    const userId = auth?.user?.id;
+    if (!userId) throw new Error('Not authenticated');
+
+    // 1) enqueue myself (idempotent)
+    {
+      const { error } = await supabase.from('match_queue').upsert({
+        user_id: userId,
+        status: 'waiting',
+        room_id: null,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+      if (error) throw error;
+    }
+
+    // helper to try matching immediately
+    const tryImmediateMatch = async (): Promise<string | null> => {
+      // find another waiting user
+      const { data: candidate, error: findErr } = await supabase
+        .from('match_queue')
+        .select('user_id')
+        .eq('status', 'waiting')
+        .neq('user_id', userId)
+        .order('updated_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (findErr) return null;
+      if (!candidate?.user_id) return null;
+
+      // create room and update both rows to matched
+      const roomId = (globalThis.crypto?.randomUUID?.() ?? String(Date.now()));
+      const { error: updErr } = await supabase
+        .from('match_queue')
+        .update({ status: 'matched', room_id: roomId, updated_at: new Date().toISOString() })
+        .in('user_id', [userId, candidate.user_id]);
+      if (updErr) return null;
+
+      // optionally record the room (ignore failure)
+      await supabase.from('match_room').insert({
+        id: roomId, user1: userId, user2: candidate.user_id, created_at: new Date().toISOString()
+      });
+
+      return roomId;
+    };
+
+    // 2) greedy attempt
+    {
+      const rid = await tryImmediateMatch();
+      if (rid) {
+        // optional: if your store tracks these, keep them; otherwise delete these two lines
+        currentMatchId.value = rid;
+        match.value.id = rid;
+
+        stage.value = 'match';
+        await setPartnerFromRoom(rid); //LATEST ADDITION
+
+        const { data: auth } = await supabase.auth.getUser();
+        const userId = auth?.user?.id;
+
+        const partner = await loadPartnerProfile(rid, userId);
+        if (partner) {
+          match.value.partner = {
+            name: partner.username,
+            photo: partner.profile_photo,
+            description: partner.description
+          };
+        }
+
+        return rid;
+      }
+    }
+
+    // 3) poll for up to 60s (every 2s)
+    const deadline = Date.now() + 60_000;
+    while (Date.now() < deadline) {
+      // a) did someone else match me?
+      const { data: mine } = await supabase
+        .from('match_queue')
+        .select('status, room_id')
+        .eq('user_id', userId)
+        .single();
+
+      if (mine?.status === 'matched' && mine?.room_id) {
+        const rid = mine.room_id as string;
+
+        // optional store fields
+        currentMatchId.value = rid;
+        match.value.id = rid;
+
+        stage.value = 'match';
+        await setPartnerFromRoom(rid); //LATEST ADDITION
+
+        const { data: auth } = await supabase.auth.getUser();
+        const userId = auth?.user?.id;
+        const partner = await loadPartnerProfile(rid, userId);
+        if (partner) {
+          match.value.partner = {
+            name: partner.username,
+            photo: partner.profile_photo,
+            description: partner.description
+          };
+        }
+
+        return rid;
+      }
+
+      // b) still waiting? try to match again
+      const rid2 = await tryImmediateMatch();
+      if (rid2) {
+        currentMatchId.value = rid2;
+        match.value.id = rid2;
+        stage.value = 'match';
+        return rid2;
+      }
+
+      // c) wait 2s
+      await new Promise(r => setTimeout(r, 2000));
+    }
+
+    // 4) timeout → mark idle (optional)
+    await supabase.from('match_queue')
+      .update({ status: 'idle', room_id: null, updated_at: new Date().toISOString() })
+      .eq('user_id', userId);
+
+    stage.value = 'landing';
+    throw new Error('No match found (timeout)');
+  }
+
+  async function loadPartnerProfile(roomId: string, myId: string) {
+    // 1) find the room row (get both user IDs)
+    const { data: room } = await supabase
+      .from('match_room')
+      .select('user1, user2')
+      .eq('id', roomId)
+      .single();
+
+    if (!room) return null;
+
+    // 2) figure out which ID is the other person
+    const partnerId = room.user1 === myId ? room.user2 : room.user1;
+
+    // 3) fetch their profile
+    const { data: partner } = await supabase
+      .from('profiles')
+      .select('username, profile_photo, description')
+      .eq('user_id', partnerId)
+      .single();
+
+    return partner;
+  }
+
+  async function loadPartnerForCurrent() { //THis doesnt seem to work for displaying partner's username
+    const roomId = currentMatchId.value || match.value.id;
+    if (!roomId) return;
+
+    const { data: auth } = await supabase.auth.getUser();
+    const userId = auth?.user?.id;
+    if (!userId) return;
+
+    const partner = await loadPartnerProfile(roomId, userId);
+    if (partner) {
+      match.value.partner = {
+        name: partner.username,
+        photo: partner.profile_photo,
+        description: partner.description
+      };
+    }
+  }
+
+
+  async function setPartnerFromRoom(roomId: string) { //This also doesnt work in displaying partner's name on the matched card
+    if (!roomId) return;
+
+    const { data: auth } = await supabase.auth.getUser();
+    const myId = auth?.user?.id;
+    if (!myId) return;
+
+    // find the other user in the room
+    const { data: room } = await supabase
+      .from('match_room')
+      .select('user1, user2')
+      .eq('id', roomId)
+      .single();
+
+    if (!room) return;
+    const partnerId = room.user1 === myId ? room.user2 : room.user1;
+
+    // fetch their profile
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('username, profile_photo, description')
+      .eq('user_id', partnerId)
+      .single();
+
+    if (prof?.username) {
+      match.value.partner = {
+        name: prof.username,
+        photo: prof.profile_photo,
+        description: prof.description
+      };
+      // optional debug:
+      // console.log('[match] loaded partner', match.value.partner)
+    }
+  }
+
+
+
   return {
     // state
     stage, resultAccepted, match, messages, draft, locationSuggestions,
@@ -249,6 +491,6 @@ export const useMatchStore = defineStore('match', () => {
     // actions
     startMatchmaking, acceptMatch, declineMatch, startOver, goToChat,
     startCountdown, stopCountdown, sendMessage, chooseSpot,
-    hydrateFromCache, ensureMatch, ensureChat
+    hydrateFromCache, ensureMatch, ensureChat, queueAndPoll, loadPartnerForCurrent, setPartnerFromRoom
   }
 })

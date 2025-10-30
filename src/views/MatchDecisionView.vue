@@ -96,6 +96,10 @@ onMounted(async () => { //To fix the bug for hard refresh
   }
  // If user already accepted before refresh, show result; otherwise show match card
   store.stage = store.resultAccepted ? 'result' : 'match'
+
+
+  //await store.loadPartnerForCurrent(); // added this here in trying to get the correct partner to show up, doesnt work - mik
+  //await store.setPartnerFromRoom(store.currentMatchId || (route.params.id as string)); // added this here in trying to get the correct partner to show up, doesnt work - mik
 })
 function onAccept() {
   store.acceptMatch()
