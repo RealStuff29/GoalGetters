@@ -12,12 +12,12 @@
 
 | Photo | Full Name | Role / Features Responsible For |
 |:--:|:--|:--|
-| <img src="photos/member1.jpg" width="80"> | Muhammad Mikhail Ghazi bin Ridzuan | Team Lead / Developer / Database - Register/Login with Auth & Supabase Integration |
+| <img src="photos/Mikhail.jpg" width="80"> | Muhammad Mikhail Ghazi bin Ridzuan | Team Lead / Developer / Database - Register/Login with Auth & Supabase Integration |
 | <img src="photos/alec.jpg" width="80"> | Ong Zhe Hwee Alec | Core Developer - Matchmaking Algorithm & Chat Functionailty |
 | <img src="photos/qingling.jpg" width="80"> | Mok Qing Ling | Developer - Profiles, Match History + Review & API endpoints  |
 | <img src="photos/jordan.jpg" width="80"> | Tan Jordan | Developer - Map Integration & API endpoints |
-| <img src="photos/member3.jpg" width="80"> | Yu Yan Chang | Developer - Onboarding Screens |
-| <img src="photos/member4.jpg" width="80"> | Parikshit Sanganeria | Developer - App Feedback |
+| <img src="photos/Chang.jpg" width="80"> | Yu Yan Chang | Developer - Onboarding Screens |
+| <img src="photos/Parikshit.jpg" width="80"> | Parikshit Sanganeria | Developer - App Feedback |
 
 > Remeber to place your headshot thumbnails in the `/photos` folder (JPEG or PNG).
 
@@ -50,7 +50,7 @@ Core features and the benefit each provides:
 | 🗺️ **Map Suggestion Feature** | Google Maps API recommends meet-up spots | Simplifies planning and helps users locate available meeting/studying spots |
 | 🤝 **Matching Algorithm** | The platform automatically matches users with others who share similar goals and schedules | Saves time and increases the chance of finding compatible potential study partners |
 | 💬 **Chat Functionality** | Users can communicate through an in-app chat system to plan sessions or motivate each other | Encourages communication and support without the need for personal contact information being exchanged |
-| ⭐ **Rating + Review System** | AAfter each session, users can rate and review the experience. All reviews remain private and anonymous | Encourages reflection and improvement for future sessions |
+| ⭐ **Rating + Review System** | After each session, users can rate and review the experience. All reviews remain private and anonymous | Encourages reflection and improvement for future sessions |
 
 ---
 
@@ -104,8 +104,8 @@ Comprehensive steps to help other developers or evaluators run and test your pro
 
 ### 1) Download the Project
 ```bash
-git clone https://github.com/<org-or-user>/<repo-name>.git
-cd <repo-name>
+git clone https://github.com/RealStuff29/GoalGetters.git
+cd GoalGetters
 npm install
 ```
 
@@ -115,13 +115,16 @@ npm install
 Create a `.env` file in the root directory with the following structure:
 
 ```bash
-VITE_API_URL=<your_backend_or_firebase_url>
-VITE_FIREBASE_API_KEY=<your_firebase_api_key>
-VITE_FIREBASE_AUTH_DOMAIN=<your_auth_domain>
-VITE_FIREBASE_PROJECT_ID=<your_project_id>
-VITE_FIREBASE_STORAGE_BUCKET=<your_storage_bucket>
-VITE_FIREBASE_MESSAGING_SENDER_ID=<your_sender_id>
-VITE_FIREBASE_APP_ID=<your_app_id>
+# VITE_API_URL=<your_backend_or_firebase_url>
+# VITE_FIREBASE_API_KEY=<your_firebase_api_key>
+# VITE_FIREBASE_AUTH_DOMAIN=<your_auth_domain>
+# VITE_FIREBASE_PROJECT_ID=<your_project_id>
+# VITE_FIREBASE_STORAGE_BUCKET=<your_storage_bucket>
+# VITE_FIREBASE_MESSAGING_SENDER_ID=<your_sender_id>
+# VITE_FIREBASE_APP_ID=<your_app_id>
+
+VITE_SUPABASE_URL= .env.example
+VITE_SUPABASE_ANON_KEY= .env.example
 ```
 
 > Never commit the `.env` file to your repository.  
@@ -210,10 +213,12 @@ npm run test
 Each member should contribute 2–3 sentences on their learning and project experience.
 
 > **Example Template:**  
-> - *Alice:* Learned to build reusable Vue components and manage state effectively.  
-> - *Ben:* Gained experience connecting frontend and backend APIs.  
-> - *Chloe:* Improved UI/UX design workflow and collaboration using Figma.  
-> - *David:* Understood how Firebase Authentication and Firestore integrate with modern SPAs.  
+> - *Mikhail:* 
+> - *Alec:* 
+> - *Jordan:* 
+> - *Parikshit:* 
+> - *QingLing:* 
+> - *Chang:* 
 
 As a team, reflect on:
 - Key takeaways from working with real-world frameworks  
