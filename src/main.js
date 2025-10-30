@@ -75,6 +75,10 @@ import Password from 'primevue/password';
 import MeterGroup from 'primevue/metergroup';
 import ScrollPanel from 'primevue/scrollpanel';
 
+import Dropdown from 'primevue/dropdown'
+import Textarea from 'primevue/textarea'
+import Rating from 'primevue/rating'
+import Checkbox from 'primevue/checkbox'
 
 
 
@@ -113,6 +117,10 @@ app.component('Password', Password);
 app.component('MeterGroup', MeterGroup);
 app.component('ScrollPanel', ScrollPanel);
 
+app.component('Dropdown', Dropdown);
+app.component('Textarea', Textarea);
+app.component('Rating', Rating);
+app.component('Checkbox', Checkbox);
 
 app.mount('#app');
 

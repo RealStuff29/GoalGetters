@@ -8,8 +8,8 @@
     </transition>
 
     <div class="feedback-card">
-      <header class="text-center mb-4">
-        <div class="icon-circle mb-3">
+      <header class="header-section">
+        <div class="icon-circle mb-4">
           <i class="pi pi-comment header-icon text-primary"></i>
         </div>
         <h1 class="title">GoalGetters Feedback</h1>
@@ -17,63 +17,60 @@
       </header>
 
       <div class="form-body">
-        <div class="form-group mb-4">
-          <label>Which area is your feedback about?</label>
+        <div class="form-group">
+          <label class="form-label">Which area is your feedback about?</label>
           <Dropdown
             v-model="selectedFeature"
             :options="featureOptions"
             optionLabel="label"
             optionValue="value"
             placeholder="Select a feature area"
-            class="w-full"
+            class="w-full rounded-input"
           />
         </div>
 
-        <div class="form-group mb-4 text-center">
-          <label>How would you rate your experience?</label>
-          <Rating v-model="rating" :cancel="false" />
+        <div class="form-group">
+          <label class="form-label">How would you rate your experience?</label>
+          <Rating
+            v-model="rating"
+            :cancel="false"
+            class="w-full rating-input rating-large"
+          />
         </div>
 
-        <div class="form-group mb-5">
-          <label>Detailed Comments</label>
+        <div class="form-group">
+          <label class="form-label">Detailed Comments</label>
           <Textarea
             v-model="comments"
-            rows="5"
+            rows="6"
             autoResize
             placeholder="What worked well? What specific issue did you face? (Minimum 10 characters)"
-            class="w-full"
+            class="w-full rounded-input textarea-input"
           />
         </div>
 
-        <div class="submit-footer">
-          <div class="anonymous-option flex align-items-center gap-2">
-            <Checkbox v-model="sendAnonymously" binary />
-            <label>Send feedback anonymously</label>
-          </div>
-
-          <div class="button-group flex flex-wrap gap-2 justify-content-end mt-3">
-            <Button
-              :disabled="!isValid || submitting"
-              @click="submitFeedback"
-              label="Send Feedback"
-              icon="pi pi-send"
-              class="p-button-success p-button-rounded"
-            />
-            <Button
-              :disabled="submitting"
-              @click="clearForm"
-              label="Clear Form"
-              icon="pi pi-refresh"
-              class="p-button-secondary p-button-rounded"
-            />
-            <Button
-              :disabled="submitting"
-              @click="goToHome"
-              label="Back to Home"
-              icon="pi pi-home"
-              class="p-button-info p-button-rounded"
-            />
-          </div>
+        <div class="button-group">
+          <Button
+            :disabled="!isValid || submitting"
+            @click="submitFeedback"
+            label="Send Feedback"
+            icon="pi pi-send"
+            class="p-button-success p-button-rounded hover-button"
+          />
+          <Button
+            :disabled="submitting"
+            @click="clearForm"
+            label="Clear Form"
+            icon="pi pi-refresh"
+            class="p-button-secondary p-button-rounded hover-button"
+          />
+          <Button
+            :disabled="submitting"
+            @click="goToHome"
+            label="Back to Home"
+            icon="pi pi-home"
+            class="p-button-info p-button-rounded hover-button"
+          />
         </div>
       </div>
     </div>
@@ -84,17 +81,11 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase.js'
-import Dropdown from 'primevue/dropdown'
-import Textarea from 'primevue/textarea'
-import Rating from 'primevue/rating'
-import Button from 'primevue/button'
-import Checkbox from 'primevue/checkbox'
 
 const router = useRouter()
 const rating = ref(0)
 const selectedFeature = ref('')
 const comments = ref('')
-const sendAnonymously = ref(false)
 const submitting = ref(false)
 const messageText = ref('')
 const messageType = ref('')
@@ -128,21 +119,32 @@ const submitFeedback = async () => {
     showMessage('Please fill all fields and provide at least 10 characters.', 'error')
     return
   }
+
   submitting.value = true
-  const feedbackData = {
-    feature: selectedFeature.value,
-    rating: rating.value,
-    comments: comments.value,
-    is_anonymous: sendAnonymously.value,
-  }
+
   try {
-    const { error } = await supabase.from('feedback').insert([feedbackData])
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      showMessage('User not logged in. Please login to submit feedback.', 'error')
+      submitting.value = false
+      return
+    }
+
+    const feedbackData = {
+      user_id: user.id,
+      feature: selectedFeature.value,
+      rating: rating.value,
+      comments: comments.value,
+    }
+
+    const { data, error } = await supabase.from('feedback').insert([feedbackData])
     if (error) showMessage(`Submission failed: ${error.message}`, 'error')
     else {
       showMessage('✅ Thank you! Your feedback was sent successfully.', 'success')
       clearForm()
     }
-  } catch {
+  } catch (err) {
+    console.log(err)
     showMessage('Network error. Please try again later.', 'error')
   } finally {
     submitting.value = false
@@ -154,7 +156,6 @@ const clearForm = () => {
   rating.value = 0
   selectedFeature.value = ''
   comments.value = ''
-  sendAnonymously.value = false
   showMessage('Form cleared.', 'info')
 }
 
@@ -166,84 +167,124 @@ const goToHome = () => router.push({ name: 'home' })
   min-height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  background: var(--surface-ground);
-  padding: 3rem 1rem;
+  align-items: center;
+  padding: 2rem 1rem;
+  background: #f5f5f7;
+  font-family: 'Inter', sans-serif;
 }
 
 .feedback-card {
   width: 100%;
   max-width: 650px;
-  background: var(--surface-card);
-  border-radius: var(--border-radius);
-  box-shadow: var(--card-shadow);
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   padding: 2.5rem;
-  animation: fadeIn 0.3s ease;
+  transition: transform 0.2s ease;
 }
 
-.title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--text-color);
+.feedback-card:hover {
+  transform: translateY(-3px);
 }
 
-.subtitle {
-  color: var(--text-color-secondary);
-  font-size: 1rem;
-}
-
-label {
-  font-weight: 600;
-  display: block;
-  margin-bottom: 0.5rem;
+.header-section {
+  text-align: center;
+  margin-bottom: 2rem;
 }
 
 .icon-circle {
-  background: var(--primary-50);
-  border-radius: 50%;
   width: 60px;
   height: 60px;
+  background: #e0f2fe;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto;
-}
-
-.header-icon {
+  margin: 0 auto 1rem auto;
   font-size: 1.5rem;
 }
 
-.submit-footer {
-  border-top: 1px solid var(--surface-border);
-  padding-top: 1rem;
+.header-icon {
+  font-size: 1.8rem;
+}
+
+.title {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.subtitle {
+  color: #6b7280;
+  font-size: 1rem;
+  margin-top: 0.25rem;
+}
+
+.form-group {
+  margin-bottom: 1.75rem;
+}
+
+.form-label {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #111827;
+}
+
+.rounded-input {
+  border-radius: 10px;
+}
+
+.textarea-input {
+  width: 100%;
+  min-height: 140px;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.textarea-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.rating-input {
+  padding: 0.25rem 0;
+}
+
+/* Bigger stars */
+.rating-large .pi-star,
+.rating-large .pi-star-o {
+  font-size: 3rem !important;
+  margin-right: 0.5rem;
+}
+
+.button-group {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
+  gap: 0.75rem;
   flex-wrap: wrap;
-  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.hover-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .message-box {
   position: fixed;
   top: 1rem;
   left: 50%;
-  width: 100%;
   transform: translateX(-50%);
-  padding: 0.75rem 1.25rem;
-  border-radius: var(--border-radius);
+  min-width: 250px;
+  padding: 1rem 1.5rem;
+  text-align: center;
   font-weight: 600;
   z-index: 9999;
-  background: var(--surface-overlay);
-  color: var(--text-color);
-  box-shadow: var(--card-shadow);
-  animation: fadeInDown 0.4s ease;
-}
-
-@keyframes fadeInDown {
-  from { opacity: 0; transform: translate(-50%, -20px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.97); }
-  to { opacity: 1; transform: scale(1); }
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #111827;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 </style>
