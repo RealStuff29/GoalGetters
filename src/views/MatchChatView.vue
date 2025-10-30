@@ -81,7 +81,7 @@
           <span class="text-base font-medium"><i :class="pi('direction')" class="mr-2"/> Nearby Study Locations</span>
         </template>
         <template #content>
-          <StudySpotMap :api-key="YOUR_GOOGLE_MAPS_API_KEY" height="400px" @places-updated="handlePlacesUpdate"/>
+          <StudySpotMap ref="mapRef" :api-key="YOUR_GOOGLE_MAPS_API_KEY" height="400px" @places-updated="handlePlacesUpdate"/>
         </template>
       </Card>
       <!-- <Card>
@@ -185,6 +185,7 @@ const YOUR_GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const studySpots = ref<any[]>([]);
 const currentPage = ref(1);
 const itemsPerPage = 4;
+const mapRef = ref<InstanceType<typeof StudySpotMap> | null>(null);
 
 // Computed property for pagination
 const totalPages = computed(() => Math.ceil(studySpots.value.length / itemsPerPage));
@@ -197,16 +198,18 @@ const paginatedSpots = computed(() => {
 
 
 const handlePlacesUpdate = (places:any) => {
-  console.log('🎯 Parent received places:', places.length);
-  console.log('🎯 Places:', places);
+  console.log(' Parent received places:', places.length);
+  console.log(' Places:', places);
   studySpots.value = [...places];
   currentPage.value = 1; // Reset to first page on new search
-  console.log('🎯 studySpots.value updated to:', studySpots.value.length);
+  console.log(' studySpots.value updated to:', studySpots.value.length);
 };
 
 const focusOnSpot = (spot:any) => {
-  console.log('Focus on:', spot.name);
-  // Can add map focusing logic here later
+  if (mapRef.value && spot.geometry?.location) {
+    // @ts-ignore
+    mapRef.value.focusOnLocation(spot.geometry.location, spot.name, spot.place_id);
+  }
 };
 
 const store = useMatchStore()

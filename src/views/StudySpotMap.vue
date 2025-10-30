@@ -444,6 +444,98 @@ const createMarker = (place) => {
   });
 };
 
+/**
+ * Focus the map on a specific location and show info window with full details
+ * This method is exposed to parent components via defineExpose
+ */
+const focusOnLocation = (location, name, placeId) => {
+  if (!map) {
+    console.error('Map not initialized');
+    return;
+  }
+  
+  // Handle both direct lat/lng objects and Google Maps LatLng objects
+  const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
+  const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
+  
+  const position = { lat, lng };
+  
+  // Smoothly pan to the location
+  map.panTo(position);
+  
+  // Zoom in closer for focused view (stays until user changes it)
+  map.setZoom(17);
+  
+  // Show loading info window first
+  if (infoWindow) {
+    infoWindow.setContent('<div style="padding: 20px; text-align: center;">Loading details...</div>');
+    infoWindow.setPosition(position);
+    infoWindow.open(map);
+  }
+  
+  // Fetch detailed place information if placeId is provided
+  if (placeId && placesService && infoWindow) {
+    const request = {
+      placeId: placeId,
+      fields: ['name', 'formatted_address', 'rating', 'photos', 'user_ratings_total']
+    };
+
+    placesService.getDetails(request, (placeDetails, status) => {
+      if (status === window.google.maps.places.PlacesServiceStatus.OK && placeDetails) {
+        const rating = placeDetails.rating || 0;
+        const stars = '★'.repeat(Math.round(rating)) + '☆'.repeat(5 - Math.round(rating));
+        
+        // Get photo URL if available
+        let photoHtml = '';
+        if (placeDetails.photos && placeDetails.photos.length > 0) {
+          try {
+            const photoUrl = placeDetails.photos[0].getUrl({ maxWidth: 300, maxHeight: 200 });
+            photoHtml = `<img src="${photoUrl}" alt="${placeDetails.name}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;">`;
+          } catch (error) {
+            console.error('Error loading photo for', placeDetails.name, error);
+          }
+        }
+        
+        const content = `
+          <div style="font-family: sans-serif; max-width: 300px;">
+            <div style="padding: 8px;">
+              <h3 style="font-weight: bold; font-size: 16px; color: #1f2937; margin: 0 0 8px 0;">${placeDetails.name}</h3>
+              ${photoHtml}
+              <p style="color: #6b7280; font-size: 14px; margin: 4px 0;">${placeDetails.formatted_address || 'Address not available'}</p>
+              <p style="color: #f59e0b; font-size: 14px; margin: 4px 0;">${stars} ${rating > 0 ? '(' + rating + ')' : '(No rating)'}</p>
+              ${placeDetails.user_ratings_total ? `<p style="color: #9ca3af; font-size: 12px; margin: 4px 0;">${placeDetails.user_ratings_total} reviews</p>` : ''}
+            </div>
+          </div>
+        `;
+        
+        infoWindow.setContent(content);
+      } else {
+        // Fallback to basic info if getDetails fails
+        const content = `
+          <div style="font-family: sans-serif; max-width: 300px;">
+            <div style="padding: 8px;">
+              <h3 style="font-weight: bold; font-size: 16px; color: #1f2937; margin: 0;">${name}</h3>
+              <p style="color: #6b7280; font-size: 14px; margin: 4px 0;">Details unavailable</p>
+            </div>
+          </div>
+        `;
+        infoWindow.setContent(content);
+      }
+    });
+  } else if (name && infoWindow) {
+    // If no placeId, just show the name
+    infoWindow.setContent(`
+      <div style="padding: 12px; font-family: sans-serif;">
+        <h3 style="font-weight: bold; font-size: 16px; color: #1f2937; margin: 0;">${name}</h3>
+      </div>
+    `);
+  }
+};
+
+// Expose the focusOnLocation method so parent components can call it
+defineExpose({
+  focusOnLocation
+});
 
 // --- Lifecycle Hooks ---
 onMounted(() => {
