@@ -115,14 +115,6 @@ npm install
 Create a `.env` file in the root directory with the following structure:
 
 ```bash
-# VITE_API_URL=<your_backend_or_firebase_url>
-# VITE_FIREBASE_API_KEY=<your_firebase_api_key>
-# VITE_FIREBASE_AUTH_DOMAIN=<your_auth_domain>
-# VITE_FIREBASE_PROJECT_ID=<your_project_id>
-# VITE_FIREBASE_STORAGE_BUCKET=<your_storage_bucket>
-# VITE_FIREBASE_MESSAGING_SENDER_ID=<your_sender_id>
-# VITE_FIREBASE_APP_ID=<your_app_id>
-
 VITE_SUPABASE_URL= .env.example
 VITE_SUPABASE_ANON_KEY= .env.example
 ```
@@ -134,16 +126,16 @@ VITE_SUPABASE_ANON_KEY= .env.example
 
 ### 3) Backend / Cloud Service Setup
 
-#### Supabase (To Do: Change the content below)
-1. Go to [Firebase Console](https://console.firebase.google.com/)
+#### Supabase (To Do: Need to edit this part)
+1. Go to [Supabase Console](https://supabase.com/)
 2. Create a new project.
 3. Enable the following:
    - **Authentication** → Email/Password sign-in
-   - **Firestore Database** or **Realtime Database**
+   - **Supabase Database**
    - **Hosting (optional)** if you plan to deploy your web app
-4. Copy the Firebase configuration into your `.env` file.
+4. Copy the Supabase configuration into your `.env` file.
 
-#### Optional: Express.js / MongoDB
+<!-- #### Optional: Express.js / MongoDB
 If your app includes a backend:
 1. Create a `/server` folder for backend code.
 2. Inside `/server`, create a `.env` file with:
@@ -158,7 +150,7 @@ If your app includes a backend:
    npm start
    ```
 
----
+--- -->
 
 ### 4) Run the Frontend
 To start the development server:
