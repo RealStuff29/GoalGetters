@@ -67,7 +67,7 @@ export const useMatchStore = defineStore('match', () => {
   )
 
   // ---------- Timer ----------
-  const totalSeconds = 30
+  const totalSeconds = 60
   const secondsLeft = ref(totalSeconds)
   let tick: number | null = null
 
@@ -100,8 +100,13 @@ export const useMatchStore = defineStore('match', () => {
   ])
 
   // ---------- Persistence ----------
-  function persist() {
+  async function persist() {
+    // we try to tag the cached state with the current auth user
+    const { data: auth } = await supabase.auth.getUser()
+    const userId = auth?.user?.id ?? null
+
     const payload = {
+      owner_user_id: userId,
       stage: stage.value,
       resultAccepted: resultAccepted.value,
       currentMatchId: currentMatchId.value,
@@ -114,11 +119,21 @@ export const useMatchStore = defineStore('match', () => {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
   }
 
-  function restore() {
+  async function restore() {
     const raw = sessionStorage.getItem(STORAGE_KEY)
     if (!raw) return false
     try {
       const data = JSON.parse(raw)
+
+      // check that the cached state belongs to the same logged-in user
+      const { data: auth } = await supabase.auth.getUser()
+      const currentUserId = auth?.user?.id ?? null
+      if (data.owner_user_id && currentUserId && data.owner_user_id !== currentUserId) {
+        // cached state belongs to someone else → drop it
+        sessionStorage.removeItem(STORAGE_KEY)
+        return false
+      }
+
       if (data.stage) stage.value = data.stage as Stage
       if ('resultAccepted' in data) resultAccepted.value = !!data.resultAccepted
       currentMatchId.value = data.currentMatchId ?? null
@@ -146,7 +161,11 @@ export const useMatchStore = defineStore('match', () => {
     }
   }
 
-  watch([stage, resultAccepted, currentMatchId, chatId, match, availability], persist, { deep: true })
+  // persist whenever these change
+  watch([stage, resultAccepted, currentMatchId, chatId, match, availability], () => {
+    // fire and forget
+    void persist()
+  }, { deep: true })
 
   // ---------- Actions: countdown ----------
   function startCountdown(onExpired?: () => void) {
@@ -173,17 +192,17 @@ export const useMatchStore = defineStore('match', () => {
     resultAccepted.value = true
     stage.value = 'result'
     if (!chatId.value) chatId.value = (crypto.randomUUID ? crypto.randomUUID() : `chat-${Date.now()}`)
-    persist()
+    void persist()
   }
 
   function declineMatch() {
     stopCountdown()
     resultAccepted.value = false
     stage.value = 'result'
-    persist()
+    void persist()
   }
 
-  function startOver() {
+  async function startOver() {
     stopCountdown()
     stage.value = 'landing'
     messages.value = seedMessages()
@@ -191,13 +210,27 @@ export const useMatchStore = defineStore('match', () => {
     currentMatchId.value = null
     chatId.value = null
     match.value.partner.name = generateName()
-    persist()
+    await persist()
+
+    // also clear from queue in DB
+    const { data: auth } = await supabase.auth.getUser()
+    const userId = auth?.user?.id
+    if (userId) {
+      await supabase
+        .from('match_queue')
+        .update({
+          status: 'idle',
+          room_id: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+    }
   }
 
   function goToChat() {
     stage.value = 'chat'
     if (!chatId.value) chatId.value = (crypto.randomUUID ? crypto.randomUUID() : `chat-${Date.now()}`)
-    persist()
+    void persist()
   }
 
   function sendMessage(text: string) {
@@ -212,12 +245,12 @@ export const useMatchStore = defineStore('match', () => {
   function chooseSpot(spot: Spot) {
     match.value.location = spot.name
     messages.value.push({ id: ++idSeq, from: 'me', text: `Let's meet at ${spot.name}.` })
-    persist()
+    void persist()
   }
 
   // ---------- Rehydration ----------
   async function hydrateFromCache() {
-    const ok = restore()
+    const ok = await restore()
     if (!currentMatchId.value && stage.value !== 'landing') {
       stage.value = 'landing'
     }
@@ -232,14 +265,14 @@ export const useMatchStore = defineStore('match', () => {
     if (!currentMatchId.value) {
       return false
     }
-    persist()
+    await persist()
     return true
   }
 
   async function ensureChat(id?: string) {
     if (id) chatId.value = id
     if (!chatId.value) chatId.value = (crypto.randomUUID ? crypto.randomUUID() : `chat-${Date.now()}`)
-    persist()
+    await persist()
     return true
   }
 
@@ -251,7 +284,7 @@ export const useMatchStore = defineStore('match', () => {
     const { data: auth, error: authErr } = await supabase.auth.getUser()
     if (authErr || !auth?.user?.id) {
       console.warn('[match] cannot save timeslot_avail, not authenticated')
-      persist()
+      await persist()
       return
     }
     const myId = auth.user.id
@@ -267,30 +300,41 @@ export const useMatchStore = defineStore('match', () => {
       console.error('[match] failed to update timeslot_avail', updErr)
     }
 
-    persist()
+    await persist()
   }
 
-  // 👇 expose as computed for the views that want array form
+  // expose as array for views
   const availabilityList = computed(() => strToArray(availability.value))
 
   // ============= helper: my profile =============
-  async function getMyProfile() {
-    const { data: auth } = await supabase.auth.getUser()
-    const userId = auth?.user?.id
-    if (!userId) return null
-    console.log(auth.user.id)
-  
-    const { data: prof } = await supabase
-      .from('profiles')
-      .select('user_id, username, email, profile_photo, personality, gender, avg_rating, rating_count, created_at,modules, study_hours, degree,timeslot_avail')
-      .eq('user_id', userId)
-    console.log(prof)
-    if (!prof) return null
-    return { userId, profile: prof }
+async function getMyProfile() {
+  const { data: auth } = await supabase.auth.getUser()
+  const userId = auth?.user?.id
+  if (!userId) return null
+
+  const { data: prof, error } = await supabase
+    .from('profiles')
+    .select('user_id, username, email, profile_photo, personality, gender, avg_rating, rating_count, created_at, modules, study_hours, degree, timeslot_avail')
+    .eq('user_id', userId)
+    .single()
+
+  if (error) {
+    console.warn('[match] getMyProfile error', error)
+    return null
   }
+  if (!prof) return null
+
+  return { userId, profile: prof }
+}
 
   // ============= matching logic =============
-  async function findBestCandidateForMe(myId: string, myProfile: any): Promise<{ user_id: string } | null> {
+  async function findBestCandidateForMe(
+    myId: string,
+    myProfile: any,
+    opts?: { relax?: boolean }
+  ): Promise<{ user_id: string } | null> {
+    const relax = opts?.relax === true
+
     // 1) get waiting others
     const { data: waiting, error: waitErr } = await supabase
       .from('match_queue')
@@ -309,9 +353,8 @@ export const useMatchStore = defineStore('match', () => {
     // 2) load their profiles
     const { data: candProfiles, error: profErr } = await supabase
       .from('profiles')
-      .select('user_id, username, email, profile_photo, personality, gender, avg_rating, rating_count, created_at,modules, study_hours, degree,timeslot_avail')
+      .select('user_id, username, profile_photo, description, gender, timeslot_avail, modules, study_hours, degree, school')
       .in('user_id', candidateIds)
-      console.log(candProfiles)
 
     if (profErr) {
       console.warn('[match] findBestCandidateForMe → profiles error', profErr)
@@ -320,28 +363,38 @@ export const useMatchStore = defineStore('match', () => {
 
     const myGender = myProfile.gender
     const mySlots = strToArray(myProfile.timeslot_avail ?? availability.value)
-    const myMods = strToArray(myProfile.mods)
+    const myMods = strToArray(myProfile.modules) // your table uses "modules"
     const mySchool = myProfile.school
     const myStudyHours = typeof myProfile.study_hours === 'number'
       ? myProfile.study_hours
       : Number(myProfile.study_hours ?? 0)
 
+    // if I myself have no slots, don't even try
+    if (mySlots.length === 0 && !relax) {
+      return null
+    }
+
     const scored = candProfiles
       .map((cp: any) => {
         const cSlots = strToArray(cp.timeslot_avail)
-        const cMods = strToArray(cp.mods)
+        const cMods = strToArray(cp.modules)
         const cStudyHours = typeof cp.study_hours === 'number'
           ? cp.study_hours
           : Number(cp.study_hours ?? 0)
 
+        // candidate missing slots → cannot match (unless relax)
+        if (cSlots.length === 0 && !relax) {
+          return null
+        }
+
         // HARD 1: same gender
-        if (myGender && cp.gender && myGender !== cp.gender) {
+        if (myGender && cp.gender && myGender !== cp.gender && !relax) {
           return null
         }
 
         // HARD 2: at least 1 slot overlap
         const slotOverlap = overlapCount(mySlots, cSlots)
-        if (slotOverlap === 0) {
+        if (slotOverlap === 0 && !relax) {
           return null
         }
 
@@ -371,24 +424,42 @@ export const useMatchStore = defineStore('match', () => {
   // ==================== queue matchmaking ====================
   async function queueAndPoll(): Promise<string> {
     stage.value = 'searching'
+
     // get my profile
     const mine = await getMyProfile()
     if (!mine) throw new Error('Not authenticated or profile missing')
     const myId = mine.userId
     const myProfile = mine.profile
 
-    // 1) enqueue
+    // derive my slots (from profile first, else from local store)
+    const mySlots = strToArray(myProfile.timeslot_avail ?? availability.value)
+    if (mySlots.length === 0) {
+      stage.value = 'landing'
+      throw new Error('You have no timeslots saved. Pick at least 1.')
+    }
+
+    // 0) CLEANUP: if I was stuck as waiting/matched from previous try, reset
+    await supabase
+      .from('match_queue')
+      .update({
+        status: 'idle',
+        room_id: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', myId)
+      .in('status', ['waiting', 'matched'])
+
+    // 1) enqueue fresh
     {
+      const now = new Date().toISOString()
       const { error } = await supabase.from('match_queue').upsert({
         user_id: myId,
         status: 'waiting',
         room_id: null,
-        updated_at: new Date().toISOString(),
+        updated_at: now,
       }, { onConflict: 'user_id' })
       if (error) throw error
     }
-
-    console.log("i enqueued")
 
     const markMatched = async (partnerId: string): Promise<string | null> => {
       const roomId = (globalThis.crypto?.randomUUID?.() ?? String(Date.now()))
@@ -425,10 +496,10 @@ export const useMatchStore = defineStore('match', () => {
         }
       }
 
-      // 👇 auto-start countdown once match is made
+      // auto-start countdown once match is made
       stage.value = 'match'
       startCountdown(() => declineMatch())
-      persist()
+      void persist()
 
       return roomId
     }
@@ -449,6 +520,9 @@ export const useMatchStore = defineStore('match', () => {
     // 3) poll
     const deadline = Date.now() + 60_000
     while (Date.now() < deadline) {
+      const elapsed = 60_000 - (deadline - Date.now())
+      const shouldRelax = elapsed > 40_000 // after 40s, we can relax rules a bit
+
       // maybe someone matched us
       const { data: meQueue } = await supabase
         .from('match_queue')
@@ -462,14 +536,14 @@ export const useMatchStore = defineStore('match', () => {
         match.value.id = rid
         stage.value = 'match'
         await setPartnerFromRoom(rid)
-        // 👇 start countdown here too (we were matched by someone else)
+        // start countdown here too (we were matched by someone else)
         startCountdown(() => declineMatch())
-        persist()
+        void persist()
         return rid
       }
 
-      // else: try to match again using rules
-      const best = await findBestCandidateForMe(myId, myProfile)
+      // else: try to match again using rules (maybe relaxed)
+      const best = await findBestCandidateForMe(myId, myProfile, { relax: shouldRelax })
       if (best?.user_id) {
         const rid = await markMatched(best.user_id)
         if (rid) {
@@ -482,7 +556,7 @@ export const useMatchStore = defineStore('match', () => {
       await new Promise(r => setTimeout(r, 2000))
     }
 
-  // 4) timeout
+    // 4) timeout → set me back to idle
     await supabase.from('match_queue')
       .update({ status: 'idle', room_id: null, updated_at: new Date().toISOString() })
       .eq('user_id', myId)
@@ -531,11 +605,11 @@ export const useMatchStore = defineStore('match', () => {
   }
 
   async function setPartnerFromRoom(roomId: string) {
-    if (!roomId) return
+    if (!roomId) return false
 
     const { data: auth } = await supabase.auth.getUser()
     const myId = auth?.user?.id
-    if (!myId) return
+    if (!myId) return false
 
     const { data: room } = await supabase
       .from('match_room')
@@ -543,7 +617,7 @@ export const useMatchStore = defineStore('match', () => {
       .eq('id', roomId)
       .single()
 
-    if (!room) return
+    if (!room) return false
     const partnerId = room.user1 === myId ? room.user2 : room.user1
 
     const { data: prof } = await supabase
@@ -558,7 +632,9 @@ export const useMatchStore = defineStore('match', () => {
         photo: prof.profile_photo,
         description: prof.description,
       }
+      return true
     }
+    return false
   }
 
   return {
@@ -574,7 +650,7 @@ export const useMatchStore = defineStore('match', () => {
     currentMatchId,
     chatId,
     availability,
-    availabilityList, // 👈 for views
+    availabilityList,
 
     // computed
     partnerInitials,
