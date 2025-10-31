@@ -26,6 +26,22 @@ type Match = {
 
 const STORAGE_KEY = 'match-store-v1'
 
+// ------------ helpers ------------
+function strToArray(val: string | string[] | null | undefined): string[] {
+  if (!val) return []
+  if (Array.isArray(val)) return val.filter(Boolean).map(v => v.trim())
+  return val
+    .split(',')
+    .map(v => v.trim())
+    .filter(Boolean)
+}
+
+function overlapCount(a: string[], b: string[]): number {
+  if (!a.length || !b.length) return 0
+  const setB = new Set(b)
+  return a.reduce((cnt, it) => (setB.has(it) ? cnt + 1 : cnt), 0)
+}
+
 export const useMatchStore = defineStore('match', () => {
   // ---------- State ----------
   const stage = ref<Stage>('landing')
@@ -34,8 +50,8 @@ export const useMatchStore = defineStore('match', () => {
   const currentMatchId = ref<string | null>(null)
   const chatId = ref<string | null>(null)
 
-  // NEW: what the user just picked on the landing view (time slots)
-  const availability = ref<string[]>([]) // e.g. ["slot_morning", "slot_evening"]
+  // keep as string: "slot_morning,slot_evening"
+  const availability = ref<string>('')
 
   const match = ref<Match>({
     subject: 'WAD2',
@@ -43,7 +59,6 @@ export const useMatchStore = defineStore('match', () => {
     time: '3:30 PM - 4:30 PM',
     duration: '1 hour',
     location: 'Library Level 2, Study Room 3',
-    // fallback name – will be overwritten once we load from Supabase
     partner: { name: generateName() }
   })
 
@@ -72,7 +87,7 @@ export const useMatchStore = defineStore('match', () => {
     idSeq = 0
     return [
       { id: ++idSeq, from: 'them', text: 'Hey! Ready to go over the WAD2 homework?' },
-      { id: ++idSeq, from: 'me', text: 'Yup! I got stuck at the Axios part though.' }
+      { id: ++idSeq, from: 'me', text: 'Yup! I got stuck at the Axios part though.' },
     ]
   }
 
@@ -81,20 +96,20 @@ export const useMatchStore = defineStore('match', () => {
     { name: 'Library L2 - Study Room 3', desc: 'Quiet room • Whiteboard • Fits 4' },
     { name: 'SMU Labs - Booth A12', desc: 'Open booth • Power sockets' },
     { name: 'Koufu - Back Corner', desc: 'Casual • Good for brainstorming' },
-    { name: 'SOE L3 - Breakout Area', desc: 'Open space • Near elevators' }
+    { name: 'SOE L3 - Breakout Area', desc: 'Open space • Near elevators' },
   ])
 
-  // ---------- Persistence (sessionStorage) ----------
+  // ---------- Persistence ----------
   function persist() {
     const payload = {
       stage: stage.value,
       resultAccepted: resultAccepted.value,
       currentMatchId: currentMatchId.value,
       chatId: chatId.value,
-      availability: availability.value, // NEW
+      availability: availability.value,
       match: {
         ...match.value,
-      }
+      },
     }
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
   }
@@ -108,9 +123,11 @@ export const useMatchStore = defineStore('match', () => {
       if ('resultAccepted' in data) resultAccepted.value = !!data.resultAccepted
       currentMatchId.value = data.currentMatchId ?? null
       chatId.value = data.chatId ?? null
-      if (Array.isArray(data.availability)) {
-        availability.value = data.availability // NEW
+
+      if (typeof data.availability === 'string') {
+        availability.value = data.availability
       }
+
       if (data.match) {
         match.value = {
           subject: data.match.subject ?? match.value.subject,
@@ -119,7 +136,7 @@ export const useMatchStore = defineStore('match', () => {
           duration: data.match.duration ?? match.value.duration,
           location: data.match.location ?? match.value.location,
           partner: { name: data.match.partner?.name ?? match.value.partner.name },
-          id: data.match.id ?? currentMatchId.value ?? undefined
+          id: data.match.id ?? currentMatchId.value ?? undefined,
         }
       }
       return true
@@ -149,22 +166,6 @@ export const useMatchStore = defineStore('match', () => {
       clearInterval(tick)
       tick = null
     }
-  }
-
-  // ---------- Actions: fake/basic matchmaking ----------
-  function startMatchmaking() {
-    stage.value = 'searching'
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
-        currentMatchId.value = id
-        match.value.id = id
-        stage.value = 'match'
-        startCountdown(() => declineMatch())
-        persist()
-        resolve()
-      }, 1200)
-    })
   }
 
   function acceptMatch() {
@@ -214,7 +215,7 @@ export const useMatchStore = defineStore('match', () => {
     persist()
   }
 
-  // ---------- Rehydration helpers ----------
+  // ---------- Rehydration ----------
   async function hydrateFromCache() {
     const ok = restore()
     if (!currentMatchId.value && stage.value !== 'landing') {
@@ -242,22 +243,26 @@ export const useMatchStore = defineStore('match', () => {
     return true
   }
 
-  // =========== NEW: save availability to Supabase ===========
+  // =========== save availability to Supabase AS STRING ===========
   async function setAvailability(slots: string[]) {
-    availability.value = slots
+    const slotsString = Array.isArray(slots) ? slots.join(',') : String(slots ?? '')
+    availability.value = slotsString
 
-    // push to Supabase
     const { data: auth, error: authErr } = await supabase.auth.getUser()
     if (authErr || !auth?.user?.id) {
       console.warn('[match] cannot save timeslot_avail, not authenticated')
+      persist()
       return
     }
     const myId = auth.user.id
 
     const { error: updErr } = await supabase
       .from('profiles')
-      .update({ timeslot_avail: slots })   // PROFILES COLUMN
-      .eq('id', myId)                      // FIXED: use id, not user_id
+      .update({
+        timeslot_avail: slotsString,
+      })
+      .eq('user_id', myId)
+
     if (updErr) {
       console.error('[match] failed to update timeslot_avail', updErr)
     }
@@ -265,140 +270,228 @@ export const useMatchStore = defineStore('match', () => {
     persist()
   }
 
-  // =============================== True matchmaking code below (your version, but fixed for profiles.id) ===============================
-  async function queueAndPoll(): Promise<string> {
-    stage.value = 'searching'
+  // 👇 expose as computed for the views that want array form
+  const availabilityList = computed(() => strToArray(availability.value))
 
-    // 0) who am I?
+  // ============= helper: my profile =============
+  async function getMyProfile() {
     const { data: auth } = await supabase.auth.getUser()
     const userId = auth?.user?.id
-    if (!userId) throw new Error('Not authenticated')
+    if (!userId) return null
+    console.log(auth.user.id)
+  
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('user_id, username, email, profile_photo, personality, gender, avg_rating, rating_count, created_at,modules, study_hours, degree,timeslot_avail')
+      .eq('user_id', userId)
+    console.log(prof)
+    if (!prof) return null
+    return { userId, profile: prof }
+  }
 
-    // 1) enqueue myself (idempotent)
+  // ============= matching logic =============
+  async function findBestCandidateForMe(myId: string, myProfile: any): Promise<{ user_id: string } | null> {
+    // 1) get waiting others
+    const { data: waiting, error: waitErr } = await supabase
+      .from('match_queue')
+      .select('user_id, updated_at')
+      .eq('status', 'waiting')
+      .neq('user_id', myId)
+
+    if (waitErr) {
+      console.warn('[match] findBestCandidateForMe → queue error', waitErr)
+      return null
+    }
+    if (!waiting || waiting.length === 0) return null
+
+    const candidateIds = waiting.map(w => w.user_id)
+
+    // 2) load their profiles
+    const { data: candProfiles, error: profErr } = await supabase
+      .from('profiles')
+      .select('user_id, username, email, profile_photo, personality, gender, avg_rating, rating_count, created_at,modules, study_hours, degree,timeslot_avail')
+      .in('user_id', candidateIds)
+      console.log(candProfiles)
+
+    if (profErr) {
+      console.warn('[match] findBestCandidateForMe → profiles error', profErr)
+      return null
+    }
+
+    const myGender = myProfile.gender
+    const mySlots = strToArray(myProfile.timeslot_avail ?? availability.value)
+    const myMods = strToArray(myProfile.mods)
+    const mySchool = myProfile.school
+    const myStudyHours = typeof myProfile.study_hours === 'number'
+      ? myProfile.study_hours
+      : Number(myProfile.study_hours ?? 0)
+
+    const scored = candProfiles
+      .map((cp: any) => {
+        const cSlots = strToArray(cp.timeslot_avail)
+        const cMods = strToArray(cp.mods)
+        const cStudyHours = typeof cp.study_hours === 'number'
+          ? cp.study_hours
+          : Number(cp.study_hours ?? 0)
+
+        // HARD 1: same gender
+        if (myGender && cp.gender && myGender !== cp.gender) {
+          return null
+        }
+
+        // HARD 2: at least 1 slot overlap
+        const slotOverlap = overlapCount(mySlots, cSlots)
+        if (slotOverlap === 0) {
+          return null
+        }
+
+        // SOFTS
+        const modsOverlap = overlapCount(myMods, cMods)
+        const sameSchool = mySchool && cp.school && mySchool === cp.school ? 1 : 0
+        const diffStudy = Math.abs(myStudyHours - cStudyHours)
+
+        const score =
+          modsOverlap * 100 +
+          sameSchool * 20 +
+          (10 - Math.min(diffStudy, 10))
+
+        return {
+          user_id: cp.user_id,
+          score,
+        }
+      })
+      .filter(Boolean) as Array<{ user_id: string; score: number }>
+
+    if (!scored.length) return null
+
+    scored.sort((a, b) => b.score - a.score)
+    return { user_id: scored[0].user_id }
+  }
+
+  // ==================== queue matchmaking ====================
+  async function queueAndPoll(): Promise<string> {
+    stage.value = 'searching'
+    // get my profile
+    const mine = await getMyProfile()
+    if (!mine) throw new Error('Not authenticated or profile missing')
+    const myId = mine.userId
+    const myProfile = mine.profile
+
+    // 1) enqueue
     {
       const { error } = await supabase.from('match_queue').upsert({
-        user_id: userId,
+        user_id: myId,
         status: 'waiting',
         room_id: null,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' })
       if (error) throw error
     }
 
-    // helper to try matching immediately
-    const tryImmediateMatch = async (): Promise<string | null> => {
-      const { data: candidate, error: findErr } = await supabase
-        .from('match_queue')
-        .select('user_id')
-        .eq('status', 'waiting')
-        .neq('user_id', userId)
-        .order('updated_at', { ascending: true })
-        .limit(1)
-        .maybeSingle()
-      if (findErr) return null
-      if (!candidate?.user_id) return null
+    console.log("i enqueued")
 
+    const markMatched = async (partnerId: string): Promise<string | null> => {
       const roomId = (globalThis.crypto?.randomUUID?.() ?? String(Date.now()))
+      const now = new Date().toISOString()
+
       const { error: updErr } = await supabase
         .from('match_queue')
-        .update({ status: 'matched', room_id: roomId, updated_at: new Date().toISOString() })
-        .in('user_id', [userId, candidate.user_id])
-      if (updErr) return null
+        .update({ status: 'matched', room_id: roomId, updated_at: now })
+        .in('user_id', [myId, partnerId])
 
-      // record the room
+      if (updErr) {
+        console.warn('[match] failed to update both users as matched', updErr)
+        return null
+      }
+
       await supabase.from('match_room').insert({
-        id: roomId, user1: userId, user2: candidate.user_id, created_at: new Date().toISOString()
+        id: roomId,
+        user1: myId,
+        user2: partnerId,
+        created_at: now,
       })
+
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('username, profile_photo, description')
+        .eq('user_id', partnerId)
+        .maybeSingle()
+
+      if (prof?.username) {
+        match.value.partner = {
+          name: prof.username,
+          photo: prof.profile_photo,
+          description: prof.description,
+        }
+      }
+
+      // 👇 auto-start countdown once match is made
+      stage.value = 'match'
+      startCountdown(() => declineMatch())
+      persist()
 
       return roomId
     }
 
-    // 2) greedy attempt
+    // 2) immediate try with rules
     {
-      const rid = await tryImmediateMatch()
-      if (rid) {
-        currentMatchId.value = rid
-        match.value.id = rid
-
-        stage.value = 'match'
-        await setPartnerFromRoom(rid)
-
-        // load partner again for full profile
-        const { data: auth } = await supabase.auth.getUser()
-        const myId = auth?.user?.id
-        if (myId) {
-          const partner = await loadPartnerProfile(rid, myId)
-          if (partner) {
-            match.value.partner = {
-              name: partner.username,
-              photo: partner.profile_photo,
-              description: partner.description
-            }
-          }
+      const best = await findBestCandidateForMe(myId, myProfile)
+      if (best?.user_id) {
+        const rid = await markMatched(best.user_id)
+        if (rid) {
+          currentMatchId.value = rid
+          match.value.id = rid
+          return rid
         }
-
-        return rid
       }
     }
 
-    // 3) poll for up to 60s
+    // 3) poll
     const deadline = Date.now() + 60_000
     while (Date.now() < deadline) {
-      // a) did someone else match me?
-      const { data: mine } = await supabase
+      // maybe someone matched us
+      const { data: meQueue } = await supabase
         .from('match_queue')
         .select('status, room_id')
-        .eq('user_id', userId)
+        .eq('user_id', myId)
         .single()
 
-      if (mine?.status === 'matched' && mine?.room_id) {
-        const rid = mine.room_id as string
-
+      if (meQueue?.status === 'matched' && meQueue?.room_id) {
+        const rid = meQueue.room_id as string
         currentMatchId.value = rid
         match.value.id = rid
-
         stage.value = 'match'
         await setPartnerFromRoom(rid)
-
-        const { data: auth } = await supabase.auth.getUser()
-        const myId = auth?.user?.id
-        if (myId) {
-          const partner = await loadPartnerProfile(rid, myId)
-          if (partner) {
-            match.value.partner = {
-              name: partner.username,
-              photo: partner.profile_photo,
-              description: partner.description
-            }
-          }
-        }
-
+        // 👇 start countdown here too (we were matched by someone else)
+        startCountdown(() => declineMatch())
+        persist()
         return rid
       }
 
-      // b) still waiting? try to match again
-      const rid2 = await tryImmediateMatch()
-      if (rid2) {
-        currentMatchId.value = rid2
-        match.value.id = rid2
-        stage.value = 'match'
-        return rid2
+      // else: try to match again using rules
+      const best = await findBestCandidateForMe(myId, myProfile)
+      if (best?.user_id) {
+        const rid = await markMatched(best.user_id)
+        if (rid) {
+          currentMatchId.value = rid
+          match.value.id = rid
+          return rid
+        }
       }
 
-      // c) wait 2s
       await new Promise(r => setTimeout(r, 2000))
     }
 
-    // 4) timeout → mark idle
+  // 4) timeout
     await supabase.from('match_queue')
       .update({ status: 'idle', room_id: null, updated_at: new Date().toISOString() })
-      .eq('user_id', userId)
+      .eq('user_id', myId)
 
     stage.value = 'landing'
     throw new Error('No match found (timeout)')
   }
 
-  // FIXED: load partner by profiles.id
+  // ---------- partner loading ----------
   async function loadPartnerProfile(roomId: string, myId: string) {
     const { data: room } = await supabase
       .from('match_room')
@@ -413,7 +506,7 @@ export const useMatchStore = defineStore('match', () => {
     const { data: partner } = await supabase
       .from('profiles')
       .select('username, profile_photo, description')
-      .eq('id', partnerId)  // FIXED
+      .eq('user_id', partnerId)
       .single()
 
     return partner
@@ -432,7 +525,7 @@ export const useMatchStore = defineStore('match', () => {
       match.value.partner = {
         name: partner.username,
         photo: partner.profile_photo,
-        description: partner.description
+        description: partner.description,
       }
     }
   }
@@ -456,14 +549,14 @@ export const useMatchStore = defineStore('match', () => {
     const { data: prof } = await supabase
       .from('profiles')
       .select('username, profile_photo, description')
-      .eq('id', partnerId)  // FIXED
+      .eq('user_id', partnerId)
       .single()
 
     if (prof?.username) {
       match.value.partner = {
         name: prof.username,
         photo: prof.profile_photo,
-        description: prof.description
+        description: prof.description,
       }
     }
   }
@@ -480,14 +573,14 @@ export const useMatchStore = defineStore('match', () => {
     totalSeconds,
     currentMatchId,
     chatId,
-    availability,        // NEW
+    availability,
+    availabilityList, // 👈 for views
 
     // computed
     partnerInitials,
     countdownText,
 
     // actions
-    startMatchmaking,
     acceptMatch,
     declineMatch,
     startOver,
@@ -499,9 +592,9 @@ export const useMatchStore = defineStore('match', () => {
     hydrateFromCache,
     ensureMatch,
     ensureChat,
-    setAvailability,      // NEW
+    setAvailability,
     queueAndPoll,
     loadPartnerForCurrent,
-    setPartnerFromRoom
+    setPartnerFromRoom,
   }
 })

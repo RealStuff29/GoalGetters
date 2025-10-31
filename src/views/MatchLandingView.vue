@@ -55,9 +55,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMatchStore } from '@/stores/match'
+import { supabase } from '@/lib/supabase'
 
 const router = useRouter()
 const store = useMatchStore()
@@ -71,6 +72,40 @@ const timeSlots = [
 
 const selectedSlots = ref<string[]>([])
 
+/**
+ * Prefill the user's last chosen timeslots
+ */
+onMounted(async () => {
+  // 1) try to restore from store (now store keeps string, so use availabilityList)
+  if (store.availabilityList.length > 0) {
+    selectedSlots.value = [...store.availabilityList]
+    return
+  }
+
+  // 2) else load from Supabase
+  const { data: auth } = await supabase.auth.getUser()
+  const userId = auth?.user?.id
+  if (!userId) return
+
+  const { data: prof, error } = await supabase
+    .from('profiles')
+    .select('timeslot_avail')
+    .eq('user_id', userId)
+    .single()
+
+  if (error) {
+    console.warn('[matchlanding] Could not load previous timeslot_avail:', error)
+    return
+  }
+
+  const val = prof?.timeslot_avail
+  if (typeof val === 'string' && val.trim() !== '') {
+    selectedSlots.value = val.split(',').map(v => v.trim())
+  } else if (Array.isArray(val)) {
+    selectedSlots.value = val
+  }
+})
+
 function toggleSlot(id: string) {
   if (selectedSlots.value.includes(id)) {
     selectedSlots.value = selectedSlots.value.filter(s => s !== id)
@@ -81,15 +116,24 @@ function toggleSlot(id: string) {
 
 async function onStart() {
   if (selectedSlots.value.length === 0) return
+  // 1️⃣ Save locally & to Supabase --- selectedslot is timeslot_avail
   await store.setAvailability(selectedSlots.value)
+
+  // 2️⃣ Switch to searching UI
   store.stage = 'searching'
+
+  // 3️⃣ Start matchmaking (this will auto-start countdown inside store when a match is found)
+  console.log("1")
   const roomId = await store.queueAndPoll()
+
+  console.log("roomid" + roomId)
+  // 4️⃣ Navigate to match decision screen
   router.push({ name: 'matchdecision', params: { id: roomId } })
+
 }
 </script>
 
 <style scoped>
-/* ========= Layout ========= */
 .match-landing-container {
   min-height: 100vh;
   display: flex;
@@ -121,7 +165,7 @@ async function onStart() {
   opacity: 0.8;
 }
 
-/* ========= Slots Grid ========= */
+/* slots */
 .slots-grid {
   display: grid;
   gap: 1rem;
@@ -149,35 +193,24 @@ async function onStart() {
   background: var(--color-background-mute);
 }
 
-/* When selected */
 .slot-btn--active {
-  background-color: #22c55e !important; /* green */
+  background-color: #22c55e !important;
   border-color: #22c55e !important;
   color: #fff !important;
   box-shadow: 0 2px 10px rgba(34, 197, 94, 0.3);
   transform: translateY(-1px);
 }
 
-/* When pressed */
 .slot-btn:active {
   transform: scale(0.97);
   background-color: var(--color-border-hover);
 }
 .slot-btn--active:active {
-  background-color: #16a34a !important; /* darker green */
+  background-color: #16a34a !important;
   border-color: #16a34a !important;
 }
 
-/* Text inside buttons */
-.slot-title {
-  font-weight: 600;
-}
-.slot-window {
-  font-size: 0.8rem;
-  opacity: 0.85;
-}
-
-/* ========= Start Button ========= */
+/* start button */
 .match-start {
   margin-top: 1rem;
 }
@@ -211,7 +244,7 @@ async function onStart() {
   margin-top: 0.5rem;
 }
 
-/* ========= Searching Animation ========= */
+/* searching */
 .match-searching {
   text-align: center;
   color: var(--color-text);

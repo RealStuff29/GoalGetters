@@ -1,10 +1,13 @@
 <!-- src/views/MatchDecisionView.vue -->
 <template>
   <div class="min-h-screen p-4 w-full mx-auto max-w-md flex items-center justify-center">
+    <!-- MATCH CARD -->
     <div class="w-full space-y-4" v-if="store.stage === 'match'">
       <div class="text-center">
         <h2 class="text-2xl font-semibold mb-1">Match Found! 🎉</h2>
-        <p class="opacity-80">You have <b>{{ store.countdownText }}</b> to respond</p>
+        <p class="opacity-80">
+          You have <b>{{ store.countdownText }}</b> to respond
+        </p>
       </div>
 
       <Card>
@@ -17,59 +20,83 @@
         <template #content>
           <div class="space-y-3">
             <div class="flex items-start gap-3">
-              <i :class="pi('book')" class="opacity-70 mt-1"/>
+              <i :class="pi('book')" class="opacity-70 mt-1" />
               <div>
                 <Tag severity="secondary" :value="store.match.subject" />
                 <p class="text-sm opacity-80 mt-1">{{ store.match.description }}</p>
               </div>
             </div>
             <div class="flex items-start gap-3">
-              <i :class="pi('clock')" class="opacity-70 mt-1"/>
+              <i :class="pi('clock')" class="opacity-70 mt-1" />
               <div>
                 <p>{{ store.match.time }}</p>
-                <p class="text-sm opacity-80">Duration: <b>{{ store.match.duration }}</b></p>
+                <p class="text-sm opacity-80">
+                  Duration: <b>{{ store.match.duration }}</b>
+                </p>
               </div>
             </div>
             <div class="flex items-start gap-3">
-              <i :class="pi('map-marker')" class="opacity-70 mt-1"/>
+              <i :class="pi('map-marker')" class="opacity-70 mt-1" />
               <p>{{ store.match.location }}</p>
             </div>
           </div>
         </template>
       </Card>
 
-      <ProgressBar :value="(store.secondsLeft/store.totalSeconds)*100" :showValue="false" style="height:6px" :pt="{value:{class:'bg-red-500'}}"/> 
+      <ProgressBar
+        :value="(store.secondsLeft / store.totalSeconds) * 100"
+        :showValue="false"
+        style="height: 6px"
+        :pt="{ value: { class: 'bg-red-500' } }"
+      />
 
       <div class="grid grid-cols-2 gap-3">
-        <Button outlined @click="onDecline" :icon="pi('times')" label="Decline"/>
-        <Button @click="onAccept" severity="primary" :icon="pi('check')" label="Accept"/>
+        <Button outlined @click="onDecline" :icon="pi('times')" label="Decline" />
+        <Button @click="onAccept" severity="primary" :icon="pi('check')" label="Accept" />
       </div>
     </div>
 
+    <!-- RESULT CARD -->
     <div class="w-full space-y-4 text-center" v-else-if="store.stage === 'result'">
       <Card>
         <template #title>
           <div class="flex justify-center mb-2">
-            <i :class="['pi', store.resultAccepted ? 'pi-check-circle text-green-500' : 'pi-times-circle text-red-500']" :style="{ fontSize: '3rem' }"/>
+            <i
+              :class="['pi', store.resultAccepted ? 'pi-check-circle text-green-500' : 'pi-times-circle text-red-500']"
+              :style="{ fontSize: '3rem' }"
+            />
           </div>
-          <span class="text-xl font-semibold">{{ store.resultAccepted ? 'Match Accepted!' : 'Match Declined' }}</span>
+          <span class="text-xl font-semibold">
+            {{ store.resultAccepted ? 'Match Accepted!' : 'Match Declined' }}
+          </span>
         </template>
         <template #content>
           <p class="opacity-80 mb-4">
-            {{ store.resultAccepted ? 'Great! Both parties have accepted the match. You can now chat and coordinate your study session!' : 'No worries. You can try finding another match.' }}
+            {{
+              store.resultAccepted
+                ? 'Great! Both parties have accepted the match. You can now chat and coordinate your study session!'
+                : 'No worries. You can try finding another match.'
+            }}
           </p>
           <div class="space-y-2">
-            <Button v-if="store.resultAccepted" @click="goChat" severity="primary" :icon="pi('comments')" label="Start Chatting & Find Location" class="w-full"/>
-            <Button outlined @click="startOver" :icon="pi('refresh')" label="Find Another Match" class="w-full"/>
+            <Button
+              v-if="store.resultAccepted"
+              @click="goChat"
+              severity="primary"
+              :icon="pi('comments')"
+              label="Start Chatting & Find Location"
+              class="w-full"
+            />
+            <Button outlined @click="startOver" :icon="pi('refresh')" label="Find Another Match" class="w-full" />
           </div>
         </template>
       </Card>
     </div>
 
-    <div v-else class="opacity-70">
+    <!-- FALLBACK -->
+    <div v-else class="opacity-70 text-center">
       <p>Loading your match…</p>
-    <Button class="mt-3" label="Back to Matchmaking" @click="startOver" /> <!--allow-->
-      
+      <Button class="mt-3" label="Back to Matchmaking" @click="startOver" />
     </div>
   </div>
 </template>
@@ -78,32 +105,35 @@
 import { useRoute, useRouter } from 'vue-router'
 import { onMounted } from 'vue'
 import { useMatchStore } from '@/stores/match'
-function pi(name: string) { return `pi pi-${name}` }
+
+function pi(name: string) {
+  return `pi pi-${name}`
+}
 
 const store = useMatchStore()
 const router = useRouter()
 const route = useRoute()
 
-onMounted(async () => { //To fix the bug for hard refresh
-  // Restore any cached state (IDs etc.)
+onMounted(async () => {
+  // 1) restore cached
   await store.hydrateFromCache()
-  // Ensure we have a match id: use route param first, else cached currentMatchId
+
+  // 2) ensure we have the room id
   const ok = await store.ensureMatch(route.params.id as string | undefined)
   if (!ok) {
-    // No match to show → back to landing
     router.replace({ name: 'matchlanding' })
     return
   }
- // If user already accepted before refresh, show result; otherwise show match card
+
+  // 3) try to load partner (in case user hard-refreshed)
+  await store.loadPartnerForCurrent()
+
+  // 4) show the correct stage
   store.stage = store.resultAccepted ? 'result' : 'match'
-
-
-  //await store.loadPartnerForCurrent(); // added this here in trying to get the correct partner to show up, doesnt work - mik
-  //await store.setPartnerFromRoom(store.currentMatchId || (route.params.id as string)); // added this here in trying to get the correct partner to show up, doesnt work - mik
 })
+
 function onAccept() {
   store.acceptMatch()
-  // show result on same page (stage changes to 'result')
 }
 
 function onDecline() {
@@ -112,7 +142,7 @@ function onDecline() {
 
 function goChat() {
   store.goToChat()
-  router.push({ name: 'matchchat', params: { chatId: store.chatId } }) //added ID
+  router.push({ name: 'matchchat', params: { chatId: store.chatId } })
 }
 
 function startOver() {
@@ -122,11 +152,25 @@ function startOver() {
 </script>
 
 <style scoped>
-.min-h-screen { min-height: 100vh; }
-.grid { display: grid; }
-.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.gap-3 { gap: .75rem; }
-.text-green-500 { color: #22c55e; }
-.text-red-500 { color: #ef4444; }
-.bg-red-500 { background: #ef4444; }
+.min-h-screen {
+  min-height: 100vh;
+}
+.grid {
+  display: grid;
+}
+.grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.gap-3 {
+  gap: 0.75rem;
+}
+.text-green-500 {
+  color: #22c55e;
+}
+.text-red-500 {
+  color: #ef4444;
+}
+.bg-red-500 {
+  background: #ef4444;
+}
 </style>
