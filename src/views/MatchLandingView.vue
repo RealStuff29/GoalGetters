@@ -1,6 +1,13 @@
 <!-- src/views/MatchLandingView.vue -->
 <template>
   <div class="match-landing-container">
+    <div>
+      <button 
+      type='button'
+      @click="callGetIdleOthers('1b0835fc-3514-427b-9971-c3a8fa8bf71a')">
+        Test callGetIdleOthers
+      </button>
+    </div>
     <!-- LANDING / FORM -->
     <div v-if="store.stage === 'landing'" class="match-form">
       <div class="match-header">
@@ -72,6 +79,10 @@ const timeSlots = [
 
 const selectedSlots = ref<string[]>([])
 
+function callGetIdleOthers(myId) {
+  store.getIdleOthers(myId)
+}
+
 /**
  * Prefill the user's last chosen timeslots
  */
@@ -116,20 +127,30 @@ function toggleSlot(id: string) {
 
 async function onStart() {
   if (selectedSlots.value.length === 0) return
-  // 1️⃣ Save locally & to Supabase --- selectedslot is timeslot_avail
+
+  // 1️⃣ save selected slots
   await store.setAvailability(selectedSlots.value)
 
-  // 2️⃣ Switch to searching UI
+  // 2️⃣ show searching UI
   store.stage = 'searching'
 
-  // 3️⃣ Start matchmaking (this will auto-start countdown inside store when a match is found)
-  console.log("1")
-  const roomId = await store.queueAndPoll()
+  try {
+    // 3️⃣ try to match
+    const roomId = await store.queueAndPoll()
+    // 4️⃣ go to decision page
+    router.push({ name: 'matchdecision', params: { id: roomId } })
+  } catch (err: any) {
+    console.error('[matchlanding] matchmaking failed', err)
 
-  console.log("roomid" + roomId)
-  // 4️⃣ Navigate to match decision screen
-  router.push({ name: 'matchdecision', params: { id: roomId } })
-
+    // if no profile / not logged in
+    if (err?.message === 'Not authenticated or profile missing') {
+      // go to profile setup (or login if you prefer)
+      router.push({ name: 'profilesetup' })
+    } else {
+      // generic failure → go back to landing
+      store.stage = 'landing'
+    }
+  }
 }
 </script>
 

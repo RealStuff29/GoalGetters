@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { generateName } from '@/services/nameService.js'
 import { supabase } from '@/lib/supabase'
+import { Button } from 'bootstrap/dist/js/bootstrap.bundle.min'
 
 type Stage = 'landing' | 'searching' | 'match' | 'result' | 'chat'
 type Message = { id: number; from: 'me' | 'them'; text: string }
@@ -26,6 +27,10 @@ type Match = {
 
 const STORAGE_KEY = 'match-store-v1'
 
+function foo() {
+  console.log('foo')
+}
+
 // ------------ helpers ------------
 function strToArray(val: string | string[] | null | undefined): string[] {
   if (!val) return []
@@ -40,6 +45,74 @@ function overlapCount(a: string[], b: string[]): number {
   if (!a.length || !b.length) return 0
   const setB = new Set(b)
   return a.reduce((cnt, it) => (setB.has(it) ? cnt + 1 : cnt), 0)
+}
+
+// scoring rules
+async function computeMatchScore(me: any, other: any): Promise<string[]> {
+  let score = 0
+
+  console.log("computeMatchScore")
+
+  console.log("me", me)
+  console.log("other", other)
+
+  // Retrieve me user object
+  const { data, error } = await supabase
+      .from('profiles')
+      .select(
+        'user_id, username, email, profile_photo, personality, gender, avg_rating, rating_count, created_at, modules, study_hours, degree, timeslot_avail'
+      )
+      .eq('user_id', me)
+  console.log(data) //blank array
+  console.log(error)
+  
+
+  // Retrieve other user object
+  // const { data: prof_other } = await supabase
+  //     .from('profiles')
+  //     .select(
+  //       'user_id, username, email, profile_photo, personality, gender, avg_rating, rating_count, created_at, modules, study_hours, degree, timeslot_avail'
+  //     )
+  //     .eq('user_id', other)
+  
+  // console.log("prof_me", prof_me)
+  // console.log("prof_other", prof_other)
+
+  // 1) same gender +100
+  if (me.gender && other.gender && me.gender === other.gender) {
+    console.log(me.gender)
+    console.log(other.gender)
+    score += 100
+  }
+
+  // 2) overlapping time slots +100
+  const mySlots = strToArray(me.timeslot_avail)
+  const otherSlots = strToArray(other.timeslot_avail)
+  const slotOverlap = overlapCount(mySlots, otherSlots)
+  if (slotOverlap > 0) {
+    score += 100
+  }
+
+  // 3) same modules, +1 each
+  const myMods = strToArray(me.modules)
+  const otherMods = strToArray(other.modules)
+  const modsOverlap = overlapCount(myMods, otherMods)
+  score += modsOverlap * 1
+
+  // 4) same degree +1
+  if (me.degree && other.degree && me.degree === other.degree) {
+    score += 1
+  }
+
+  // 5) similar study hours +1
+  const myStudy = Number(me.study_hours ?? 0)
+  const otherStudy = Number(other.study_hours ?? 0)
+  const diff = Math.abs(myStudy - otherStudy)
+  if (diff <= 2) {
+    score += 1
+  }
+
+  return score
 }
 
 export const useMatchStore = defineStore('match', () => {
@@ -63,11 +136,16 @@ export const useMatchStore = defineStore('match', () => {
   })
 
   const partnerInitials = computed(() =>
-    match.value.partner.name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase()
+    match.value.partner.name
+      .split(' ')
+      .map(p => p[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase()
   )
 
   // ---------- Timer ----------
-  const totalSeconds = 30
+  const totalSeconds = 60
   const secondsLeft = ref(totalSeconds)
   let tick: number | null = null
 
@@ -261,7 +339,7 @@ export const useMatchStore = defineStore('match', () => {
       .update({
         timeslot_avail: slotsString,
       })
-      .eq('user_id', myId)
+      .eq('user_id', myId)   // 👈 only this
 
     if (updErr) {
       console.error('[match] failed to update timeslot_avail', updErr)
@@ -272,126 +350,157 @@ export const useMatchStore = defineStore('match', () => {
 
   // 👇 expose as computed for the views that want array form
   const availabilityList = computed(() => strToArray(availability.value))
-
   // ============= helper: my profile =============
-  async function getMyProfile() {
-    const { data: auth } = await supabase.auth.getUser()
+    async function getMyProfile() {
+    const { data: auth, error: authErr } = await supabase.auth.getUser()
+    if (authErr) {
+      console.warn('[match] getMyProfile auth error', authErr)
+      return null
+    }
+
     const userId = auth?.user?.id
     if (!userId) return null
-    console.log(auth.user.id)
-  
-    const { data: prof } = await supabase
+
+    const { data: prof, error } = await supabase
       .from('profiles')
-      .select('user_id, username, email, profile_photo, personality, gender, avg_rating, rating_count, created_at,modules, study_hours, degree,timeslot_avail')
+      .select(
+        'user_id, username, email, profile_photo, personality, gender, avg_rating, rating_count, created_at, modules, study_hours, degree, timeslot_avail'
+      )
       .eq('user_id', userId)
-    console.log(prof)
+      .maybeSingle()
+
+    if (error) {
+      console.warn('[match] getMyProfile error', error)
+      return null
+    }
     if (!prof) return null
+
     return { userId, profile: prof }
   }
 
-  // ============= matching logic =============
-  async function findBestCandidateForMe(myId: string, myProfile: any): Promise<{ user_id: string } | null> {
-    // 1) get waiting others
-    const { data: waiting, error: waitErr } = await supabase
-      .from('match_queue')
-      .select('user_id, updated_at')
-      .eq('status', 'waiting')
-      .neq('user_id', myId)
+  //============== array of idle users in queue =============
+  async function getIdleOthers(myId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('match_queue')
+    .select('user_id')
+    .eq('status', 'idle')
+    .neq('user_id', myId)
+  if (error) {
+    console.error('[match] getIdleOthers → query failed', error)
+    return []
+  }
 
-    if (waitErr) {
-      console.warn('[match] findBestCandidateForMe → queue error', waitErr)
+  // extract user_id values into an array
+  const idleOthers = (data ?? []).map(row => row.user_id)
+
+  console.log('[match] idle others:', idleOthers)
+  // for every user, return the scores
+  for (let other of idleOthers){
+    // call computeMatchScore but it is inside of findBestCandidateForMe
+    let matchscore = computeMatchScore(myId, other)
+    console.log("score: " + matchscore)
+  }
+}
+
+  
+  
+  
+  
+
+  //select all from queue that is not myself and status == idle and id !== my.id
+  //for users of users gets score compute match, pass in the userID
+  //get userinfo
+  // ============= matching logic =============
+  async function findBestCandidateForMe(
+    myId: string,
+    myProfile: any
+  ): Promise<{ user_id: string } | null> {
+    // 1) get other users who are READY (idle or waiting) and not me
+    const { data: others, error: othersErr } = await supabase
+      .from('match_queue')
+      .select('user_id, status')
+      .in('status', ['idle', 'waiting'])   // 👈 be a bit looser
+      .neq('user_id', myId)
+      console.log(myId)
+    // console.log('others:' + others);
+    for (let other of others){
+      console.log(other.user_id)
+      
+    }
+
+
+    if (othersErr) {
+      console.warn('[match] findBestCandidateForMe → queue error', othersErr)
       return null
     }
-    if (!waiting || waiting.length === 0) return null
+    if (!others || others.length === 0) {
+      return null
+    }
 
-    const candidateIds = waiting.map(w => w.user_id)
+    const candidateIds = others.map(o => o.user_id)
 
     // 2) load their profiles
     const { data: candProfiles, error: profErr } = await supabase
       .from('profiles')
-      .select('user_id, username, email, profile_photo, personality, gender, avg_rating, rating_count, created_at,modules, study_hours, degree,timeslot_avail')
+      .select(
+        'user_id, username, profile_photo, gender, modules, study_hours, degree, timeslot_avail'
+      )
       .in('user_id', candidateIds)
-      console.log(candProfiles)
 
     if (profErr) {
       console.warn('[match] findBestCandidateForMe → profiles error', profErr)
       return null
     }
 
-    const myGender = myProfile.gender
-    const mySlots = strToArray(myProfile.timeslot_avail ?? availability.value)
-    const myMods = strToArray(myProfile.mods)
-    const mySchool = myProfile.school
-    const myStudyHours = typeof myProfile.study_hours === 'number'
-      ? myProfile.study_hours
-      : Number(myProfile.study_hours ?? 0)
-
-    const scored = candProfiles
+    // 3) score them
+    const scored = (candProfiles ?? [])
       .map((cp: any) => {
-        const cSlots = strToArray(cp.timeslot_avail)
-        const cMods = strToArray(cp.mods)
-        const cStudyHours = typeof cp.study_hours === 'number'
-          ? cp.study_hours
-          : Number(cp.study_hours ?? 0)
-
-        // HARD 1: same gender
-        if (myGender && cp.gender && myGender !== cp.gender) {
-          return null
-        }
-
-        // HARD 2: at least 1 slot overlap
-        const slotOverlap = overlapCount(mySlots, cSlots)
-        if (slotOverlap === 0) {
-          return null
-        }
-
-        // SOFTS
-        const modsOverlap = overlapCount(myMods, cMods)
-        const sameSchool = mySchool && cp.school && mySchool === cp.school ? 1 : 0
-        const diffStudy = Math.abs(myStudyHours - cStudyHours)
-
-        const score =
-          modsOverlap * 100 +
-          sameSchool * 20 +
-          (10 - Math.min(diffStudy, 10))
-
-        return {
-          user_id: cp.user_id,
-          score,
-        }
+        const score = computeMatchScore(myProfile, cp)
+        return { user_id: cp.user_id, score }
       })
-      .filter(Boolean) as Array<{ user_id: string; score: number }>
+      // 👇 soften rule: if absolutely no one hits 200, we’ll pick the best later
+      .sort((a, b) => b.score - a.score)
 
     if (!scored.length) return null
 
-    scored.sort((a, b) => b.score - a.score)
+    // see if anyone hit your hard rule
+    const hardHit = scored.find(s => s.score >= 200)
+    if (hardHit) return { user_id: hardHit.user_id }
+
+    // else just take the best one we have
     return { user_id: scored[0].user_id }
   }
 
-  // ==================== queue matchmaking ====================
+// ==================== queue matchmaking ====================
   async function queueAndPoll(): Promise<string> {
     stage.value = 'searching'
-    // get my profile
+
+    // 0) get my profile
     const mine = await getMyProfile()
-    if (!mine) throw new Error('Not authenticated or profile missing')
+    if (!mine) {
+      stage.value = 'landing'
+      throw new Error('Not authenticated or profile missing')
+    }
     const myId = mine.userId
     const myProfile = mine.profile
 
-    // 1) enqueue
+    // 1) put myself as IDLE (ready to be picked by others)
     {
-      const { error } = await supabase.from('match_queue').upsert({
-        user_id: myId,
-        status: 'waiting',
-        room_id: null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' })
+      const { error } = await supabase.from('match_queue').upsert(
+        {
+          user_id: myId,
+          status: 'idle',
+          room_id: null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' }
+      )
       if (error) throw error
     }
 
-    console.log("i enqueued")
-
+    // helper to mark both users matched
     const markMatched = async (partnerId: string): Promise<string | null> => {
-      const roomId = (globalThis.crypto?.randomUUID?.() ?? String(Date.now()))
+      const roomId = globalThis.crypto?.randomUUID?.() ?? String(Date.now())
       const now = new Date().toISOString()
 
       const { error: updErr } = await supabase
@@ -425,7 +534,6 @@ export const useMatchStore = defineStore('match', () => {
         }
       }
 
-      // 👇 auto-start countdown once match is made
       stage.value = 'match'
       startCountdown(() => declineMatch())
       persist()
@@ -446,15 +554,21 @@ export const useMatchStore = defineStore('match', () => {
       }
     }
 
-    // 3) poll
+    // 3) poll (every 2s for 60s)
     const deadline = Date.now() + 60_000
     while (Date.now() < deadline) {
       // maybe someone matched us
-      const { data: meQueue } = await supabase
+      const { data: meQueue, error: meErr } = await supabase
         .from('match_queue')
         .select('status, room_id')
         .eq('user_id', myId)
-        .single()
+        .maybeSingle()
+
+      // if I somehow got deleted/logged out in Supabase, stop
+      if (meErr) {
+        console.warn('[match] polling → my row disappeared', meErr)
+        break
+      }
 
       if (meQueue?.status === 'matched' && meQueue?.room_id) {
         const rid = meQueue.room_id as string
@@ -462,7 +576,6 @@ export const useMatchStore = defineStore('match', () => {
         match.value.id = rid
         stage.value = 'match'
         await setPartnerFromRoom(rid)
-        // 👇 start countdown here too (we were matched by someone else)
         startCountdown(() => declineMatch())
         persist()
         return rid
@@ -479,13 +592,20 @@ export const useMatchStore = defineStore('match', () => {
         }
       }
 
+      // wait 2s
       await new Promise(r => setTimeout(r, 2000))
     }
 
-  // 4) timeout
-    await supabase.from('match_queue')
-      .update({ status: 'idle', room_id: null, updated_at: new Date().toISOString() })
-      .eq('user_id', myId)
+    // 4) timeout → set me to idle and tell UI
+    await supabase.from('match_queue').upsert(
+      {
+        user_id: myId,
+        status: 'idle',
+        room_id: null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    )
 
     stage.value = 'landing'
     throw new Error('No match found (timeout)')
@@ -574,7 +694,7 @@ export const useMatchStore = defineStore('match', () => {
     currentMatchId,
     chatId,
     availability,
-    availabilityList, // 👈 for views
+    availabilityList,
 
     // computed
     partnerInitials,
@@ -596,5 +716,8 @@ export const useMatchStore = defineStore('match', () => {
     queueAndPoll,
     loadPartnerForCurrent,
     setPartnerFromRoom,
+    getIdleOthers,
+    foo
+    
   }
 })

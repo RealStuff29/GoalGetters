@@ -1,124 +1,136 @@
-import { supabase } from '@/lib/supabase.js';
-import { ref, onMounted } from 'vue';
+// src/composables/useAuth.js (your file)
+import { supabase } from '@/lib/supabase.js'
+import { ref, onMounted } from 'vue'
 
 export function useAuth() {
-    const user = ref(null);
-    const error = ref(null);
-    const loading = ref(false);
+  const user = ref(null)
+  const error = ref(null)
+  const loading = ref(false)
 
+  // SIGN UP
+  async function registerUser(email, password) {
+    loading.value = true
+    error.value = null
 
-    async function registerUser(email, password) {
-        loading.value = true;
-        error.value = null;
+    const { data, error: err } = await supabase.auth.signUp({
+      email,
+      password,
+    })
 
-        const { data, error: err } = await supabase.auth.signUp( //error:err is destructuring Supabase's expected and given "error" as "err", because we already have an "error" we are using and do not want to overwrite (I think)
-            {
-                email: email,
-                password: password,
-            })
+    loading.value = false
 
-        loading.value = false;
-
-        if (err) {
-            error.value = err.message;
-            return null;
-        }
-
-        user.value = data.user;
-        return data.user;
+    if (err) {
+      error.value = err.message
+      return null
     }
 
-    async function loginUser(email, password) {
-        loading.value = true;
-        error.value = null;
+    // ⚠️ IMPORTANT:
+    // If your Supabase project requires email confirmation,
+    // signUp will NOT give you an active session yet.
+    // So we do NOT do: user.value = data.user
+    // Just return it so the UI can show "check your email".
+    return data.user
+  }
 
-        const { data, error: err } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
+  // LOGIN (email/password)
+  async function loginUser(email, password) {
+    loading.value = true
+    error.value = null
 
-        loading.value = false;
+    const { data, error: err } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-        if (err) {
-            error.value = err.message;
-            return null;
-        }
+    loading.value = false
 
-        user.value = data.user;
-        return data.user;
+    if (err) {
+      error.value = err.message
+      return null
     }
 
-    async function logoutUser() {
-        loading.value = true;
-        error.value = null;
+    user.value = data.user
+    return data.user
+  }
 
-        const { error: err } = await supabase.auth.signOut();
+  // LOGOUT
+  async function logoutUser() {
+    loading.value = true
+    error.value = null
 
-        loading.value = false;
+    const { error: err } = await supabase.auth.signOut()
 
-        if (err) {
-            error.value = err.message;
-            return null;
-        }
+    loading.value = false
 
-        user.value = null;
-        return true;
+    if (err) {
+      error.value = err.message
+      return null
     }
 
-    async function loginUserWithGoogle() {
-        loading.value = true;
-        error.value = null;
+    user.value = null
+    return true
+  }
 
-        const {error : err} = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo: `${window.location.origin}/auth/callback`
+  // LOGIN WITH GOOGLE
+  async function loginUserWithGoogle() {
+    loading.value = true
+    error.value = null
 
-            }
-        
-        });
+    const { error: err } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        // make sure this URL is added in Supabase Auth → Redirect URLs
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
 
-        loading.value = false;
+    loading.value = false
 
-        if(err){
-            error.value = err.message;
-            return null;
-        }
-        return true;
-            
+    if (err) {
+      error.value = err.message
+      return null
     }
 
-    // I am just following documentation for this code chunk, check here if you want to see: https://supabase.com/docs/reference/javascript/auth-onauthstatechange
-    // Please ignore the comments here, I will remove them for final submission. I keep forgetting what is going on here
-    supabase.auth.onAuthStateChange((_event, session) => {
-        if (session && session.user){ //If session exists, AND session has a "user" property, then do whatever
-            user.value = session.user;
-        } else {
-            user.value = null;
-        }
-    });
-    
-    //Following chunk is for checking if there is a logged in user when refreshing the page, so we don't boot the guy after a refresh
-    async function loadUser() {
-        const {data, error:err} = await supabase.auth.getUser();
-        if (err){
-            // console.error('Error getting user:' + err.message);
-            console.log('If you are seeing this, you are logged out');
-            return;
-        }
+    // after redirect, onAuthStateChange will fire and set the user
+    return true
+  }
 
-        if (data && data.user){
-            user.value = data.user;
-        } else {
-            user.value = null;
-        }
+  // listen to auth changes (token refresh, other tabs, OAuth redirect, etc.)
+  supabase.auth.onAuthStateChange((_event, session) => {
+    if (session && session.user) {
+      user.value = session.user
+    } else {
+      user.value = null
+    }
+  })
+
+  // restore user on refresh
+  async function loadUser() {
+    const { data, error: err } = await supabase.auth.getUser()
+
+    if (err) {
+      // no session → make sure we clear it
+      console.log('If you are seeing this, you are logged out')
+      user.value = null
+      return
     }
 
-    onMounted(loadUser);
+    if (data && data.user) {
+      user.value = data.user
+    } else {
+      user.value = null
+    }
+  }
 
+  onMounted(loadUser)
 
-
-
-    return { user, error, loading, registerUser, loginUser, logoutUser, loginUserWithGoogle };
+  return {
+    user,
+    error,
+    loading,
+    registerUser,
+    loginUser,
+    logoutUser,
+    loginUserWithGoogle,
+  }
 }
-
