@@ -1,5 +1,6 @@
 @import './base.css';
 
+/* ==================== App Layout ==================== */
 #app {
   max-width: 1280px;
   margin: 0 auto;
@@ -11,10 +12,9 @@ a,
 .green {
   text-decoration: none;
   color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
+  transition: 0.3s;
   padding: 3px;
 }
-
 
 @media (hover: hover) {
   a:hover {
@@ -34,9 +34,9 @@ a,
     padding: 0 2rem;
   }
 }
-/* ============ Utilities ============ */
+
+/* ==================== Utilities ==================== */
 @layer utilities {
-  /* App-wide page wrapper used by MainLayout */
   .page {
     width: 100%;
     max-width: var(--page-max);
@@ -44,13 +44,128 @@ a,
     padding: var(--page-pad);
   }
 
-  /* Optional narrower page (e.g., landing/decision) */
   .page--narrow { max-width: 42rem; }
 
-  /* Simple spacing helpers */
   .gap { display: grid; gap: 1.5rem; }
   .mt-1 { margin-top: .25rem; }
   .mt-2 { margin-top: .5rem; }
   .mt-4 { margin-top: 1rem; }
   .mb-2 { margin-bottom: .5rem; }
+}
+
+/* ==================== Match Landing Styling ==================== */
+
+/* --- Slot Button Base --- */
+.slot-btn {
+  background: var(--color-background-soft);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.1s ease;
+}
+
+.slot-btn:hover {
+  background: var(--color-background-mute);
+  border-color: var(--color-border-hover);
+}
+
+/* --- Slot Button Active (Selected) --- */
+.slot-btn--active {
+  background-color: #22c55e !important; /* main green */
+  border-color: #22c55e !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+  transform: translateY(-1px);
+}
+
+/* --- Slot Button Pressed (Click Feedback) --- */
+.slot-btn:active {
+  transform: scale(0.97);
+  background-color: var(--color-border-hover);
+}
+.slot-btn--active:active {
+  background-color: #16a34a !important; /* darker green */
+  border-color: #16a34a !important;
+  transform: scale(0.97);
+}
+
+/* --- Slot Button Text --- */
+.slot-title {
+  font-weight: 600;
+}
+.slot-window {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+/* ==================== PrimeVue Button Overrides ==================== */
+
+/* --- Green Action Button --- */
+.p-button.start-btn,
+.p-button.p-button-success.start-btn {
+  background: #22c55e !important;
+  border-color: #22c55e !important;
+  color: #fff !important;
+  font-weight: 600;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease;
+}
+
+/* --- Hover --- */
+.p-button.start-btn:hover {
+  background: #16a34a !important;
+  border-color: #16a34a !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(34, 197, 94, 0.25);
+}
+
+/* --- Active --- */
+.p-button.start-btn:active {
+  background: #15803d !important;
+  border-color: #15803d !important;
+  transform: scale(0.97);
+}
+
+/* --- Disabled (still greenish) --- */
+.p-button.start-btn:disabled,
+.p-button.start-btn.p-disabled {
+  background: rgba(34, 197, 94, 0.4) !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  color: #fff !important;
+  opacity: 1 !important;
+  cursor: not-allowed;
+}
+
+/* ==================== Animations ==================== */
+@keyframes pulse {
+  50% { opacity: 0.4; }
+}
+
+/* ==================== Typography ==================== */
+.match-heading,
+.match-subtitle {
+  color: var(--color-text);
+}
+.match-subtitle {
+  opacity: 0.8;
+}
+
+/* ==================== Responsive ==================== */
+@media (prefers-color-scheme: dark) {
+  .slot-btn {
+    background: var(--color-background-soft);
+    color: var(--color-text);
+  }
+  .slot-btn:hover {
+    background: var(--color-background-mute);
+  }
 }
