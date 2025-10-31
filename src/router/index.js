@@ -1,6 +1,9 @@
 // src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/composables/useAuth'
+
+const { hasCompletedProfile } = useAuth();
 
 // Eager-loaded views
 import HomeView from '../views/HomeView.vue'
@@ -68,13 +71,57 @@ router.beforeEach(async (to) => {
   const sessionResponse = await supabase.auth.getSession(); //Getting session from supabase
   const session = sessionResponse.data.session;
 
+  console.log('to.meta', to.meta)
+  console.log('to.meta.requiresAuth', to.meta.requiresAuth)
+  console.log('session', session)
+
+
+
   //booting user if not logged in and trying to route to a route that needs login
   if (to.meta && to.meta.requiresAuth && !session) { //Checking meta, and if the meta is "requiresAuth", and if there is no session
     return { name: 'login', query: { redirect: to.fullPath } } //the boot
   }
 
-  if (to.meta && to.meta.requiresGuest && session) {
+  // const complete = await hasCompletedProfile();
+  // console.log('complete is ', complete);
+  // if (to.meta && to.meta.requiresAuth && session && !complete) {
+  //   return { name: 'profilesetup' }
+  // }
+
+
+  // ================================================================================
+
+  let complete = null;
+  if (session) {
+    const { hasCompletedProfile } = useAuth();
+    complete = await hasCompletedProfile();
+  }
+
+  const allowWhenIncomplete = ['profilesetup', 'auth-callback']; //setting these pages to not do the following behaviour, so no infinite routing loop
+
+  // force setup when incomplete, except when already on an allowed route
+
+  //logged in session, complete is false, the routed page is part of requiresAuth, but NOT profilesetup or auth-callback
+  if (session && complete === false && to.meta?.requiresAuth && !allowWhenIncomplete.includes(to.name)) { 
+    return { name: 'profilesetup' };
+  }
+
+
+  // ================================================================================
+
+
+
+  if (to.meta && to.meta.requiresGuest && session) {//checking if user who IS logged in is trying to access guest page (such as login/register)
     return { name: 'home' }
+
+    // console.log('if user is logged in, router guard to home')
+    // const complete = await hasCompletedProfile();
+    // console.log('complete');
+    // if (complete) {
+    //   return { name: 'home' }
+    // } else {
+    //   return { name: 'profilesetup' }
+    // }
   }
 
   return true;

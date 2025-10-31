@@ -3,24 +3,37 @@
 <script setup>
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'vue-router'
+import { useAuth } from '@/composables/useAuth';
 
+const { checkProfileComplete } = useAuth();
 const router = useRouter()
 
-// Run immediately when this page loads
-;(async () => {
-  // Exchange the OAuth code in the URL for a Supabase session
-  const { error } = await supabase.auth.exchangeCodeForSession(window.location.href)
+  // Run immediately when this page loads
+  ; (async () => {
+    // Exchange the OAuth code in the URL for a Supabase session
+    const { error } = await supabase.auth.exchangeCodeForSession(window.location.href)
 
-  if (error) {
-    console.error('OAuth exchange failed:', error.message)
-    router.replace({ name: 'login', query: { err: 'oauth-failed' } })
-    return
-  }
+    if (error) {
+      console.error('OAuth exchange failed:', error.message)
+      router.replace({ name: 'login', query: { err: 'oauth-failed' } })
+      return
 
-  // If successful, Supabase stores the session automatically.
-  // Your router guard will then detect the session and allow access.
-  router.replace({ name: 'home' })
-})()
+    }
+
+    // If successful, Supabase stores the session automatically.
+    // Your router guard will then detect the session and allow access.
+
+    // Old method
+    // router.replace({ name: 'home' })
+
+    //New method with checking registration
+    // if (await checkProfileComplete()) {
+    //   router.replace({ name: 'home' });
+    // } else {
+    //   router.replace({ name: 'profilesetup' });
+    // }
+
+  })()
 </script>
 
 <template>
