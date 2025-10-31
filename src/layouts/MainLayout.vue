@@ -26,7 +26,7 @@ async function handleLogout(){
         <router-link to="/feedbackview" class="nav-link mx-3">Feedback</router-link>
       </div>
       <div>
-        <Button label="Logout" @click="handleLogout()"/>
+        <Button severity="warn" label="Logout" @click="handleLogout()"/>
       </div>
     </nav>
 
@@ -36,3 +36,24 @@ async function handleLogout(){
     </div>
   </div>
 </template>
+
+<style scoped>
+.nav-link {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nav-link:hover {
+  transform: translateY(-2px);
+  
+}
+
+/* For PrimeVue Button */
+:deep(.p-button) {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+:deep(.p-button:hover) {
+  transform: translateY(-15px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+</style>
