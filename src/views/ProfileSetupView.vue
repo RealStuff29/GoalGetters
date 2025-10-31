@@ -10,7 +10,7 @@ import { degrees } from '@/constants/degrees'
 const router = useRouter()
 const { username, gender, avatarUrl, isComplete, errors, shuffleAvatar, randomiseUsername } = useProfileSetup()
 
-// Step 1 
+// Step 1 Acccount Infomation
 const activeStep = ref('1')
 const avatarLoaded = ref(false)
 
@@ -79,7 +79,7 @@ async function handleSave() {
     </div>
 
     <Stepper v-model:value="activeStep" linear>
-      <!-- Step 1 -->
+      <!-- Step 1 Account Info -->
       <StepItem value="1">
         <Step>Account Info</Step>
         <StepPanel v-slot="{ activateCallback }">
@@ -161,7 +161,7 @@ async function handleSave() {
         </StepPanel>
       </StepItem>
 
-      <!-- Step 2 -->
+      <!-- Step 2 Academic Info -->
       <StepItem value="2">
         <Step>Academic Info</Step>
         <StepPanel v-slot="{ activateCallback }">
