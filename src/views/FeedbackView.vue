@@ -81,6 +81,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase.js'
+import emailjs from 'emailjs-com'
 
 const router = useRouter()
 const rating = ref(0)
@@ -124,7 +125,7 @@ const submitFeedback = async () => {
 
   try {
     const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
+    if (userError || !user || !user.email) {
       showMessage('User not logged in. Please login to submit feedback.', 'error')
       submitting.value = false
       return
@@ -138,31 +139,27 @@ const submitFeedback = async () => {
     }
 
     // 1️⃣ Insert into Supabase
-    const { data, error } = await supabase.from('feedback').insert([feedbackData])
+    const { error } = await supabase.from('feedback').insert([feedbackData])
     if (error) {
       showMessage(`Supabase submission failed: ${error.message}`, 'error')
       submitting.value = false
       return
     }
 
-    // 2️⃣ Send confirmation email via Node SMTP backend
-    const emailResponse = await fetch("http://localhost:3001/send-feedback-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        feature: selectedFeature.value,
-        rating: rating.value,
-        comments: comments.value,
-        userEmail: user.email
-      })
-    })
+    // 2️⃣ Send email directly via EmailJS
+    const serviceID = 'service_5y8iu0y'
+    const templateID = 'template_wm3esoj'
+    const publicKey = 'FIKMLHASOC5ulQfhe'
 
-    if (!emailResponse.ok) {
-      const errData = await emailResponse.json()
-      showMessage(`Email failed: ${errData.error}`, 'error')
-      submitting.value = false
-      return
+    const templateParams = {
+      user_name: user.email.split('@')[0],
+      user_email: user.email,
+      feature: selectedFeature.value,
+      rating: rating.value.toString(),
+      comments: comments.value
     }
+
+    await emailjs.send(serviceID, templateID, templateParams, publicKey)
 
     showMessage('✅ Feedback submitted and email sent successfully!', 'success')
     clearForm()
