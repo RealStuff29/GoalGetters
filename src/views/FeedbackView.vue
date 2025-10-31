@@ -137,14 +137,38 @@ const submitFeedback = async () => {
       comments: comments.value,
     }
 
+    // 1️⃣ Insert into Supabase
     const { data, error } = await supabase.from('feedback').insert([feedbackData])
-    if (error) showMessage(`Submission failed: ${error.message}`, 'error')
-    else {
-      showMessage('✅ Thank you! Your feedback was sent successfully.', 'success')
-      clearForm()
+    if (error) {
+      showMessage(`Supabase submission failed: ${error.message}`, 'error')
+      submitting.value = false
+      return
     }
+
+    // 2️⃣ Send confirmation email via Node SMTP backend
+    const emailResponse = await fetch("http://localhost:3001/send-feedback-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        feature: selectedFeature.value,
+        rating: rating.value,
+        comments: comments.value,
+        userEmail: user.email
+      })
+    })
+
+    if (!emailResponse.ok) {
+      const errData = await emailResponse.json()
+      showMessage(`Email failed: ${errData.error}`, 'error')
+      submitting.value = false
+      return
+    }
+
+    showMessage('✅ Feedback submitted and email sent successfully!', 'success')
+    clearForm()
+
   } catch (err) {
-    console.log(err)
+    console.error(err)
     showMessage('Network error. Please try again later.', 'error')
   } finally {
     submitting.value = false
@@ -252,7 +276,6 @@ const goToHome = () => router.push({ name: 'home' })
   padding: 0.25rem 0;
 }
 
-/* Bigger stars */
 .rating-large .pi-star,
 .rating-large .pi-star-o {
   font-size: 3rem !important;
