@@ -94,69 +94,53 @@ onMounted(async () => {
           : []
 
     studyHours.value  = Number(profile?.study_hours ?? 4)
-    ratingValue.value = Number(profile?.avg_rating ?? 0)   // ✅ FIX: use avg_rating (matches SELECT)
+    ratingValue.value = Number(profile?.avg_rating ?? 0)  
     reviewCount.value = Number(profile?.rating_count ?? 0)
 
-    // 3) Ratings histogram (ensure RLS allows this)
-    const { data: ratings, error: rerr } = await supabase
-      .from('profiles')
-      .select('rating')
-      .eq('target_user_id', user.id)
+    // 3) Ratings histogram + review list (ABOUT the current user)
+    // NOTE: we read from `sessions`, not `profiles`
+    const { data: rows, error: sErr } = await supabase
+    .from('sessions')
+    .select(
+        'sessid, created_by_a, created_by_b, rating_by_a, rating_by_b, comment_by_a, comment_by_b, created_at'
+    )
+    .or(`created_by_a.eq.${user.id},created_by_b.eq.${user.id}`)
+    .order('created_at', { ascending: false })
 
-    if (!rerr && Array.isArray(ratings)) {
-      const counts = {1:0,2:0,3:0,4:0,5:0}
-      ratings.forEach(r => { const k = Number(r.rating); if (counts[k] != null) counts[k]++ })
-      ratingBreakdown.value = [
+    if (!sErr && Array.isArray(rows)) {
+    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+    const list = []
+
+    for (const row of rows) {
+        const isA = row.created_by_a === user.id   // you were A in this session
+        const isB = row.created_by_b === user.id   // you were B in this session
+
+        if (isA) {
+        const r = row.rating_by_b
+        const c = row.comment_by_b ?? ''
+        if (r != null && counts[r] != null) counts[r]++
+        if (c || r != null) list.push({ id: `${row.sessid}-b`, rating: Number(r ?? 0), comment: c || '' })
+        }
+        if (isB) {
+        const r = row.rating_by_a
+        const c = row.comment_by_a ?? ''
+        if (r != null && counts[r] != null) counts[r]++
+        if (c || r != null) list.push({ id: `${row.sessid}-a`, rating: Number(r ?? 0), comment: c || '' })
+        }
+    }
+
+    ratingBreakdown.value = [
         { label: '5★', color: 'var(--green-500)',  value: counts[5] },
         { label: '4★', color: 'var(--teal-500)',   value: counts[4] },
         { label: '3★', color: 'var(--blue-500)',   value: counts[3] },
         { label: '2★', color: 'var(--yellow-500)', value: counts[2] },
         { label: '1★', color: 'var(--red-500)',    value: counts[1] }
-      ]
+    ]
+
+    reviews.value = list
+    reviewCount.value = list.length
     }
 
-    // 4) Load reviews ABOUT the current user from 'sessions' (user can be A or B)
-    const { data: sessionRows, error: serr } = await supabase
-      .from('sessions') // change to 'session' if that's your actual table name
-      .select('sessid, created_by_a, created_by_b, rating_by_a, rating_by_b, comment_by_a, comment_by_b, created_at')
-      .or(`created_by_a.eq.${user.id},created_by_b.eq.${user.id}`)
-      .order('created_at', { ascending: false })
-
-    if (!serr && Array.isArray(sessionRows)) {
-      // Build a flat list of feedback ABOUT the current user (anonymous, no timestamps kept)
-      reviews.value = sessionRows.flatMap(row => {
-        const out = []
-        const isUserA = row.created_by_a === user.id
-        const isUserB = row.created_by_b === user.id
-
-        if (isUserA) {
-          const comment = row.comment_by_b ?? ''
-          const rating  = row.rating_by_b ?? null
-          if (comment || rating != null) {
-            out.push({
-              id: `${row.sessid}-b`,
-              comment: comment || '',
-              rating: Number(rating ?? 0),
-            })
-          }
-        }
-        if (isUserB) {
-          const comment = row.comment_by_a ?? ''
-          const rating  = row.rating_by_a ?? null
-          if (comment || rating != null) {
-            out.push({
-              id: `${row.sessid}-a`,
-              comment: comment || '',
-              rating: Number(rating ?? 0),
-            })
-          }
-        }
-        return out
-      })
-
-      // Show actual loaded review count on the right panel
-      reviewCount.value = reviews.value.length
-    }
   } catch (e) {
     console.error('[profile load]', e)
     // optional: router.push('/login')
