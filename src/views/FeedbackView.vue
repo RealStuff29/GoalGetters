@@ -138,7 +138,6 @@ const submitFeedback = async () => {
       comments: comments.value,
     }
 
-    // 1️⃣ Insert into Supabase
     const { error } = await supabase.from('feedback').insert([feedbackData])
     if (error) {
       showMessage(`Supabase submission failed: ${error.message}`, 'error')
@@ -146,7 +145,6 @@ const submitFeedback = async () => {
       return
     }
 
-    // 2️⃣ Send email directly via EmailJS
     const serviceID = 'service_5y8iu0y'
     const templateID = 'template_wm3esoj'
     const publicKey = 'FIKMLHASOC5ulQfhe'
