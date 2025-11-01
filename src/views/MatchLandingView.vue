@@ -3,11 +3,13 @@
   <div class="match-landing-container">
     <div>
       <button 
-      type='button'
-      @click="callGetIdleOthers('1b0835fc-3514-427b-9971-c3a8fa8bf71a')">
+        type="button"
+        @click="callGetIdleOthers('1b0835fc-3514-427b-9971-c3a8fa8bf71a')"
+      >
         Test callGetIdleOthers
       </button>
     </div>
+
     <!-- LANDING / FORM -->
     <div v-if="store.stage === 'landing'" class="match-form">
       <div class="match-header">
@@ -47,6 +49,16 @@
       </div>
     </div>
 
+    <!-- MATCH NOT FOUND STATE -->
+    <div v-else-if="store.stage === 'notfound'" class="match-notfound">
+      <h2 class="match-title-sm">No Match Found 😞</h2>
+      <p class="match-subtitle">
+        Nobody met the minimum compatibility score (≥ 200) right now.
+        You can try again later — we kept your availability.
+      </p>
+      <Button class="mt-4" label="Try Again" @click="backToLanding" />
+    </div>
+
     <!-- SEARCHING STATE -->
     <div v-else class="match-searching">
       <ProgressSpinner style="width:4rem;height:4rem" strokeWidth="4" />
@@ -79,7 +91,7 @@ const timeSlots = [
 
 const selectedSlots = ref<string[]>([])
 
-function callGetIdleOthers(myId) {
+function callGetIdleOthers(myId: string) {
   store.getIdleOthers(myId)
 }
 
@@ -125,6 +137,10 @@ function toggleSlot(id: string) {
   }
 }
 
+function backToLanding() {
+  store.stage = 'landing'
+}
+
 async function onStart() {
   if (selectedSlots.value.length === 0) return
 
@@ -137,6 +153,13 @@ async function onStart() {
   try {
     // 3️⃣ try to match
     const roomId = await store.queueAndPoll()
+
+    // if store couldn't find ≥200, it will set stage='notfound' and return ''
+    if (!roomId) {
+      // we let the template show the notfound state
+      return
+    }
+
     // 4️⃣ go to decision page
     router.push({ name: 'matchdecision', params: { id: roomId } })
   } catch (err: any) {
@@ -144,7 +167,6 @@ async function onStart() {
 
     // if no profile / not logged in
     if (err?.message === 'Not authenticated or profile missing') {
-      // go to profile setup (or login if you prefer)
       router.push({ name: 'profilesetup' })
     } else {
       // generic failure → go back to landing
@@ -292,5 +314,17 @@ async function onStart() {
 .delay-300 { animation-delay: 300ms; }
 @keyframes pulse {
   50% { opacity: 0.4; }
+}
+
+/* notfound */
+.match-notfound {
+  text-align: center;
+  max-width: 480px;
+  margin: 0 auto;
+}
+.match-notfound .match-title-sm {
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
 }
 </style>

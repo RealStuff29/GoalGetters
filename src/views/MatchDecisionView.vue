@@ -14,11 +14,16 @@
         <template #title>
           <div class="flex flex-col items-center">
             <Avatar :label="store.partnerInitials" size="large" shape="circle" class="mb-3" />
-            <span class="text-lg font-semibold">{{ store.match.partner.name }}</span>
+            <span class="text-lg font-semibold flex items-center gap-2">
+              {{ store.match.partner.name }}
+              <!-- show match score if ready -->
+              <Tag v-if="matchScore !== null" severity="success" :value="`Score: ${matchScore}`" />
+            </span>
           </div>
         </template>
         <template #content>
-          <div class="space-y-3">
+          <!-- main meeting info -->
+          <div class="space-y-3 mb-4">
             <div class="flex items-start gap-3">
               <i :class="pi('book')" class="opacity-70 mt-1" />
               <div>
@@ -40,6 +45,42 @@
               <p>{{ store.match.location }}</p>
             </div>
           </div>
+
+          <!-- extra match info -->
+          <div class="mt-2 p-3 rounded-lg bg-slate-50 border text-sm space-y-2">
+            <p class="font-semibold flex items-center gap-2">
+              <i :class="pi('info-circle')" class="opacity-70" /> Match details
+            </p>
+
+            <!-- common timeslots -->
+            <p>
+              <b>Common timeslots:</b>
+              <span v-if="commonSlots.length">
+                {{ commonSlots.join(', ') }}
+              </span>
+              <span v-else class="opacity-70">None</span>
+            </p>
+
+            <!-- common modules -->
+            <p>
+              <b>Similar modules:</b>
+              <span v-if="commonMods.length">
+                {{ commonMods.join(', ') }}
+              </span>
+              <span v-else class="opacity-70">None</span>
+            </p>
+
+            <!-- degree / school -->
+            <p>
+              <b>Same degree / school:</b>
+              <span v-if="sameDegree">
+                ✅ {{ partnerProfile?.degree }}
+              </span>
+              <span v-else class="opacity-70">
+                No
+              </span>
+            </p>
+          </div>
         </template>
       </Card>
 
@@ -52,48 +93,11 @@
 
       <div class="grid grid-cols-2 gap-3">
         <Button outlined @click="onDecline" :icon="pi('times')" label="Decline" />
-        <Button @click="onAccept" severity="primary" :icon="pi('check')" label="Accept" />
+        <Button @click="onAccept" severity="primary" :icon="pi('check')" label="Accept & Chat" />
       </div>
     </div>
 
-    <!-- RESULT CARD -->
-    <div class="w-full space-y-4 text-center" v-else-if="store.stage === 'result'">
-      <Card>
-        <template #title>
-          <div class="flex justify-center mb-2">
-            <i
-              :class="['pi', store.resultAccepted ? 'pi-check-circle text-green-500' : 'pi-times-circle text-red-500']"
-              :style="{ fontSize: '3rem' }"
-            />
-          </div>
-          <span class="text-xl font-semibold">
-            {{ store.resultAccepted ? 'Match Accepted!' : 'Match Declined' }}
-          </span>
-        </template>
-        <template #content>
-          <p class="opacity-80 mb-4">
-            {{
-              store.resultAccepted
-                ? 'Great! Both parties have accepted the match. You can now chat and coordinate your study session!'
-                : 'No worries. You can try finding another match.'
-            }}
-          </p>
-          <div class="space-y-2">
-            <Button
-              v-if="store.resultAccepted"
-              @click="goChat"
-              severity="primary"
-              :icon="pi('comments')"
-              label="Start Chatting & Find Location"
-              class="w-full"
-            />
-            <Button outlined @click="startOver" :icon="pi('refresh')" label="Find Another Match" class="w-full" />
-          </div>
-        </template>
-      </Card>
-    </div>
-
-    <!-- FALLBACK -->
+    <!-- FALLBACK (if user refreshes weirdly) -->
     <div v-else class="opacity-70 text-center">
       <p>Loading your match…</p>
       <Button class="mt-3" label="Back to Matchmaking" @click="startOver" />
@@ -103,8 +107,9 @@
 
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useMatchStore } from '@/stores/match'
+import { supabase } from '@/lib/supabase'
 
 function pi(name: string) {
   return `pi pi-${name}`
@@ -113,6 +118,29 @@ function pi(name: string) {
 const store = useMatchStore()
 const router = useRouter()
 const route = useRoute()
+
+// extra reactive data for this view
+const myProfile = ref<any>(null)
+const partnerProfile = ref<any>(null)
+const matchScore = ref<number | null>(null)
+const commonSlots = ref<string[]>([])
+const commonMods = ref<string[]>([])
+const sameDegree = ref<boolean>(false)
+
+// small helpers (same as in store)
+function strToArray(val: string | string[] | null | undefined): string[] {
+  if (!val) return []
+  if (Array.isArray(val)) return val.filter(Boolean).map(v => v.trim())
+  return val
+    .split(',')
+    .map(v => v.trim())
+    .filter(Boolean)
+}
+
+function overlap<T extends string>(a: T[], b: T[]): T[] {
+  const setB = new Set(b)
+  return a.filter(x => setB.has(x))
+}
 
 onMounted(async () => {
   // 1) restore cached
@@ -128,21 +156,102 @@ onMounted(async () => {
   // 3) try to load partner (in case user hard-refreshed)
   await store.loadPartnerForCurrent()
 
-  // 4) show the correct stage
-  store.stage = store.resultAccepted ? 'result' : 'match'
+  // 4) we stay in 'match' stage (we removed 'result' screen)
+  store.stage = 'match'
+
+  // 5) load both full profiles from Supabase to compute score
+  const { data: auth } = await supabase.auth.getUser()
+  const myId = auth?.user?.id
+  if (!myId) return
+
+  // load my profile
+  const { data: myProf } = await supabase
+    .from('profiles')
+    .select('user_id, gender, modules, study_hours, degree, timeslot_avail')
+    .eq('user_id', myId)
+    .maybeSingle()
+
+  // get partnerId from room
+  const roomId = store.currentMatchId || store.match.id
+  let partnerId: string | null = null
+  if (roomId) {
+    const { data: room } = await supabase
+      .from('match_room')
+      .select('user1, user2')
+      .eq('id', roomId)
+      .maybeSingle()
+    if (room) {
+      partnerId = room.user1 === myId ? room.user2 : room.user1
+    }
+  }
+
+  let partnerProf: any = null
+  if (partnerId) {
+    const { data: p } = await supabase
+      .from('profiles')
+      .select('user_id, username, gender, modules, study_hours, degree, timeslot_avail')
+      .eq('user_id', partnerId)
+      .maybeSingle()
+    partnerProf = p
+  }
+
+  myProfile.value = myProf
+  partnerProfile.value = partnerProf
+
+  if (myProf && partnerProf) {
+    // compute score exactly like in store
+    let score = 0
+
+    // 1) same gender +100
+    if (myProf.gender && partnerProf.gender && myProf.gender === partnerProf.gender) {
+      score += 100
+    }
+
+    // 2) overlapping time slots +100
+    const mySlotsArr = strToArray(myProf.timeslot_avail)
+    const partnerSlotsArr = strToArray(partnerProf.timeslot_avail)
+    const slotOverlap = overlap(mySlotsArr, partnerSlotsArr)
+    if (slotOverlap.length > 0) {
+      score += 100
+    }
+    commonSlots.value = slotOverlap
+
+    // 3) same modules +1 each
+    const myModsArr = strToArray(myProf.modules)
+    const partnerModsArr = strToArray(partnerProf.modules)
+    const modsOverlap = overlap(myModsArr, partnerModsArr)
+    score += modsOverlap.length
+    commonMods.value = modsOverlap
+
+    // 4) same degree +1
+    if (myProf.degree && partnerProf.degree && myProf.degree === partnerProf.degree) {
+      score += 1
+      sameDegree.value = true
+    } else {
+      sameDegree.value = false
+    }
+
+    // 5) similar study hours +1
+    const myStudy = Number(myProf.study_hours ?? 0)
+    const otherStudy = Number(partnerProf.study_hours ?? 0)
+    if (Math.abs(myStudy - otherStudy) <= 2) {
+      score += 1
+    }
+
+    matchScore.value = score
+    console.log('[decision] match score (recomputed in view):', score)
+  }
 })
 
 function onAccept() {
+  // store should already set stage='chat' in acceptMatch() (update match.ts accordingly)
   store.acceptMatch()
+  router.push({ name: 'matchchat', params: { chatId: store.chatId } })
 }
 
 function onDecline() {
   store.declineMatch()
-}
-
-function goChat() {
-  store.goToChat()
-  router.push({ name: 'matchchat', params: { chatId: store.chatId } })
+  router.push({ name: 'matchlanding' })
 }
 
 function startOver() {
