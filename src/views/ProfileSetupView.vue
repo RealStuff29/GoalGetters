@@ -5,7 +5,10 @@ import { supabase } from '@/lib/supabase'
 import { updateProfile } from '@/services/profileService'
 import { useProfileSetup } from '@/composables/useProfileSetup'
 import { degrees } from '@/constants/degrees'
+import { MBTI_QUESTIONS } from '@/constants/MBTIQuestions'
+import { useComputeMBTI } from '@/composables/useComputeMBTI'
 
+const { computeMbtiType } = useComputeMBTI()
 
 const router = useRouter()
 const { username, gender, avatarUrl, isComplete, errors, shuffleAvatar, randomiseUsername } = useProfileSetup()
@@ -73,39 +76,13 @@ async function handleSave() {
 
 // CHANGE 1
 // --- Step 3: MBTI state + logic (NEW) ---
-const mbtiQuestions = [
-  { id: 1, text: "You prefer to spend time with a large group of people rather than alone.", dim: "EI", pos: "E", neg: "I" },
-  { id: 2, text: "You focus more on details than the big picture.", dim: "SN", pos: "S", neg: "N" },
-  { id: 3, text: "You make decisions based on logic rather than emotions.", dim: "TF", pos: "T", neg: "F" },
-  { id: 4, text: "You like to plan ahead instead of being spontaneous.", dim: "JP", pos: "J", neg: "P" },
-  { id: 5, text: "You get energized by meeting new people.", dim: "EI", pos: "E", neg: "I" },
-  { id: 6, text: "You prefer concrete facts over abstract ideas.", dim: "SN", pos: "S", neg: "N" },
-  { id: 7, text: "You care more about fairness than compassion.", dim: "TF", pos: "T", neg: "F" },
-  { id: 8, text: "You like to keep your schedule flexible.", dim: "JP", pos: "P", neg: "J" },
-  { id: 9, text: "You enjoy brainstorming and exploring possibilities.", dim: "SN", pos: "N", neg: "S" },
-  { id: 10, text: "You often take the initiative in groups.", dim: "EI", pos: "E", neg: "I" },
-];
-
-const mbtiAnswers = ref(Array(mbtiQuestions.length).fill(null)); // 'POS' | null | 'NEG'
+const mbtiAnswers = ref(Array(MBTI_QUESTIONS.length).fill(null))
 const mbtiResult = ref("");
-
 const isStep3Answered = computed(() => mbtiAnswers.value.every(a => a !== null));
 
-function computeMbtiType() {
-  const score = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 };
-  mbtiAnswers.value.forEach((a, i) => {
-    const q = mbtiQuestions[i];
-    if (!q) return; // safety check
-
-    if (a === "POS") score[q.pos] += 1;
-    else if (a === "NEG") score[q.neg] += 1;
-    // "NEUTRAL" means no score change → ignore it
-  });
-  const EI = score.E >= score.I ? "E" : "I";
-  const SN = score.S >= score.N ? "S" : "N";
-  const TF = score.T >= score.F ? "T" : "F";
-  const JP = score.J >= score.P ? "J" : "P";
-  mbtiResult.value = `${EI}${SN}${TF}${JP}`;
+function handleComputeMbti() {
+  mbtiResult.value = computeMbtiType(mbtiAnswers.value, MBTI_QUESTIONS)
+  console.log("Result stored:", mbtiResult.value) // debug
 }
 
 // Save Steps 1+2 before moving to Step 3
@@ -315,7 +292,7 @@ async function handleSavePersonality() {
             <h5 class="fw-semibold mb-3">Tell us about yourself</h5>
 
             <!-- 10 questions -->
-            <div v-for="(q, i) in mbtiQuestions" :key="q.id" class="border rounded p-3 mb-3">
+            <div v-for="(q, i) in MBTI_QUESTIONS" :key="q.id" class="border rounded p-3 mb-3">
               <p class="mb-2">{{ i + 1 }}. {{ q.text }}</p>
 
               <div class="d-flex gap-3 flex-wrap">
@@ -341,7 +318,7 @@ async function handleSavePersonality() {
             <div class="d-flex justify-content-center my-4">
               <Button label="Compute Result" icon="pi pi-check-circle"
                 class="bg-orange-500 border-none hover:bg-orange-600 text-white" :disabled="!isStep3Answered || saving"
-                @click="computeMbtiType" />
+                @click="handleComputeMbti" />
             </div>
 
             <!-- result -->

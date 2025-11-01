@@ -79,6 +79,9 @@ import Dropdown from 'primevue/dropdown'
 import Textarea from 'primevue/textarea'
 import Rating from 'primevue/rating'
 import Checkbox from 'primevue/checkbox'
+import Dialog from 'primevue/dialog'
+
+
 
 
 
@@ -121,6 +124,7 @@ app.component('Dropdown', Dropdown);
 app.component('Textarea', Textarea);
 app.component('Rating', Rating);
 app.component('Checkbox', Checkbox);
+app.component('Dialog', Dialog)
 
 app.mount('#app');
 

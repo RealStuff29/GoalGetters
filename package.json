@@ -15,7 +15,10 @@
     "@primeuix/themes": "^1.2.5",
     "@supabase/supabase-js": "^2.74.0",
     "bootstrap": "^5.3.8",
+<<<<<<< HEAD
     "emailjs": "^4.0.3",
+=======
+>>>>>>> 672c941c1e9787fe12659c44ce285bf4a034814c
     "emailjs-com": "^3.2.0",
     "pinia": "^3.0.3",
     "pinia-plugin-persistedstate": "^4.5.0",
