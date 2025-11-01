@@ -1,7 +1,6 @@
 <!-- src/views/MatchDecisionView.vue -->
 <template>
   <div class="min-h-screen p-4 w-full mx-auto max-w-md flex items-center justify-center">
-    <!-- MATCH CARD -->
     <div class="w-full space-y-4" v-if="store.stage === 'match'">
       <div class="text-center">
         <h2 class="text-2xl font-semibold mb-1">Match Found! 🎉</h2>
@@ -15,9 +14,7 @@
           <div class="flex flex-col items-center">
             <Avatar :label="store.partnerInitials" size="large" shape="circle" class="mb-3" />
             <span class="text-lg font-semibold flex items-center gap-2">
-              <!-- 👇 this is the actual name coming from store -->
               {{ store.match.partner.name || 'Study partner' }}
-              <!-- show match score if ready -->
               <Tag v-if="matchScore !== null" severity="success" :value="`Score: ${matchScore}`" />
             </span>
           </div>
@@ -70,7 +67,6 @@
       </div>
     </div>
 
-    <!-- FALLBACK -->
     <div v-else class="opacity-70 text-center">
       <p>Loading your match…</p>
       <Button class="mt-3" label="Back to Matchmaking" @click="startOver" />
@@ -80,7 +76,7 @@
 
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useMatchStore } from '@/stores/match'
 import { supabase } from '@/lib/supabase'
 
@@ -94,10 +90,13 @@ const route = useRoute()
 
 const myProfile = ref<any>(null)
 const partnerProfile = ref<any>(null)
+const partnerId = ref<string | null>(null)
 const matchScore = ref<number | null>(null)
 const commonSlots = ref<string[]>([])
 const commonMods = ref<string[]>([])
 const sameDegree = ref<boolean>(false)
+
+let pollTimer: number | null = null // 👈 for cleanup
 
 function strToArray(val: string | string[] | null | undefined): string[] {
   if (!val) return []
@@ -114,120 +113,126 @@ function overlap<T extends string>(a: T[], b: T[]): T[] {
 }
 
 onMounted(async () => {
-  // 1) restore cached
   await store.hydrateFromCache()
 
-  // 2) ensure we have room/match id
   const ok = await store.ensureMatch(route.params.id as string | undefined)
   if (!ok) {
     router.replace({ name: 'matchlanding' })
     return
   }
 
-  // 3) make sure store tries to load partner first
-  // (this already calls Supabase in the store)
   await store.loadPartnerForCurrent()
-
-  // 4) now we can safely show 'match'
   store.stage = 'match'
 
-  // 5) load both full profiles from Supabase to compute score
   const { data: auth } = await supabase.auth.getUser()
   const myId = auth?.user?.id
   if (!myId) return
 
-  // my profile
   const { data: myProf } = await supabase
     .from('profiles')
     .select('user_id, gender, modules, study_hours, degree, timeslot_avail')
     .eq('user_id', myId)
     .maybeSingle()
 
-  // find partner id from room
   const roomId = store.currentMatchId || store.match.id
-  let partnerId: string | null = null
   if (roomId) {
+    // --- identify partner ---
     const { data: room } = await supabase
       .from('match_room')
       .select('user1, user2')
       .eq('id', roomId)
       .maybeSingle()
+
     if (room) {
-      partnerId = room.user1 === myId ? room.user2 : room.user1
-    }
-  }
+      const otherId = room.user1 === myId ? room.user2 : room.user1
+      partnerId.value = otherId
 
-  let partnerProf: any = null
-  if (partnerId) {
-    // 👇 IMPORTANT: ONLY select columns that exist in your table
-    const { data: p } = await supabase
-      .from('profiles')
-      .select('user_id, username, gender, modules, study_hours, degree, timeslot_avail, profile_photo')
-      .eq('user_id', partnerId)
-      .maybeSingle()
-    partnerProf = p
+      const { data: p } = await supabase
+        .from('profiles')
+        .select('user_id, username, gender, modules, study_hours, degree, timeslot_avail, profile_photo')
+        .eq('user_id', otherId)
+        .maybeSingle()
 
-    // 👇 if store didn't have the name yet (because of refresh), write it now
-    if (partnerProf?.username && !store.match.partner.name) {
-      store.match.partner = {
-        ...store.match.partner,
-        name: partnerProf.username,
-        photo: partnerProf.profile_photo ?? store.match.partner.photo ?? null,
+      partnerProfile.value = p
+
+      if (p?.username && !store.match.partner.name) {
+        store.match.partner = {
+          ...store.match.partner,
+          name: p.username,
+          photo: p.profile_photo ?? store.match.partner.photo ?? null,
+        }
       }
     }
+
+    // 👇 start polling to detect "other side declined"
+    pollTimer = window.setInterval(async () => {
+      const { data: roomExists } = await supabase
+        .from('match_room')
+        .select('id')
+        .eq('id', roomId)
+        .maybeSingle()
+
+      // if room is gone → someone declined → go back
+      if (!roomExists) {
+        // optional: also put myself back to landing
+        store.startOver()
+        router.replace({ name: 'matchlanding' })
+      }
+    }, 2000) as unknown as number
   }
 
   myProfile.value = myProf
-  partnerProfile.value = partnerProf
 
-  // 6) recompute score (your original logic)
-  if (myProf && partnerProf) {
+  // --- recompute score ---
+  if (myProfile.value && partnerProfile.value) {
+    const me = myProfile.value
+    const other = partnerProfile.value
     let score = 0
 
-    // same gender
-    if (myProf.gender && partnerProf.gender && myProf.gender === partnerProf.gender) {
+    if (me.gender && other.gender && me.gender === other.gender) {
       score += 100
     }
 
-    // timeslots
-    const mySlotsArr = strToArray(myProf.timeslot_avail)
-    const partnerSlotsArr = strToArray(partnerProf.timeslot_avail)
+    const mySlotsArr = strToArray(me.timeslot_avail)
+    const partnerSlotsArr = strToArray(other.timeslot_avail)
     const slotOverlap = overlap(mySlotsArr, partnerSlotsArr)
     if (slotOverlap.length > 0) {
       score += 100
     }
     commonSlots.value = slotOverlap
 
-    // modules
-    const myModsArr = strToArray(myProf.modules)
-    const partnerModsArr = strToArray(partnerProf.modules)
+    const myModsArr = strToArray(me.modules)
+    const partnerModsArr = strToArray(other.modules)
     const modsOverlap = overlap(myModsArr, partnerModsArr)
     score += modsOverlap.length
     commonMods.value = modsOverlap
 
-    // degree
-    if (myProf.degree && partnerProf.degree && myProf.degree === partnerProf.degree) {
+    if (me.degree && other.degree && me.degree === other.degree) {
       score += 1
       sameDegree.value = true
     } else {
       sameDegree.value = false
     }
 
-    // study hours
-    const myStudy = Number(myProf.study_hours ?? 0)
-    const otherStudy = Number(partnerProf.study_hours ?? 0)
+    const myStudy = Number(me.study_hours ?? 0)
+    const otherStudy = Number(other.study_hours ?? 0)
     if (Math.abs(myStudy - otherStudy) <= 2) {
       score += 1
     }
 
     matchScore.value = score
-    console.log('[decision] match score (recomputed in view):', score)
+  }
+})
+
+onUnmounted(() => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
   }
 })
 
 function onAccept() {
   store.acceptMatch()
-  // store.chatId should now be ready
   const chatId = store.chatId
   if (chatId) {
     router.push({ name: 'matchchat', params: { chatId } })
@@ -236,8 +241,8 @@ function onAccept() {
   }
 }
 
-function onDecline() {
-  store.declineMatch()
+async function onDecline() {
+  await store.declineMatch(partnerId.value)
   router.push({ name: 'matchlanding' })
 }
 

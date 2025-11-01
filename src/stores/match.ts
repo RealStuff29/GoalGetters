@@ -2,7 +2,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { supabase } from '@/lib/supabase'
-import { Button } from 'bootstrap/dist/js/bootstrap.bundle.min'
 
 type Stage = 'landing' | 'searching' | 'match' | 'result' | 'chat' | 'notfound'
 type Message = { id: number; from: 'me' | 'them'; text: string }
@@ -229,7 +228,35 @@ export const useMatchStore = defineStore('match', () => {
     }
   }
 
-  function acceptMatch() {
+  // 👇 NEW: helper to put a user back to queue
+  async function putUserBackToQueue(userId: string) {
+    await supabase.from('match_queue').upsert(
+      {
+        user_id: userId,
+        status: 'idle',
+        room_id: null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    )
+  }
+
+  // 👇 NEW: helper to record rejection
+  async function recordRejection(myId: string, otherId?: string | null) {
+    if (!otherId) return
+    await supabase
+      .from('match_rejects')
+      .upsert(
+        {
+          user_id: myId,
+          rejected_user_id: otherId,
+          created_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,rejected_user_id' }
+      )
+  }
+
+  async function acceptMatch() {
     stopCountdown()
     resultAccepted.value = true
     if (!chatId.value) {
@@ -239,9 +266,37 @@ export const useMatchStore = defineStore('match', () => {
     persist()
   }
 
-  function declineMatch() {
+  // 👇 UPDATED: accept optional partnerId, requeue both, record rejection and nuke room
+  async function declineMatch(partnerId?: string | null) {
     stopCountdown()
     resultAccepted.value = false
+
+    const { data: auth } = await supabase.auth.getUser()
+    const myId = auth?.user?.id ?? null
+
+    // delete current room so it doesn't float around
+    if (currentMatchId.value) {
+      await supabase.from('match_room').delete().eq('id', currentMatchId.value)
+    }
+
+    if (myId) {
+      // 1) requeue me
+      await putUserBackToQueue(myId)
+      // 2) record that I don't want to see this user again
+      if (partnerId) {
+        await recordRejection(myId, partnerId)
+      }
+    }
+
+    // 3) partner should also go back to queue (still allowed to match others)
+    if (partnerId) {
+      await putUserBackToQueue(partnerId)
+    }
+
+    // clear local partner display
+    match.value.partner = { name: '', photo: null, description: null }
+    currentMatchId.value = null
+
     stage.value = 'result'
     persist()
   }
@@ -350,6 +405,26 @@ export const useMatchStore = defineStore('match', () => {
     return { userId, profile: prof }
   }
 
+  // 👇 NEW: get all people I must not match with
+  async function getBlockedFor(meId: string): Promise<Set<string>> {
+    // people I rejected
+    const { data: iRejected } = await supabase
+      .from('match_rejects')
+      .select('rejected_user_id')
+      .eq('user_id', meId)
+
+    // people who rejected me
+    const { data: rejectedMe } = await supabase
+      .from('match_rejects')
+      .select('user_id')
+      .eq('rejected_user_id', meId)
+
+    const blocked = new Set<string>()
+    ;(iRejected ?? []).forEach(r => blocked.add(r.rejected_user_id))
+    ;(rejectedMe ?? []).forEach(r => blocked.add(r.user_id))
+    return blocked
+  }
+
   //============== array of idle users in queue =============
   async function getIdleOthers(myId: string): Promise<string[]> {
     const { data, error } = await supabase
@@ -388,6 +463,9 @@ export const useMatchStore = defineStore('match', () => {
     myProfile: any
   ): Promise<{ user_id: string } | null> {
     console.log(`🔍 Finding best candidate for ${myId}...`)
+
+    const blocked = await getBlockedFor(myId) // 👈 NEW
+
     const { data: others, error: othersErr } = await supabase
       .from('match_queue')
       .select('user_id')
@@ -401,13 +479,24 @@ export const useMatchStore = defineStore('match', () => {
       console.log('⚠️ No other idle users in queue.')
       return null
     }
-    const candidateIds = others.map(o => o.user_id)
+
+    // 👇 filter away people I blocked / who blocked me
+    const candidateIds = others
+      .map(o => o.user_id)
+      .filter(cid => !blocked.has(cid))
+
+    if (!candidateIds.length) {
+      console.log('🚫 Everyone in queue is blocked (mutual rejections).')
+      return null
+    }
+
     const scored = await Promise.all(
       candidateIds.map(async (cid: string) => {
         const score = await computeMatchScore(myId, cid)
         return { user_id: cid, score }
       })
     )
+
     const eligible = scored.filter(s => s.score >= 200)
     if (!eligible.length) {
       console.log('🚫 No candidate reached score ≥ 200. Will not match.')
@@ -465,7 +554,7 @@ export const useMatchStore = defineStore('match', () => {
         }
       }
       stage.value = 'match'
-      startCountdown(() => declineMatch())
+      startCountdown(() => declineMatch(partnerId))
       persist()
       return roomId
     }
@@ -493,17 +582,17 @@ export const useMatchStore = defineStore('match', () => {
         currentMatchId.value = existingRoomId
         match.value.id = existingRoomId
 
-        // 👇 FIXED ORDER: fetch partner first, then show stage
+        // 👇 fetch partner first, then show stage
         await setPartnerFromRoom(existingRoomId)
         stage.value = 'match'
-        startCountdown(() => declineMatch())
+        startCountdown(() => declineMatch()) // partner will be read from room on decline
         persist()
         return existingRoomId
       }
 
       const polled = await findBestCandidateForMe(myId, myProfile)
       if (polled?.user_id) {
-                console.log(`💞 Polled match found: ${myId} ↔ ${polled.user_id}`)
+        console.log(`💞 Polled match found: ${myId} ↔ ${polled.user_id}`)
         const rid = await markMatched(polled.user_id)
         if (rid) {
           currentMatchId.value = rid
@@ -641,5 +730,3 @@ export const useMatchStore = defineStore('match', () => {
     getIdleOthers,
   }
 })
-
-
