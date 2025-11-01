@@ -226,7 +226,7 @@ export const useMatchStore = defineStore('match', () => {
 
   watch([stage, resultAccepted, currentMatchId, chatId, match, availability], persist, { deep: true })
 
-  // ---------- Actions: countdown ----------
+  // ---------- Actions: countdown ----------//
   function startCountdown(onExpired?: () => void) {
     stopCountdown()
     secondsLeft.value = totalSeconds
@@ -293,7 +293,7 @@ export const useMatchStore = defineStore('match', () => {
     persist()
   }
 
-  // ---------- Rehydration ----------
+  // ---------- Rehydration ----------//
   async function hydrateFromCache() {
     const ok = restore()
     if (!currentMatchId.value && stage.value !== 'landing') {
