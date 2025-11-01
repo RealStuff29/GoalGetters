@@ -5,7 +5,7 @@ import { generateName } from '@/services/nameService.js'
 import { supabase } from '@/lib/supabase'
 import { Button } from 'bootstrap/dist/js/bootstrap.bundle.min'
 
-type Stage = 'landing' | 'searching' | 'match' | 'result' | 'chat'
+type Stage = 'landing' | 'searching' | 'match' | 'result' | 'chat' | 'notfound'
 type Message = { id: number; from: 'me' | 'them'; text: string }
 type Spot = { name: string; desc: string }
 
@@ -562,6 +562,7 @@ export const useMatchStore = defineStore('match', () => {
     }
 
     // 4) timeout → keep me idle, show sorry
+    // 4) timeout / no suitable match → keep me idle, show "not found"
     await supabase.from('match_queue').upsert(
       {
         user_id: myId,
@@ -572,8 +573,11 @@ export const useMatchStore = defineStore('match', () => {
       { onConflict: 'user_id' }
     )
 
-    stage.value = 'landing'
-    throw new Error('No suitable match (score < 200). Please try again later.')
+    stage.value = 'notfound'
+    persist()
+    console.log('🚫 No suitable match (score < 200) → showing notfound screen.')
+    // no throw here — we handled it with stage
+    return ''
   }
   // ---------- partner loading ----------
   async function loadPartnerProfile(roomId: string, myId: string) {
