@@ -6,7 +6,8 @@
     Stage: {{ store.stage }} | StudySpots: {{ studySpots.length }}
   </div> -->
 
-  <div class="min-h-screen p-4 w-full max-w-6xl mx-auto grid lg:grid-cols-2 gap-6" v-if="store.stage === 'chat'">
+  <!-- Replace to code below later: v-if="store.stage === 'chat'" -->
+  <div class="min-h-screen p-4 w-full max-w-6xl mx-auto grid lg:grid-cols-2 gap-6">
     <!-- Left column: Header + Details + Chat -->
     <div class="space-y-4">
       <Card>
@@ -167,9 +168,9 @@
     </div>
   </div>
 
-  <div v-else class="min-h-screen p-4 flex items-center justify-center opacity-70">
+  <!-- <div v-else class="min-h-screen p-4 flex items-center justify-center opacity-70">
     You haven’t accepted a match yet. Go back to the landing page.
-  </div>
+  </div> -->
 </template>
 
 <script setup lang="ts">
@@ -253,23 +254,23 @@ function restart() {
   router.push({ name: 'matchchat', params: { chatId: store.chatId }}) //to fix hard refresh on chat
 }
 
-onMounted(async () => {
-  // 1) restore
-  await store.hydrateFromCache()
-  // 2) ensure a match exists (needed for header/details)
-  const hasMatch = await store.ensureMatch(store.currentMatchId || undefined)
-  if (!hasMatch) {
-    router.replace({ name: 'matchlanding' })
-    return
-  }
-  // 3) ensure chat id (from route or cache)
-  await store.ensureChat(route.params.chatId as string | undefined)
-  // 4) set stage so template renders
-  store.stage = 'chat'
-  // 5) scroll once ready
-  nextTick(scrollToBottom)
-  setTimeout(() => nextTick(scrollToBottom), 500)}
-)
+// onMounted(async () => {
+//   // 1) restore
+//   await store.hydrateFromCache()
+//   // 2) ensure a match exists (needed for header/details)
+//   const hasMatch = await store.ensureMatch(store.currentMatchId || undefined)
+//   if (!hasMatch) {
+//     router.replace({ name: 'matchlanding' })
+//     return
+//   }
+//   // 3) ensure chat id (from route or cache)
+//   await store.ensureChat(route.params.chatId as string | undefined)
+//   // 4) set stage so template renders
+//   store.stage = 'chat'
+//   // 5) scroll once ready
+//   nextTick(scrollToBottom)
+//   setTimeout(() => nextTick(scrollToBottom), 500)}
+// )
   
 </script>
 

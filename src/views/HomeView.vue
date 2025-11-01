@@ -58,27 +58,27 @@
     <section class="stats-section">
       <div class="container">
         <div class="stats-grid">
-          <div class="stat-card">
+          <div class="stat-card stat-card--large">
             <div class="stat-icon">
-              <i class="pi pi-calendar"></i>
+              <i class="pi pi-book" style="font-size: 1.3rem;"></i>
             </div>
             <div class="stat-content">
-              <h3 class="stat-number">{{ totalSessions }}</h3>
-              <p class="stat-label">Study Sessions</p>
+              <h3 class="stat-number stat-number--small">{{ major }}</h3>
+              <p class="stat-label">Your School</p>
             </div>
           </div>
           <div class="stat-card">
             <div class="stat-icon">
-              <i class="pi pi-users"></i>
+              <i class="pi pi-star" style="font-size: 1.3rem;"></i>
             </div>
             <div class="stat-content">
-              <h3 class="stat-number">{{ studyPartners }}</h3>
-              <p class="stat-label">Study Partners</p>
+              <h3 class="stat-number">{{ userRating }}</h3>
+              <p class="stat-label">Average Rating</p>
             </div>
           </div>
           <div class="stat-card">
             <div class="stat-icon">
-              <i class="pi pi-clock"></i>
+              <i class="pi pi-clock" style="font-size: 1.3rem;"></i>
             </div>
             <div class="stat-content">
               <h3 class="stat-number">{{ studyHours }}h</h3>
@@ -87,11 +87,11 @@
           </div>
           <div class="stat-card">
             <div class="stat-icon">
-              <i class="pi pi-star"></i>
+              <i class="pi pi-users" style="font-size: 1.3rem;"></i>
             </div>
             <div class="stat-content">
-              <h3 class="stat-number">{{ achievements }}</h3>
-              <p class="stat-label">Achievements</p>
+              <h3 class="stat-number">{{ studyPartners }}</h3>
+              <p class="stat-label">Study Partners</p>
             </div>
           </div>
         </div>
@@ -106,7 +106,7 @@
           <Card class="feature-card" @click="navigateTo('/matchlandingview')">
             <template #content>
               <div class="feature-icon orange">
-                <i class="pi pi-search"></i>
+                <i class="pi pi-search" style="font-size: 1.3rem;"></i>
               </div>
               <h3 class="feature-title">Find a Study Partner</h3>
               <p class="feature-description">
@@ -127,7 +127,7 @@
           <Card class="feature-card" @click="navigateTo('/profilesetupview')">
             <template #content>
               <div class="feature-icon orange">
-                <i class="pi pi-user-edit"></i>
+                <i class="pi pi-user-edit" style="font-size: 1.3rem;"></i>
               </div>
               <h3 class="feature-title">Update Profile</h3>
               <p class="feature-description">
@@ -147,7 +147,7 @@
           <Card class="feature-card" @click="navigateTo('/feedbackview')">
             <template #content>
               <div class="feature-icon orange">
-                <i class="pi pi-comment"></i>
+                <i class="pi pi-comment" style="font-size: 1.3rem;"></i>
               </div>
               <h3 class="feature-title">Share Feedback</h3>
               <p class="feature-description">
@@ -193,13 +193,14 @@
     <!-- Motivational Quote Section -->
     <section class="quote-section">
       <div class="container">
-        <Card class="quote-card">
+        <Card class="quote-card" @click="changeQuote" :class="{ 'quote-fade': isChanging }">
           <template #content>
             <i class="pi pi-quote-right quote-icon"></i>
             <blockquote class="quote-text">
               "{{ motivationalQuote.text }}"
             </blockquote>
-            <p class="quote-author">— {{ motivationalQuote.author }}</p>
+            <p class="quote-author"> {{ motivationalQuote.author }}</p>
+            <small class="quote-hint">Click for another quote</small>
           </template>
         </Card>
       </div>
@@ -213,54 +214,128 @@ import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import logo from '@/assets/images/Logo.png';
+import { supabase } from '@/lib/supabase'
 
 const router = useRouter();
 
 // User data (replace with actual user data from your store/API)
-const userName = ref('Sarah');
-const totalSessions = ref(24);
-const studyPartners = ref(8);
-const studyHours = ref(48);
-const achievements = ref(12);
+const userName = ref('');
+const major = ref('');
+const userRating = ref(0);
+const studyHours = ref(0);
+const studyPartners = ref(0);
 
 const motivationalQuote = ref({
   text: "The secret of getting ahead is getting started.",
   author: "Mark Twain"
 });
 
-const recentActivities = ref([
-  {
-    id: 1,
-    type: 'match',
-    icon: 'pi pi-users',
-    title: 'New Study Match',
-    description: 'You matched with Alex for Calculus study session',
-    time: '2 hours ago'
-  },
-  {
-    id: 2,
-    type: 'session',
-    icon: 'pi pi-calendar',
-    title: 'Study Session Completed',
-    description: 'Completed a 2-hour session with Jamie',
-    time: '1 day ago'
-  },
-  {
-    id: 3,
-    type: 'achievement',
-    icon: 'pi pi-star',
-    title: 'Achievement Unlocked',
-    description: 'Earned "Study Streak" badge - 7 days in a row!',
-    time: '2 days ago'
-  }
-]);
+const quotes = [
+  { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+  { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
+  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+  { text: "Education is the most powerful weapon which you can use to change the world.", author: "Nelson Mandela" },
+  { text: "The expert in anything was once a beginner.", author: "Helen Hayes" },
+  { text: "Learning is not attained by chance, it must be sought for with ardor and diligence.", author: "Abigail Adams" },
+  { text: "Dream big. Start small. Act now.", author: "Robin Sharma" },
+  { text: "Focus on being productive instead of busy.", author: "Tim Ferriss" },
+  { text: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson" },
+  { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+  { text: "It always seems impossible until it's done.", author: "Nelson Mandela" }
+];
+
+const changeQuote = () => {
+  // console.log('changeQuote called');
+  console.log('Current quote:', motivationalQuote.value.text);
+  
+  let randomIndex;
+  let newQuote;
+  
+  // Keep picking until we get a different quote
+  do {
+    randomIndex = Math.floor(Math.random() * quotes.length);
+    newQuote = quotes[randomIndex];
+    // console.log('Trying quote:', newQuote.text);
+  } while (newQuote.text === motivationalQuote.value.text && quotes.length > 1);
+  
+  motivationalQuote.value = newQuote;
+  console.log('New quote:', motivationalQuote.value.text);
+};
+
+// const recentActivities = ref([
+//   {
+//     id: 1,
+//     type: 'match',
+//     icon: 'pi pi-users',
+//     title: 'New Study Match',
+//     description: 'You matched with Alex for Calculus study session',
+//     time: '2 hours ago'
+//   },
+//   {
+//     id: 2,
+//     type: 'session',
+//     icon: 'pi pi-calendar',
+//     title: 'Study Session Completed',
+//     description: 'Completed a 2-hour session with Jamie',
+//     time: '1 day ago'
+//   },
+//   {
+//     id: 3,
+//     type: 'achievement',
+//     icon: 'pi pi-star',
+//     title: 'Achievement Unlocked',
+//     description: 'Earned "Study Streak" badge - 7 days in a row!',
+//     time: '2 days ago'
+//   }
+// ]);
 
 const navigateTo = (path) => {
   router.push(path);
 };
 
-onMounted(() => {
-  // Fetch user data, stats, recent activities here
+onMounted(async () => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    console.warn('No user logged in')
+    return
+  }
+  //Fetch user data
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('username, degree, avg_rating, study_hours, review_count')
+    .eq('user_id', user.id)
+    .single()
+
+  if (error) {
+    console.error('Error fetching user profile:', error)
+    return
+  }
+
+  function formatDegree(degree) {
+    if (!degree) return ''
+    const lower = degree.toLowerCase()
+
+    if (lower.includes('information-systems')) {
+      return 'Information Systems'
+    }
+
+    if (lower.includes('business-management')) {
+      return 'Business Management'
+    }
+
+    // Default: just capitalize first letter
+    return degree.charAt(0).toUpperCase() + degree.slice(1)
+  }
+
+  // Assign the data to refs
+  userName.value = data.username
+  major.value = formatDegree(data.degree)
+  // console.log(major.value)
+  userRating.value = data.avg_rating
+  studyHours.value = data.study_hours
+  studyPartners.value = data.review_count
+
 });
 </script>
 
@@ -366,8 +441,8 @@ onMounted(() => {
   transition: all 0.3s ease !important;
 }
 
-.primary-cta:hover {
-  transform: translateY(-2px);
+.hero-section .primary-cta:hover {
+  transform: translateY(-4px);
   box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4) !important;
 }
 
@@ -381,8 +456,8 @@ onMounted(() => {
   transition: all 0.3s ease !important;
 }
 
-.secondary-cta:hover {
-  transform: translateY(-2px);
+.hero-section .secondary-cta:hover {
+  transform: translateY(-4px);
   background: rgba(255, 152, 0, 0.05) !important;
 }
 
@@ -489,9 +564,15 @@ onMounted(() => {
   animation: fadeInUp 0.8s ease-out both;
 }
 
+.stat-card--large {
+  flex: 1.5;                 /* makes it wider relative to others */
+  min-width: 250px;          
+  padding: 1rem;           
+}
+
 .stat-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 8px 8px 30px rgba(0, 0, 0, 0.12);
 }
 
 .stat-icon {
@@ -511,6 +592,14 @@ onMounted(() => {
   font-weight: 800;
   color: #333;
   margin: 0;
+}
+
+.stat-number--small {
+  font-size: 0.9rem;   
+  font-weight: 800;  
+  color: #333;
+  margin-bottom: 13px;
+  margin-top: 10px;
 }
 
 .stat-label {
@@ -545,7 +634,7 @@ onMounted(() => {
 }
 
 .feature-card:hover {
-  transform: translateY(-10px);
+  transform: translateY(-5px);
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
 }
 
@@ -589,6 +678,12 @@ onMounted(() => {
 .feature-btn {
   color: #ff9800 !important;
   font-weight: 600 !important;
+}
+
+.feature-btn:hover {
+  transform: translateY(-2px);
+  background: #ff9800 !important;
+  color: white !important; 
 }
 
 /* Activity Section */
@@ -674,6 +769,21 @@ onMounted(() => {
   text-align: center;
   padding: 2rem;
   animation: fadeInUp 0.8s ease-out both;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.quote-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(255, 153, 0, 0.592);
+}
+
+.quote-hint {
+  display: block;
+  margin-top: 1rem;
+  opacity: 0.7;
+  font-size: 0.875rem;
+  font-style: italic;
 }
 
 .quote-icon {

@@ -24,6 +24,7 @@ async function handleLogout(){
         <router-link to="/profilesettingsview" class="nav-link mx-3">Profile Settings</router-link>
         <router-link to="/matchlandingview" class="nav-link mx-3">Matchmake Now</router-link>
         <router-link to="/feedbackview" class="nav-link mx-3">Feedback</router-link>
+        <router-link to="/matchchatview/:chatId?" class="nav-link mx-3">MatchChat</router-link>
       </div>
       <div>
         <Button severity="warn" label="Logout" @click="handleLogout()"/>

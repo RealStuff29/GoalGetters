@@ -557,12 +557,34 @@ async function getMyProfile() {
     }
 
     // 4) timeout → set me back to idle
-    await supabase.from('match_queue')
-      .update({ status: 'idle', room_id: null, updated_at: new Date().toISOString() })
-      .eq('user_id', myId)
+    // await supabase.from('match_queue')
+    //   .update({ status: 'idle', room_id: null, updated_at: new Date().toISOString() })
+    //   .eq('user_id', myId)
 
-    stage.value = 'landing'
-    throw new Error('No match found (timeout)')
+    // stage.value = 'landing'
+    // throw new Error('No match found (timeout)')
+
+    // 4) Disable: create a dummy match for testing
+    console.warn('[match] No real match found (timeout) — using dummy match for testing')
+
+    const dummyRoomId = 'demo-' + Date.now()
+
+    // simulate a fake match partner
+    match.value.partner = {
+      name: generateName(), // 👈 uses your existing random name generator
+      photo: null,
+      description: 'This is a demo match generated for testing.'
+    }
+
+    currentMatchId.value = dummyRoomId
+    match.value.id = dummyRoomId
+    stage.value = 'match'
+
+    // start countdown timer to behave like a real match
+    startCountdown(() => declineMatch())
+    void persist()
+
+    return dummyRoomId
   }
 
   // ---------- partner loading ----------
