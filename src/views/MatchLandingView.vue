@@ -1,15 +1,6 @@
 <!-- src/views/MatchLandingView.vue -->
 <template>
   <div class="match-landing-container">
-    <div>
-      <button 
-        type="button"
-        @click="callGetIdleOthers('1b0835fc-3514-427b-9971-c3a8fa8bf71a')"
-      >
-        Test callGetIdleOthers
-      </button>
-    </div>
-
     <!-- LANDING / FORM -->
     <div v-if="store.stage === 'landing'" class="match-form">
       <div class="match-header">

@@ -1,7 +1,6 @@
 // src/stores/match.ts
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import { generateName } from '@/services/nameService.js'
 import { supabase } from '@/lib/supabase'
 import { Button } from 'bootstrap/dist/js/bootstrap.bundle.min'
 
