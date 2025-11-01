@@ -46,9 +46,7 @@
               <span v-if="sameDegree">
                 ✅ {{ partnerProfile?.degree }}
               </span>
-              <span v-else class="opacity-70">
-                No
-              </span>
+              <span v-else class="opacity-70">No</span>
             </p>
           </div>
         </template>
@@ -96,7 +94,7 @@ const commonSlots = ref<string[]>([])
 const commonMods = ref<string[]>([])
 const sameDegree = ref<boolean>(false)
 
-let pollTimer: number | null = null // 👈 for cleanup
+let pollTimer: number | null = null
 
 function strToArray(val: string | string[] | null | undefined): string[] {
   if (!val) return []
@@ -136,7 +134,6 @@ onMounted(async () => {
 
   const roomId = store.currentMatchId || store.match.id
   if (roomId) {
-    // --- identify partner ---
     const { data: room } = await supabase
       .from('match_room')
       .select('user1, user2')
@@ -164,7 +161,7 @@ onMounted(async () => {
       }
     }
 
-    // 👇 start polling to detect "other side declined"
+    // poll to detect "other side declined"
     pollTimer = window.setInterval(async () => {
       const { data: roomExists } = await supabase
         .from('match_room')
@@ -172,9 +169,7 @@ onMounted(async () => {
         .eq('id', roomId)
         .maybeSingle()
 
-      // if room is gone → someone declined → go back
       if (!roomExists) {
-        // optional: also put myself back to landing
         store.startOver()
         router.replace({ name: 'matchlanding' })
       }
@@ -183,7 +178,6 @@ onMounted(async () => {
 
   myProfile.value = myProf
 
-  // --- recompute score ---
   if (myProfile.value && partnerProfile.value) {
     const me = myProfile.value
     const other = partnerProfile.value
@@ -242,8 +236,9 @@ function onAccept() {
 }
 
 async function onDecline() {
-  await store.declineMatch(partnerId.value)
-  router.push({ name: 'matchlanding' })
+  // 👇 THIS is the important change
+  await store.declineMatch(partnerId.value, true)
+  router.replace({ name: 'matchlanding' })
 }
 
 function startOver() {

@@ -41,13 +41,13 @@ function overlapCount(a: string[], b: string[]): number {
 }
 
 // ============ scoring rules (IDs only) ============
+// (unchanged)
 async function computeMatchScore(meId: string, otherId: string): Promise<number> {
   try {
     if (!meId || !otherId) throw new Error('Both IDs are required')
     if (meId === otherId) return -1
     console.log(`🧮 Computing match score between ${meId} and ${otherId}...`)
 
-    // get me
     const { data: me, error: errMe } = await supabase
       .from('profiles')
       .select('user_id, gender, modules, study_hours, degree, timeslot_avail')
@@ -57,7 +57,6 @@ async function computeMatchScore(meId: string, otherId: string): Promise<number>
     if (errMe) throw errMe
     if (!me) throw new Error('Profile not found for user: ' + meId)
 
-    // get other
     const { data: other, error: errOther } = await supabase
       .from('profiles')
       .select('user_id, gender, modules, study_hours, degree, timeslot_avail')
@@ -69,29 +68,24 @@ async function computeMatchScore(meId: string, otherId: string): Promise<number>
 
     let score = 0
 
-    // 1) same gender +100
     if (me.gender && other.gender && me.gender === other.gender) {
       score += 100
     }
 
-    // 2) overlapping time slots +100
     const mySlots = strToArray(me.timeslot_avail)
     const otherSlots = strToArray(other.timeslot_avail)
     if (overlapCount(mySlots, otherSlots) > 0) {
       score += 100
     }
 
-    // 3) same modules +1 each
     const myMods = strToArray(me.modules)
     const otherMods = strToArray(other.modules)
     score += overlapCount(myMods, otherMods)
 
-    // 4) same degree +1
     if (me.degree && other.degree && me.degree === other.degree) {
       score += 1
     }
 
-    // 5) similar study hours (<= 2) +1
     const myStudy = Number(me.study_hours ?? 0)
     const otherStudy = Number(other.study_hours ?? 0)
     if (Math.abs(myStudy - otherStudy) <= 2) {
@@ -208,7 +202,7 @@ export const useMatchStore = defineStore('match', () => {
 
   watch([stage, resultAccepted, currentMatchId, chatId, match, availability], persist, { deep: true })
 
-  // ---------- Actions ----------
+  // ---------- Countdown helpers ----------
   function startCountdown(onExpired?: () => void) {
     stopCountdown()
     secondsLeft.value = totalSeconds
@@ -228,7 +222,7 @@ export const useMatchStore = defineStore('match', () => {
     }
   }
 
-  // 👇 NEW: helper to put a user back to queue
+  // 👇 helper to put a user back to queue
   async function putUserBackToQueue(userId: string) {
     await supabase.from('match_queue').upsert(
       {
@@ -241,7 +235,7 @@ export const useMatchStore = defineStore('match', () => {
     )
   }
 
-  // 👇 NEW: helper to record rejection
+  // 👇 helper to record rejection
   async function recordRejection(myId: string, otherId?: string | null) {
     if (!otherId) return
     await supabase
@@ -266,8 +260,8 @@ export const useMatchStore = defineStore('match', () => {
     persist()
   }
 
-  // 👇 UPDATED: accept optional partnerId, requeue both, record rejection and nuke room
-  async function declineMatch(partnerId?: string | null) {
+  // 👇 UPDATED: now supports autoRematch
+  async function declineMatch(partnerId?: string | null, autoRematch = false) {
     stopCountdown()
     resultAccepted.value = false
 
@@ -297,8 +291,15 @@ export const useMatchStore = defineStore('match', () => {
     match.value.partner = { name: '', photo: null, description: null }
     currentMatchId.value = null
 
-    stage.value = 'result'
-    persist()
+    // 👇 if user manually declined, we immediately go searching again
+    if (autoRematch) {
+      stage.value = 'searching'
+      // fire-and-forget to avoid circular awaits
+      queueAndPoll().catch(err => console.error('[match] auto-rematch failed', err))
+    } else {
+      stage.value = 'result'
+      persist()
+    }
   }
 
   function startOver() {
@@ -407,13 +408,11 @@ export const useMatchStore = defineStore('match', () => {
 
   // 👇 NEW: get all people I must not match with
   async function getBlockedFor(meId: string): Promise<Set<string>> {
-    // people I rejected
     const { data: iRejected } = await supabase
       .from('match_rejects')
       .select('rejected_user_id')
       .eq('user_id', meId)
 
-    // people who rejected me
     const { data: rejectedMe } = await supabase
       .from('match_rejects')
       .select('user_id')
@@ -457,14 +456,14 @@ export const useMatchStore = defineStore('match', () => {
     return room.id as string
   }
 
-  // ============= matching logic =============
+  // ============= matching logic ============
   async function findBestCandidateForMe(
     myId: string,
     myProfile: any
   ): Promise<{ user_id: string } | null> {
     console.log(`🔍 Finding best candidate for ${myId}...`)
 
-    const blocked = await getBlockedFor(myId) // 👈 NEW
+    const blocked = await getBlockedFor(myId)
 
     const { data: others, error: othersErr } = await supabase
       .from('match_queue')
@@ -480,7 +479,6 @@ export const useMatchStore = defineStore('match', () => {
       return null
     }
 
-    // 👇 filter away people I blocked / who blocked me
     const candidateIds = others
       .map(o => o.user_id)
       .filter(cid => !blocked.has(cid))
@@ -519,7 +517,6 @@ export const useMatchStore = defineStore('match', () => {
     const myId = mine.userId
     const myProfile = mine.profile
 
-    // 1) put myself as IDLE
     await supabase.from('match_queue').upsert(
       {
         user_id: myId,
@@ -554,12 +551,11 @@ export const useMatchStore = defineStore('match', () => {
         }
       }
       stage.value = 'match'
-      startCountdown(() => declineMatch(partnerId))
+      startCountdown(() => declineMatch(partnerId)) // 👈 timeout declines but NO auto-rematch
       persist()
       return roomId
     }
 
-    // 2) immediate try
     const best = await findBestCandidateForMe(myId, myProfile)
     if (best?.user_id) {
       console.log(`💞 Immediate match found: ${myId} ↔ ${best.user_id}`)
@@ -573,7 +569,6 @@ export const useMatchStore = defineStore('match', () => {
       console.log('⏳ No immediate candidate, will poll...')
     }
 
-    // 3) poll
     const deadline = Date.now() + 60_000
     while (Date.now() < deadline) {
       const existingRoomId = await findRoomForMe(myId)
@@ -582,10 +577,9 @@ export const useMatchStore = defineStore('match', () => {
         currentMatchId.value = existingRoomId
         match.value.id = existingRoomId
 
-        // 👇 fetch partner first, then show stage
         await setPartnerFromRoom(existingRoomId)
         stage.value = 'match'
-        startCountdown(() => declineMatch()) // partner will be read from room on decline
+        startCountdown(() => declineMatch()) // 👈 someone else declined, keep old behavior
         persist()
         return existingRoomId
       }
@@ -601,11 +595,9 @@ export const useMatchStore = defineStore('match', () => {
         }
       }
 
-      // wait 2s before next poll
       await new Promise(r => setTimeout(r, 2000))
     }
 
-    // 4) timeout → keep me idle, show "not found"
     await supabase.from('match_queue').upsert(
       {
         user_id: myId,
