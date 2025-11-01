@@ -496,7 +496,7 @@ export const useMatchStore = defineStore('match', () => {
         return null
       }
 
-      // 2) remove both from queue
+      // 2) remove both from queue//
       const { error: delErr } = await supabase
         .from('match_queue')
         .delete()
