@@ -16,7 +16,7 @@
 | <img src="photos/alec.jpg" width="80"> | Ong Zhe Hwee Alec | Core Developer - Matchmaking Algorithm & Chat Functionailty |
 | <img src="photos/qingling.jpg" width="80"> | Mok Qing Ling | Developer - Profiles, Match History + Review & API endpoints  |
 | <img src="photos/jordan.jpg" width="80"> | Tan Jordan | Developer - Map Integration & API endpoints |
-| <img src="photos/Chang.jpg" width="80"> | Yu Yan Chang | Developer - Onboarding Screens |
+| <img src="photos/Keith.jpg" width="80"> | Yu Yan Chang | Developer - Onboarding Screens |
 | <img src="photos/Parikshit.jpg" width="80"> | Parikshit Sanganeria | Developer - App Feedback |
 
 > Remeber to place your headshot thumbnails in the `/photos` folder (JPEG or PNG).
@@ -210,7 +210,7 @@ Each member should contribute 2–3 sentences on their learning and project expe
 > - *Jordan:* 
 > - *Parikshit:* 
 > - *QingLing:* 
-> - *Chang:* 
+> - *Yan Chang:* 
 
 As a team, reflect on:
 - Key takeaways from working with real-world frameworks  
