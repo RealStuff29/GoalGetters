@@ -16,7 +16,7 @@ export function useComputeMBTI() {
         const JP = score.J >= score.P ? "J" : "P"
 
         const result = `${EI}${SN}${TF}${JP}`
-        console.log("Computed MBTI:", result) // 🧠 Debug log
+        console.log("Computed MBTI:", result) // Debug log
         return result
     }
 

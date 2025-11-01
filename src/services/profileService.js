@@ -11,7 +11,7 @@ export async function updateProfile(userId, patch) {
   const { data, error } = await supabase
     .from('profiles')
     .update(patch)
-    .eq('user_id', userId) // 👈 make sure this matches your table column
+    .eq('user_id', userId) 
     .select()
 
   if (error) {
