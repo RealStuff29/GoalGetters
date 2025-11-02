@@ -28,9 +28,8 @@ const isComplete = computed(() => {
   return !!gender.value
 })
 
-// Call
+
 function shuffleAvatar () { seed.value = makeSeed() }
-// 
 function randomiseUsername () { username.value = generateName() }
 
 export function useProfileSetup () {

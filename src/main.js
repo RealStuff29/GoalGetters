@@ -80,6 +80,8 @@ import Textarea from 'primevue/textarea'
 import Rating from 'primevue/rating'
 import Checkbox from 'primevue/checkbox'
 import Dialog from 'primevue/dialog'
+import AutoComplete from 'primevue/autocomplete';
+
 
 
 
@@ -125,6 +127,7 @@ app.component('Textarea', Textarea);
 app.component('Rating', Rating);
 app.component('Checkbox', Checkbox);
 app.component('Dialog', Dialog)
+app.component('AutoComplete', AutoComplete);
 
 app.mount('#app');
 

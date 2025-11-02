@@ -5,13 +5,16 @@ import { supabase } from '@/lib/supabase'
 import { updateProfile } from '@/services/profileService'
 import { useProfileSetup } from '@/composables/useProfileSetup'
 import { degrees } from '@/constants/degrees'
-import { MBTI_QUESTIONS } from '@/constants/MBTIQuestions'
+import { modules_with_label, module_index } from '@/constants/modules'
+import { MBTI_QUESTIONS } from '@/constants/mbtiQuestions'
 import { useComputeMBTI } from '@/composables/useComputeMBTI'
 
-const { computeMbtiType } = useComputeMBTI()
+
 
 const router = useRouter()
 const { username, gender, avatarUrl, isComplete, errors, shuffleAvatar, randomiseUsername } = useProfileSetup()
+const { computeMbtiType } = useComputeMBTI()
+
 
 // Step 1 Acccount Infomation
 const activeStep = ref('1')
@@ -30,10 +33,57 @@ watch(gender, () => {
   avatarLoaded.value = false
 })
 
-// Step 2
+// Step 2 Academic Info
 const degree = ref('')
 const modules = ref([])
 const studyHours = ref(4)
+
+const moduleObjects = ref([])       // [{code,title,label}]
+const moduleQuery = ref('')
+const moduleSuggestions = ref([])
+
+// keep modules (codes) in sync with chips (objects)
+watch(moduleObjects, (objs) => {
+  const uniqueCodes = Array.from(new Set((objs || []).map(o => o.code))).filter(Boolean)
+  modules.value = uniqueCodes
+}, { deep: true })
+
+// type-ahead search over code + title (case-insensitive)
+function searchModules(event) {
+  const q = String(event.query || '').trim().toLowerCase()
+  if (!q) {
+    moduleSuggestions.value = modules_with_label
+    return
+  }
+  moduleSuggestions.value = modules_with_label.filter(m =>
+    m.code.toLowerCase().includes(q) || m.title.toLowerCase().includes(q)
+  )
+}
+
+// add selected suggestion as a chip; prevent duplicates
+function addModuleOption(opt) {
+  if (!opt?.code) return
+  const exists = moduleObjects.value.some(o => o.code === opt.code)
+  if (!exists) moduleObjects.value = [...moduleObjects.value, opt]
+  moduleQuery.value = ''
+}
+
+// allow free typing of a code and press Enter to add
+function addFreeTypedCode() {
+  const raw = String(moduleQuery.value || '').trim().toUpperCase()
+  if (!raw) return
+  const opt = module_index[raw] ? { ...module_index[raw], label: `${raw} ${module_index[raw].title}` }
+                                : { code: raw, title: '', label: raw } // unknown code fallback
+  addModuleOption(opt)
+}
+
+// remove chip by index
+function removeModuleAt(idx) {
+  const next = [...moduleObjects.value]
+  next.splice(idx, 1)
+  moduleObjects.value = next
+}
+
 
 // Check if the required fields are filled in step 2
 const isStep2Valid = computed(() => {
@@ -44,35 +94,45 @@ const isStep2Valid = computed(() => {
 })
 
 const saving = ref(false)
-
-
-async function handleSave() {
-  if (!isStep2Valid.value) return
+// Save Steps 1 + 2 before moving to Step 3
+async function handleAcademicNext(activateCallback) {
+  if (!isStep2Valid.value) return;
   try {
-    saving.value = true
-
+    saving.value = true;
     const { data: { user }, error: userErr } = await supabase.auth.getUser()
     if (userErr || !user) throw new Error('You are not signed in')
 
+    // check if there is duplicate username 
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', username.value)
+      .single()
+    if (existing && existing.id !== user.id) {
+      alert('Username already taken! Please randomise again.')
+      saving.value = false
+      return
+    }
+
     await updateProfile(user.id, {
-      // Step 1 data
       username: username.value,
       gender: gender.value,
       profile_photo: avatarUrl.value,
-      // Step 2 data
       degree: degree.value,
-      modules: modules.value,
+      modules: modules.value.join(','),   // 👈 CSV to DB
       study_hours: studyHours.value
     })
-    alert('Profile successfully created!')
-    router.push('/')
+
+
+    activateCallback('3');
   } catch (e) {
-    // e? will avoid crashing when non-Error values are thrown
-    alert(e?.message || 'Failed to save profile')
+    alert(e?.message || 'Failed to save academic info');
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
+
+
 
 // CHANGE 1
 // --- Step 3: MBTI state + logic (NEW) ---
@@ -83,43 +143,6 @@ const isStep3Answered = computed(() => mbtiAnswers.value.every(a => a !== null))
 function handleComputeMbti() {
   mbtiResult.value = computeMbtiType(mbtiAnswers.value, MBTI_QUESTIONS)
   console.log("Result stored:", mbtiResult.value) // debug
-}
-
-// Save Steps 1+2 before moving to Step 3
-async function handleAcademicNext(activateCallback) {
-  if (!isStep2Valid.value) return;
-  try {
-    saving.value = true;
-    const { data: { user }, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !user) throw new Error('You are not signed in');
-
-    // --- check for duplicate username before saving ---
-    const { data: existing } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('username', username.value)
-      .single();
-    if (existing && existing.id !== user.id) {
-      alert('Username already taken! Please randomise again.');
-      saving.value = false;
-      return;
-    }
-
-    await updateProfile(user.id, {
-      username: username.value,
-      gender: gender.value,
-      profile_photo: avatarUrl.value,
-      degree: degree.value,
-      modules: modules.value,
-      study_hours: studyHours.value,
-    });
-
-    activateCallback('3');
-  } catch (e) {
-    alert(e?.message || 'Failed to save academic info');
-  } finally {
-    saving.value = false;
-  }
 }
 
 // Final save including personality
@@ -139,7 +162,7 @@ async function handleSavePersonality() {
       gender: gender.value,
       profile_photo: avatarUrl.value,
       degree: degree.value,
-      modules: modules.value,
+      modules: modules.value.join(','), 
       study_hours: studyHours.value,
       // step 3
       personality: mbtiResult.value,
@@ -251,12 +274,45 @@ async function handleSavePersonality() {
 
             <!-- Modules -->
             <div class="my-4">
-              <label class="fw-semibold mb-2 d-block ">
+              <label class="fw-semibold mb-2 d-block">
                 Your Current Modules <span class="text-danger">*</span>
               </label>
-              <InputChips v-model="modules" :allowDuplicate="false" class="w-100"
-                placeholder="Add a module code and press Enter" fluid />
-              <small class="text-muted d-block mt-1">e.g. IS216</small>
+
+              <!-- AutoComplete for searching the list -->
+              <AutoComplete
+                v-model="moduleQuery"
+                :suggestions="moduleSuggestions"
+                optionLabel="label"
+                placeholder="Type code or name, e.g. 'IS216' or 'Web Application...'"
+                class="w-100"
+                fluid
+                @complete="searchModules"
+                @item-select="(e) => addModuleOption(e.value)"
+                @keyup.enter="addFreeTypedCode"
+              />
+
+              <!-- Chips display -->
+              <div class="d-flex flex-wrap gap-2 mt-2">
+                <span
+                  v-for="(m, idx) in moduleObjects"
+                  :key="m.code"
+                  class="badge rounded-pill text-bg-light border d-inline-flex align-items-center px-3 py-2"
+                >
+                  <span class="me-2">{{ m.label || m.code }}</span>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary py-0 px-2"
+                    aria-label="Remove"
+                    @click="removeModuleAt(idx)"
+                  >
+                    ×
+                  </button>
+                </span>
+              </div>
+
+              <small class="text-muted d-block mt-2">
+                Selected codes: {{ modules.join(', ') || '—' }}
+              </small>
             </div>
 
             <!-- Study Hours -->

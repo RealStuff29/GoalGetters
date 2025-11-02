@@ -1,9 +1,9 @@
-
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { degrees } from '@/constants/degrees'
+import { modules_with_label, module_index } from '@/constants/modules'
 import { MBTI_QUESTIONS } from '@/constants/mbtiQuestions'
 import { useComputeMBTI } from '@/composables/useComputeMBTI'
 import { updateProfile } from '@/services/profileService'  
@@ -14,18 +14,21 @@ const router = useRouter()
 const loading = ref(true)
 const saving  = ref(false)
 
-/* -------------- Auth + identity ----------- */
+/* -------------- Auth   identity ----------- */
 const email = ref('')
 const emailVerified = ref(false)
 const username = ref('')
 const avatarUrl = ref('')
 
-/* -------- Personality + profile fields ---- */
+/* -------- Personality   profile fields ---- */
 const mbti = ref('')
 const { computeMbtiType } = useComputeMBTI()
 const degree = ref('')
 const modules = ref([])      // keep as array; convert only if your DB uses TEXT CSV
 const studyHours = ref(4)
+const moduleObjects = ref([])       // [{code,title,label}]
+const moduleQuery = ref('')
+const moduleSuggestions = ref([])
 
 /* ----------------- Ratings ---------------- */
 const reviews = ref([])
@@ -103,24 +106,30 @@ onMounted(async () => {
     degree.value     = profile?.degree ?? ''
     mbti.value       = String(profile?.personality || '').trim().toUpperCase()
 
-    // normalize modules (supports text[], jsonb, or CSV text in DB)
+    
     const rawModules = profile?.modules
     modules.value = Array.isArray(rawModules)
       ? rawModules
       : typeof rawModules === 'string'
         ? rawModules.split(',').map(s => s.trim()).filter(Boolean)
-        : Array.isArray(rawModules?.items)
+        : Array.isArray(rawModules?.items)  
           ? rawModules.items
           : []
+
+    // hydrate chip objects from codes we just normalized
+    moduleObjects.value = (modules.value || []).map(code => {
+      const m = module_index[code]
+      return m ? { ...m, label: `${m.code} ${m.title}` } : { code, title: '', label: code }
+    })
 
     studyHours.value  = Number(profile?.study_hours ?? 4)
     ratingValue.value = Number(profile?.avg_rating ?? 0)
     reviewCount.value = Number(profile?.rating_count ?? 0)
 
-    // 3) Ratings histogram + review list (about current user) from `sessions`
+    // 3) Ratings histogram   review list (about current user) from `sessions`
     const { data: rows, error: sErr } = await supabase
       .from('sessions')
-      .select('sessid, created_by_a, created_by_b, rating_by_a, rating_by_b, comment_by_a, comment_by_b, created_at')
+      .select('sessid, created_by_a, created_by_b, rating_by_a, rating_by_b, comment_by_a, comment_by_b, created_at, started_at')
       .or(`created_by_a.eq.${user.id},created_by_b.eq.${user.id}`)
       .order('created_at', { ascending: false })
 
@@ -135,13 +144,13 @@ onMounted(async () => {
         if (isA) {
           const r = row.rating_by_b
           const c = row.comment_by_b ?? ''
-          if (r != null && counts[r] != null) counts[r]++
+          if (r != null && counts[r] != null) counts[r]  
           if (c || r != null) list.push({ id: `${row.sessid}-b`, rating: Number(r ?? 0), comment: c || '' })
         }
         if (isB) {
           const r = row.rating_by_a
           const c = row.comment_by_a ?? ''
-          if (r != null && counts[r] != null) counts[r]++
+          if (r != null && counts[r] != null) counts[r]  
           if (c || r != null) list.push({ id: `${row.sessid}-a`, rating: Number(r ?? 0), comment: c || '' })
         }
       }
@@ -165,13 +174,10 @@ onMounted(async () => {
   }
 })
 
-/* --- Uppercase + de-dupe modules as you type --- */
-watch(modules, (arr) => {
-  const norm = Array.from(
-    new Set((arr ?? []).map(v => String(v ?? '').trim().toUpperCase()).filter(Boolean))
-  )
-  if (JSON.stringify(arr) !== JSON.stringify(norm)) modules.value = norm
-})
+/* --- Keep `modules` (codes) in sync with chip objects --- */
+watch(moduleObjects, (objs) => {
+  const uniqueCodes = Array.from(new Set((objs || []).map(o => o.code))).filter(Boolean)
+  modules.value = uniqueCodes}, { deep: true })
 
 /* ---------------- Actions ------------------ */
 async function changePassword() {
@@ -185,6 +191,39 @@ async function changePassword() {
   }
 }
 
+function searchModules(event) {
+  const q = String(event.query || '').trim().toLowerCase()
+  if (!q) {
+    moduleSuggestions.value = modules_with_label
+    return
+  }
+  moduleSuggestions.value = modules_with_label.filter(m =>
+    m.code.toLowerCase().includes(q) || m.title.toLowerCase().includes(q)
+  )
+}
+
+function addModuleOption(opt) {
+  if (!opt?.code) return
+  const exists = moduleObjects.value.some(o => o.code === opt.code)
+  if (!exists) moduleObjects.value = [...moduleObjects.value, opt]
+  moduleQuery.value = ''
+}
+
+function addFreeTypedCode() {
+  const raw = String(moduleQuery.value || '').trim().toUpperCase()
+  if (!raw) return
+  const opt = module_index[raw]
+    ? { ...module_index[raw], label: `${raw} ${module_index[raw].title}` }
+    : { code: raw, title: '', label: raw } // unknown code fallback
+  addModuleOption(opt)
+}
+
+function removeModuleAt(idx) {
+  const next = [...moduleObjects.value]
+  next.splice(idx, 1)
+  moduleObjects.value = next
+}
+
 async function saveAll() {
   if (!activeUserId.value) return
   try {
@@ -192,7 +231,8 @@ async function saveAll() {
 
     // If profiles.modules is text[]/jsonb, keep as array (default).
     // If your DB column is TEXT (CSV), use: const modulesForDb = modules.value.join(',')
-    const modulesForDb = Array.isArray(modules.value) ? modules.value : []
+    const modulesForDb = (modules.value || []).join(',')
+
 
     const patch = {
       profile_photo: avatarUrl.value || null,
@@ -215,8 +255,38 @@ async function saveAll() {
 }
 
 /* ----------- Match history modal ----------- */
+/* Session datetime formatters (Singapore) */
+const SG_TZ = 'Asia/Singapore'
+const fmtSGDate    = new Intl.DateTimeFormat('en-SG', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: SG_TZ })
+const fmtSGTime    = new Intl.DateTimeFormat('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: SG_TZ })
+const fmtSGWeekday = new Intl.DateTimeFormat('en-SG', { weekday: 'short', timeZone: SG_TZ })
+
+function toDate(input) {
+  const d = input ? new Date(input) : null
+  return isNaN(d?.getTime?.()) ? null : d
+}
+function formatSessionStartDate(startedAt) {
+  const d = toDate(startedAt)
+  return d ? fmtSGDate.format(d) : '-'
+}
+function formatSessionStartTime(startedAt) {
+  const d = toDate(startedAt)
+  return d ? fmtSGTime.format(d) : '-'
+}
+function formatSessionStartWeekday(startedAt) {
+  const d = toDate(startedAt)
+  return d ? fmtSGWeekday.format(d) : '-'
+}
+/** "DD/MM/YYYY (Mon) - HH:mm" */
+function formatSessionStartLabel(startedAt) {
+  const date = formatSessionStartDate(startedAt)
+  const weekday = formatSessionStartWeekday(startedAt)
+  const time = formatSessionStartTime(startedAt)
+  return `${date} (${weekday}) - ${time}`
+}
+
 const showMatchHistory = ref(false)
-const matchRows = ref([]) // [{ id, createdAt, partnerId, partnerName, partnerAvatar}]
+const matchRows = ref([]) // [{ id, startedAt, partnerName, partnerAvatar }]
 const selectedStar = ref(null) // filter
 const visibleReviews = computed(() =>
   selectedStar.value == null ? reviews.value : reviews.value.filter(r => Number(r.rating) === Number(selectedStar.value))
@@ -231,7 +301,7 @@ async function openMatchHistory() {
 
   const { data: rows, error } = await supabase
     .from('sessions')
-    .select('sessid, created_at, created_by_a, created_by_b')
+    .select('sessid, created_at, created_by_a, created_by_b') // keep it simple; we'll prefer started_at if it exists on the row
     .or(`created_by_a.eq.${activeUserId.value},created_by_b.eq.${activeUserId.value}`)
     .order('created_at', { ascending: false })
 
@@ -247,7 +317,13 @@ async function openMatchHistory() {
     const isA = row.created_by_a === activeUserId.value
     const partnerId = isA ? row.created_by_b : row.created_by_a
     partnerIds.add(partnerId)
-    items.push({ id: row.sessid, createdAt: row.created_at, partnerId })
+    // carry both fields; started_at may be undefined if not in DB
+    items.push({
+      id: row.sessid,
+      createdAt: row.created_at,
+      started_at: row.started_at, // harmless if absent
+      partnerId
+    })
   }
 
   let partnerMap = new Map()
@@ -263,9 +339,10 @@ async function openMatchHistory() {
 
   matchRows.value = items.map(it => {
     const p = partnerMap.get(it.partnerId)
+    const startedAt = it.started_at ?? it.createdAt
     return {
       id: it.id,
-      createdAt: it.createdAt,
+      startedAt,
       partnerName: p?.username || 'Anonymous',
       partnerAvatar: p?.profile_photo || ''
     }
@@ -404,10 +481,43 @@ async function saveMbtiToProfile() {
             <Select v-model="degree" :options="degrees" optionLabel="label" optionValue="value" placeholder="Select your degree" fluid />
           </div>
 
+          <!-- Modules -->
           <div class="my-3">
-            <label class="fw-semibold mb-2 d-block ">Your Current Modules</label>
-            <InputChips v-model="modules" :allowDuplicate="false" class="w-100" placeholder="Add a module code and press Enter" fluid />
-            <small class="text-muted d-block mt-1">e.g. IS216</small>
+            <label class="fw-semibold mb-2 d-block">Your Current Modules</label>
+        
+            <AutoComplete
+              v-model="moduleQuery"
+              :suggestions="moduleSuggestions"
+              optionLabel="label"
+              placeholder="Type code or name, e.g. 'IS216' or 'Web Application...'"
+              class="w-100"
+              fluid
+              @complete="searchModules"
+              @item-select="(e) => addModuleOption(e.value)"
+              @keyup.enter="addFreeTypedCode"
+            />
+        
+            <div class="d-flex flex-wrap gap-2 mt-2">
+              <span
+                v-for="(m, idx) in moduleObjects"
+                :key="m.code"
+                class="badge rounded-pill text-bg-light border d-inline-flex align-items-center px-3 py-2"
+              >
+                <span class="me-2">{{ m.label || m.code }}</span>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary py-0 px-2"
+                  aria-label="Remove"
+                  @click="removeModuleAt(idx)"
+                >
+                  ×
+                </button>
+              </span>
+            </div>
+        
+            <small class="text-muted d-block mt-2">
+              Selected codes: {{ modules.join(', ') || '—' }}
+            </small>
           </div>
 
           <div class="my-3">
@@ -443,7 +553,7 @@ async function saveMbtiToProfile() {
                 <img :src="m.partnerAvatar || '/placeholder-avatar.png'" alt="avatar" width="40" height="40" class="rounded-circle border flex-shrink-0" />
                 <div class="flex-grow-1">
                   <div class="fw-semibold">{{ m.partnerName }}</div>
-                  <small class="text-muted">{{ new Date(m.createdAt).toLocaleString() }}</small>
+                  <small class="text-muted">{{ formatSessionStartLabel(m.startedAt) }}</small>
                 </div>
               </div>
             </div>
