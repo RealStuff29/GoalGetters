@@ -94,7 +94,7 @@ export function useAuth() {
 
         const { data, error } = await supabase
             .from('profiles')
-            .select('username')
+            .select('has_completed_profile, username')
             .eq('user_id', user.id)
             .maybeSingle();
 
@@ -103,7 +103,10 @@ export function useAuth() {
             return false;
         }
 
-        return !!(data && data.username);
+        // Fallback: if has_completed_profile is NULL but username exists, treat as complete
+        if (data?.has_completed_profile === true) return true;
+        if (data?.has_completed_profile === null && data?.username) return true;
+        return false;
     }
 
     // I am just following documentation for this code chunk, check here if you want to see: https://supabase.com/docs/reference/javascript/auth-onauthstatechange
