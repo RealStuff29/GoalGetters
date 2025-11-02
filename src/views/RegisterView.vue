@@ -102,7 +102,7 @@ async function handleRegister() {
                             <hr />
                         </div>
 
-                        <button class="google-btn" type="button" disabled>
+                        <button class="google-btn" type="button" :disabled="loading">
                             <i class="pi pi-google"></i>
                             Continue with Google
                         </button>
