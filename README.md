@@ -19,7 +19,7 @@
 | <img src="photos/Keith.jpg" width="80"> | Yu Yan Chang | Developer - Onboarding Screens |
 | <img src="photos/Parikshit.jpg" width="80"> | Parikshit Sanganeria | Developer - App Feedback |
 
-> Remeber to place your headshot thumbnails in the `/photos` folder (JPEG or PNG).
+<!-- > Remeber to place your headshot thumbnails in the `/photos` folder (JPEG or PNG). -->
 
 ---
 
@@ -77,15 +77,26 @@ Provide screenshots and captions showing how users interact with your app.
    <img src="screenshots/landing.png" width="600">  
    - Displays the homepage with navigation options.
 
-2. **Search Feature**  
-   <img src="screenshots/search.png" width="600">  
-   - Users can browse and filter items by criteria.
+2. **Profile setup Feature**  
+   <img src="screenshots/profile1.png" width="600">
+   <img src="screenshots/profile2.png" width="600">
+   <img src="screenshots/profile3.png" width="600">    
+   - Users can setup their profile and take a personality quiz.
+
+2. **Matchmaking Feature**  
+   <img src="screenshots/matchmaking.png" width="600">  
+   - Users can select their preferred timeslots and start matchmaking.
 
 3. **User Dashboard**  
    <img src="screenshots/dashboard.png" width="600">  
-   - Shows saved data and recent activities.
+   - Users can view their Profile Information, Academic Information and their Ratings and Reviews, along with their match history.
 
-> Save screenshots inside `/screenshots` with clear filenames.
+4. **Feedback Feature**  
+   <img src="screenshots/feedback.png" width="600">  
+   - Users can give feedback on the web application.
+
+
+<!-- > Save screenshots inside `/screenshots` with clear filenames. -->
 
 ---
 
@@ -119,8 +130,8 @@ VITE_SUPABASE_URL= .env.example
 VITE_SUPABASE_ANON_KEY= .env.example
 ```
 
-> Never commit the `.env` file to your repository.  
-> Instead, include a `.env.example` file with placeholder values.
+<!-- > Never commit the `.env` file to your repository.  
+> Instead, include a `.env.example` file with placeholder values. -->
 
 ---
 
@@ -188,7 +199,7 @@ npm run test
 
 ---
 
-### 6) Common Issues & Fixes
+### 6) Common Issues & Fixes (Need to do)
 
 | Issue | Cause | Fix |
 |:--|:--|:--|
