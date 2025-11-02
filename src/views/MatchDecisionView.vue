@@ -166,24 +166,15 @@ onMounted(async () => {
 
     // 👇 poll to detect "other side declined"
     pollTimer = window.setInterval(async () => {
-      // if we don't even know who the partner is, skip
       if (!partnerId.value) return
-
       const nowRejected = await store.checkIfPartnerRejected(partnerId.value)
       if (nowRejected) {
-        // 1) stop polling
         if (pollTimer) {
           clearInterval(pollTimer)
           pollTimer = null
         }
-
-        // 2) tell landing to show a popup
-        store.setLandingNotice('Your partner declined the match.')
-
-        // 3) reset local match ui
+        // send user back
         store.startOver()
-
-        // 4) go back to landing
         router.push({ name: 'matchlanding' })
       }
     }, 2000) as unknown as number
@@ -249,7 +240,7 @@ function onAccept() {
 }
 
 async function onDecline() {
-  // decliner → back to queue (store) → landing
+  // decliner: back to queue (store does it) + show landing
   await store.declineMatch(partnerId.value ?? null, false)
   router.replace({ name: 'matchlanding' })
 }
