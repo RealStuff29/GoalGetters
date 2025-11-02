@@ -10,9 +10,16 @@
                 <i class="pi pi-check-circle"></i>
                 <span>You're logged in</span>
               </div>
-              <h1 class="welcome-heading">
-                Welcome back, <span class="user-name">{{ userName }}</span>!
-              </h1>
+              <transition name="fade">
+                <h1 class="welcome-heading" key="welcome-heading">
+                  <template v-if="isLoggedIn">
+                    Welcome back, <span class="user-name">{{ userName }}</span>!
+                  </template>
+                  <template v-else>
+                    Welcome!
+                  </template>
+                </h1>
+              </transition>
               <p class="welcome-subtitle">
                 Ready to achieve your goals today? Let's find you the perfect study partner.
               </p>
@@ -280,6 +287,14 @@ onMounted(async () => {
   // Watch for auth changes
   supabase.auth.onAuthStateChange((_event, session) => {
     isLoggedIn.value = !!session;
+
+    if (!session) {
+      userName.value = '';
+      major.value = '';
+      userRating.value = 0;
+      studyHours.value = 0;
+      studyPartners.value = 0;
+    }
   });
 
   // If no user logged in, skip fetching profile
