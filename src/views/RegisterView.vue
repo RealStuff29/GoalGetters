@@ -14,7 +14,7 @@ import login2 from '@/assets/images/login2.jpg';
 import login3 from '@/assets/images/login3.jpg';
 import login4 from '@/assets/images/login4.jpg';
 
-const { registerUser, error, loading } = useAuth();
+const { registerUser, error, loading, loginUserWithGoogle } = useAuth();
 const SMU_EMAIL = /^[A-Za-z0-9._%+-]+@smu\.edu\.sg$/i;
 
 // ✨ Dynamic quote rotator (same as Login)
@@ -68,6 +68,13 @@ async function handleRegister() {
 
     router.push('/profilesetupview');
 }
+
+async function handleGoogleLogin() {
+    if (!loading.value) {
+        await loginUserWithGoogle();
+    }
+}
+
 </script>
 
 
@@ -102,7 +109,7 @@ async function handleRegister() {
                             <hr />
                         </div>
 
-                        <button class="google-btn" type="button" :disabled="loading">
+                        <button class="google-btn" type="button" @click="handleGoogleLogin" :disabled="loading">
                             <i class="pi pi-google"></i>
                             Continue with Google
                         </button>
