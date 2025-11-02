@@ -79,22 +79,23 @@ Provide screenshots and captions showing how users interact with your app.
 
 2. **Profile setup Feature**  
    <img src="screenshots/profile1.png" width="600">
+   - Users select their gender and preferred username.
    <img src="screenshots/profile2.png" width="600">
+   - Users choose their primary degree and modules.
    <img src="screenshots/profile3.png" width="600">    
-   - Users can setup their profile and take a personality quiz.
+   - Users take a personality quiz to discover their MBTI type.
 
 2. **Matchmaking Feature**  
    <img src="screenshots/matchmaking.png" width="600">  
-   - Users can select their preferred timeslots and start matchmaking.
+   - Users pick preferred timeslots and start matchmaking.
 
 3. **User Dashboard**  
    <img src="screenshots/dashboard.png" width="600">  
-   - Users can view their Profile Information, Academic Information and their Ratings and Reviews, along with their match history.
+   - Displays user profile info, match history, and ratings.
 
 4. **Feedback Feature**  
    <img src="screenshots/feedback.png" width="600">  
-   - Users can give feedback on the web application.
-
+   - Users provide feedback on the web application.
 
 <!-- > Save screenshots inside `/screenshots` with clear filenames. -->
 
@@ -126,12 +127,12 @@ npm install
 Create a `.env` file in the root directory with the following structure:
 
 ```bash
-VITE_SUPABASE_URL= .env.example
-VITE_SUPABASE_ANON_KEY= .env.example
+VITE_SUPABASE_URL=<your_supabase_project_url>
+VITE_SUPABASE_ANON_KEY=<your_supabase_anon_key>
 ```
 
-<!-- > Never commit the `.env` file to your repository.  
-> Instead, include a `.env.example` file with placeholder values. -->
+> Never commit the `.env` file to your repository.  
+> Instead, include a `.env.example` file with placeholder values.
 
 ---
 
@@ -139,14 +140,13 @@ VITE_SUPABASE_ANON_KEY= .env.example
 
 #### Supabase (To Do: Need to edit this part)
 1. Go to [Supabase Console](https://supabase.com/)
-2. Create a new project.
+2. Create a new project and note your project URL and anon key.
 3. Enable the following:
    - **Authentication** → Email/Password sign-in
-   - **Supabase Database**
-   - **Hosting (optional)** if you plan to deploy your web app
+   - **Supabase Database** → Table Editor to create tables
 4. Copy the Supabase configuration into your `.env` file.
 
-<!-- #### Optional: Express.js / MongoDB
+#### Optional: Express.js / MongoDB
 If your app includes a backend:
 1. Create a `/server` folder for backend code.
 2. Inside `/server`, create a `.env` file with:
@@ -161,7 +161,7 @@ If your app includes a backend:
    npm start
    ```
 
---- -->
+---
 
 ### 4) Run the Frontend
 To start the development server:
@@ -219,7 +219,7 @@ Each member should contribute 2–3 sentences on their learning and project expe
 > - *Mikhail:* 
 > - *Alec:* 
 > - *Jordan:* 
-> - *Parikshit:* 
+> - *Parikshit:* I developed the feedback system using Vue and Supabase, which deepened my understanding of database connectivity and real-time data handling. I also learned to optimise UI responsiveness, implement effective form validation, and integrate external APIs. Additionally, I gained hands-on experience in sending automated email feedback to users upon submission.
 > - *QingLing:* 
 > - *Yan Chang:* 
 
