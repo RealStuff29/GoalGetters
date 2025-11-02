@@ -287,9 +287,11 @@ export const useMatchStore = defineStore('match', () => {
     currentMatchId.value = null
 
     if (autoRematch) {
+      console.log("autoRematch [TRUE]")
       stage.value = 'searching'
       queueAndPoll().catch(err => console.error('[match] auto-rematch failed', err))
     } else {
+      console.log("autoRematch [FALSE]")
       stage.value = 'result'
       persist()
     }
@@ -477,7 +479,9 @@ export const useMatchStore = defineStore('match', () => {
 
     const scored = await Promise.all(
       candidateIds.map(async (cid: string) => {
+        console.log(` [START] Going to find score for ${myId} and ${cid}`)
         const score = await computeMatchScore(myId, cid)
+        console.log(` [END] Found score for ${myId} and ${cid}`)
         return { user_id: cid, score }
       })
     )
@@ -555,12 +559,15 @@ export const useMatchStore = defineStore('match', () => {
     } else {
       console.log('⏳ No immediate candidate, will poll...')
     }
-
-    const deadline = Date.now() + 60_000
+    //not match is found but the room is still created, modify it for only when there is matched found
+    const deadline = Date.now() + 15_000
     while (Date.now() < deadline) {
       const existingRoomId = await findRoomForMe(myId)
       if (existingRoomId) {
         console.log(`📦 Someone matched me → room ${existingRoomId}`)
+
+        // There is a match
+        // Remove this person from match_queue LINE 584
         currentMatchId.value = existingRoomId
         match.value.id = existingRoomId
 
@@ -574,7 +581,7 @@ export const useMatchStore = defineStore('match', () => {
       const polled = await findBestCandidateForMe(myId, myProfile)
       if (polled?.user_id) {
         console.log(`💞 Polled match found: ${myId} ↔ ${polled.user_id}`)
-        const rid = await markMatched(polled.user_id)
+        const rid = await markMatched(polled.user_id) // match_queue
         if (rid) {
           currentMatchId.value = rid
           match.value.id = rid
@@ -584,6 +591,9 @@ export const useMatchStore = defineStore('match', () => {
 
       await new Promise(r => setTimeout(r, 2000))
     }
+
+    // I am here because there was no match
+
 
     await supabase.from('match_queue').upsert(
       {

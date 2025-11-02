@@ -94,6 +94,8 @@ const commonSlots = ref<string[]>([])
 const commonMods = ref<string[]>([])
 const sameDegree = ref<boolean>(false)
 
+let currentMyId = '';
+
 let pollTimer: number | null = null
 
 function strToArray(val: string | string[] | null | undefined): string[] {
@@ -115,6 +117,7 @@ onMounted(async () => {
 
   const ok = await store.ensureMatch(route.params.id as string | undefined)
   if (!ok) {
+    console.log("[onMounted] Line 120")
     router.replace({ name: 'matchlanding' })
     return
   }
@@ -125,6 +128,8 @@ onMounted(async () => {
   const { data: auth } = await supabase.auth.getUser()
   const myId = auth?.user?.id
   if (!myId) return
+
+  currentMyId = myId; 
 
   const { data: myProf } = await supabase
     .from('profiles')
@@ -163,15 +168,22 @@ onMounted(async () => {
 
     // poll to detect "other side declined"
     pollTimer = window.setInterval(async () => {
-      const { data: roomExists } = await supabase
-        .from('match_room')
-        .select('id')
-        .eq('id', roomId)
-        .maybeSingle()
+      // const { data: roomExists } = await supabase
+      //   .from('match_room')
+      //   .select('id')
+      //   .eq('id', roomId)
+      //   .maybeSingle()
 
-      if (!roomExists) {
-        store.startOver()
-        router.replace({ name: 'matchlanding' })
+      const nowRejected = await isRejected() // wait here
+      console.log("[pollTimer while] rejected: " + nowRejected)
+
+      if(nowRejected) {
+         console.log("... sending the user back to match screen")
+         store.startOver()
+         console.log("[onMounted] Line 183")
+         router.push({ name: 'matchlanding' })
+        // Stop the timer and bring the user to match screen
+
       }
     }, 2000) as unknown as number
   }
@@ -219,11 +231,31 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-  }
+  // if (pollTimer) {
+  //   clearInterval(pollTimer) 
+  // }
+  // pollTimer = null
 })
+
+// TODO
+// Fix this by 5:30pm
+async function isRejected() {
+  const { data, error } = await supabase
+        .from('match_rejects')
+        .select('user_id')
+        .eq('user_id', currentMyId)
+
+  console.log("[isRejected] data: ", data)
+
+  //return false
+
+  return data.length === 0
+
+  if(!data || data.length === 0)
+    return true
+
+  return false
+}
 
 function onAccept() {
   store.acceptMatch()
@@ -236,13 +268,16 @@ function onAccept() {
 }
 
 async function onDecline() {
-  // 👇 THIS is the important change
+  // 👇 THIS is the important change\
+
   await store.declineMatch(partnerId.value, true)
+  console.log("[onMounted] Line 266")
   router.replace({ name: 'matchlanding' })
 }
 
 function startOver() {
   store.startOver()
+  console.log("[onMounted] Line 272")
   router.push({ name: 'matchlanding' })
 }
 </script>
