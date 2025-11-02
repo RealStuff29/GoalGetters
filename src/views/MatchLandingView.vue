@@ -86,25 +86,11 @@ function callGetIdleOthers(myId: string) {
   store.getIdleOthers(myId)
 }
 
+/**
+ * Prefill the user's last chosen timeslots
+ */
 onMounted(async () => {
-  // 0) if user already has an ACTIVE (non-expired) room → don’t show landing
-  const active = await store.getActiveRoom()
-  if (active?.id) {
-    // hydrate store so decision/chat has the room id
-    store.currentMatchId = active.id
-    store.match.id = active.id
-
-    // if user already accepted earlier → go chat
-    if (store.chatId) {
-      router.replace({ name: 'matchchat', params: { chatId: store.chatId } })
-    } else {
-      // else show the decision screen
-      router.replace({ name: 'matchdecision', params: { id: active.id } })
-    }
-    return
-  }
-
-  // 1) try to restore from store
+  // 1) try to restore from store (now store keeps string, so use availabilityList)
   if (store.availabilityList.length > 0) {
     selectedSlots.value = [...store.availabilityList]
     return
@@ -143,37 +129,41 @@ function toggleSlot(id: string) {
 }
 
 function backToLanding() {
-  // make sure we’re not a ghost in queue
-  store.leaveQueue()
+  store.leaveQueue()  // 👈 remove me from match_queue
   store.stage = 'landing'
 }
 
 async function onStart() {
   if (selectedSlots.value.length === 0) return
 
-  // 1️⃣ save selected slots
+  // 1️ save selected slots
   await store.setAvailability(selectedSlots.value)
-  // 2️⃣ clear old rejections so we can match them again this round
+  // 2️ clear my old rejections so I can be matched with them again
   await store.clearMyRejections()
 
-  // 3️⃣ show searching UI
+  // 3 show searching UI
   store.stage = 'searching'
 
   try {
-    // 4️⃣ try to match
+    // 4 try to match
     const roomId = await store.queueAndPoll()
 
-    // if no match (score < 200) → store already set stage='notfound'
-    if (!roomId) return
+    // if store couldn't find ≥200, it will set stage='notfound' and return ''
+    if (!roomId) {
+      // we let the template show the notfound state
+      return
+    }
 
-    // 5️⃣ go to decision page
+    // 5 go to decision page
     router.push({ name: 'matchdecision', params: { id: roomId } })
   } catch (err: any) {
     console.error('[matchlanding] matchmaking failed', err)
 
+    // if no profile / not logged in
     if (err?.message === 'Not authenticated or profile missing') {
       router.push({ name: 'profilesetup' })
     } else {
+      // generic failure → go back to landing
       store.stage = 'landing'
     }
   }
@@ -283,6 +273,12 @@ async function onStart() {
   color: #fff !important;
   opacity: 1 !important;
   cursor: not-allowed;
+}
+
+.error-hint {
+  font-size: 0.8rem;
+  color: #f43f5e;
+  margin-top: 0.5rem;
 }
 
 /* searching */
