@@ -77,23 +77,29 @@ Provide screenshots and captions showing how users interact with your app.
    <img src="screenshots/landing.png" width="600">  
    - Displays the homepage with navigation options.
 
-2. **Profile setup Feature**  
-   <img src="screenshots/profile1.png" width="600">
-   - Users select their gender and preferred username.
-   <img src="screenshots/profile2.png" width="600">
-   - Users choose their primary degree and modules.
-   <img src="screenshots/profile3.png" width="600">    
-   - Users take a personality quiz to discover their MBTI type.
+2. **Profile Setup Feature**  
 
-2. **Matchmaking Feature**  
+   <img src="screenshots/profile1.png" width="600">  
+
+   - Users select their gender and preferred username.  
+
+   <img src="screenshots/profile2.png" width="600">  
+
+   - Users choose their primary degree and modules.  
+
+   <img src="screenshots/profile3.png" width="600">    
+
+   - Users take a personality quiz to discover their MBTI type.  
+
+3. **Matchmaking Feature**  
    <img src="screenshots/matchmaking.png" width="600">  
    - Users pick preferred timeslots and start matchmaking.
 
-3. **User Dashboard**  
+4. **User Dashboard**  
    <img src="screenshots/dashboard.png" width="600">  
    - Displays user profile info, match history, and ratings.
 
-4. **Feedback Feature**  
+5. **Feedback Feature**  
    <img src="screenshots/feedback.png" width="600">  
    - Users provide feedback on the web application.
 
@@ -204,7 +210,7 @@ npm run test
 | Issue | Cause | Fix |
 |:--|:--|:--|
 | `Module not found` | Missing dependencies | Run `npm install` again |
-| `Firebase: permission-denied` | Firestore security rules not set | Check rules under Firestore → Rules |
+| `Supabase: permission-denied` | Supabase security rules not set | Update policies in Supabase |
 | `CORS policy error` | Backend not allowing requests | Enable your domain in CORS settings |
 | `.env` variables undefined | Missing `VITE_` prefix | Rename variables to start with `VITE_` |
 | `npm run dev` fails | Node version mismatch | Check Node version (`node -v` ≥ 18) |
