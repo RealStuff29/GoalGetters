@@ -41,7 +41,6 @@ function overlapCount(a: string[], b: string[]): number {
 }
 
 // ============ scoring rules (IDs only) ============
-// (unchanged)
 async function computeMatchScore(meId: string, otherId: string): Promise<number> {
   try {
     if (!meId || !otherId) throw new Error('Both IDs are required')
@@ -115,7 +114,7 @@ export const useMatchStore = defineStore('match', () => {
     time: '3:30 PM - 4:30 PM',
     duration: '1 hour',
     location: 'Library Level 2, Study Room 3',
-    partner: { name: '' },
+    partner: { name: '', photo: null, description: null },
   })
 
   const partnerInitials = computed(() =>
@@ -189,7 +188,11 @@ export const useMatchStore = defineStore('match', () => {
           time: data.match.time ?? match.value.time,
           duration: data.match.duration ?? match.value.duration,
           location: data.match.location ?? match.value.location,
-          partner: { name: data.match.partner?.name ?? match.value.partner.name },
+          partner: {
+            name: data.match.partner?.name ?? match.value.partner.name,
+            photo: data.match.partner?.photo ?? null,
+            description: data.match.partner?.description ?? null,
+          },
           id: data.match.id ?? currentMatchId.value ?? undefined,
         }
       }
@@ -222,7 +225,6 @@ export const useMatchStore = defineStore('match', () => {
     }
   }
 
-  // 👇 helper to put a user back to queue
   async function putUserBackToQueue(userId: string) {
     await supabase.from('match_queue').upsert(
       {
@@ -235,7 +237,6 @@ export const useMatchStore = defineStore('match', () => {
     )
   }
 
-  // 👇 helper to record rejection
   async function recordRejection(myId: string, otherId?: string | null) {
     if (!otherId) return
     await supabase
@@ -260,7 +261,6 @@ export const useMatchStore = defineStore('match', () => {
     persist()
   }
 
-  // 👇 UPDATED: now supports autoRematch
   async function declineMatch(partnerId?: string | null, autoRematch = false) {
     stopCountdown()
     resultAccepted.value = false
@@ -268,33 +268,26 @@ export const useMatchStore = defineStore('match', () => {
     const { data: auth } = await supabase.auth.getUser()
     const myId = auth?.user?.id ?? null
 
-    // delete current room so it doesn't float around
     if (currentMatchId.value) {
       await supabase.from('match_room').delete().eq('id', currentMatchId.value)
     }
 
     if (myId) {
-      // 1) requeue me
       await putUserBackToQueue(myId)
-      // 2) record that I don't want to see this user again
       if (partnerId) {
         await recordRejection(myId, partnerId)
       }
     }
 
-    // 3) partner should also go back to queue (still allowed to match others)
     if (partnerId) {
       await putUserBackToQueue(partnerId)
     }
 
-    // clear local partner display
     match.value.partner = { name: '', photo: null, description: null }
     currentMatchId.value = null
 
-    // 👇 if user manually declined, we immediately go searching again
     if (autoRematch) {
       stage.value = 'searching'
-      // fire-and-forget to avoid circular awaits
       queueAndPoll().catch(err => console.error('[match] auto-rematch failed', err))
     } else {
       stage.value = 'result'
@@ -334,7 +327,6 @@ export const useMatchStore = defineStore('match', () => {
     persist()
   }
 
-  // ---------- Rehydration ----------
   async function hydrateFromCache() {
     const ok = restore()
     if (!currentMatchId.value && stage.value !== 'landing') stage.value = 'landing'
@@ -358,7 +350,6 @@ export const useMatchStore = defineStore('match', () => {
     return true
   }
 
-  // =========== save availability to Supabase AS STRING ===========
   async function setAvailability(slots: string[]) {
     const slotsString = Array.isArray(slots) ? slots.join(',') : String(slots ?? '')
     availability.value = slotsString
@@ -381,7 +372,6 @@ export const useMatchStore = defineStore('match', () => {
 
   const availabilityList = computed(() => strToArray(availability.value))
 
-  // ============= helper: my profile =============
   async function getMyProfile() {
     const { data: auth, error: authErr } = await supabase.auth.getUser()
     if (authErr) {
@@ -394,6 +384,7 @@ export const useMatchStore = defineStore('match', () => {
     const { data: prof, error } = await supabase
       .from('profiles')
       .select(
+        // NOTE: description not in table → using personality
         'user_id, username, email, profile_photo, personality, gender, avg_rating, rating_count, created_at, modules, study_hours, degree, timeslot_avail'
       )
       .eq('user_id', userId)
@@ -406,7 +397,6 @@ export const useMatchStore = defineStore('match', () => {
     return { userId, profile: prof }
   }
 
-  // 👇 NEW: get all people I must not match with
   async function getBlockedFor(meId: string): Promise<Set<string>> {
     const { data: iRejected } = await supabase
       .from('match_rejects')
@@ -424,7 +414,6 @@ export const useMatchStore = defineStore('match', () => {
     return blocked
   }
 
-  //============== array of idle users in queue =============
   async function getIdleOthers(myId: string): Promise<string[]> {
     const { data, error } = await supabase
       .from('match_queue')
@@ -438,7 +427,6 @@ export const useMatchStore = defineStore('match', () => {
     return (data ?? []).map(row => row.user_id)
   }
 
-  // ============= did someone already match me? ============
   async function findRoomForMe(myId: string): Promise<string | null> {
     const { data, error } = await supabase
       .from('match_room')
@@ -456,7 +444,6 @@ export const useMatchStore = defineStore('match', () => {
     return room.id as string
   }
 
-  // ============= matching logic ============
   async function findBestCandidateForMe(
     myId: string,
     myProfile: any
@@ -506,7 +493,6 @@ export const useMatchStore = defineStore('match', () => {
     return { user_id: best.user_id }
   }
 
-  // ==================== queue matchmaking ====================
   async function queueAndPoll(): Promise<string> {
     stage.value = 'searching'
     const mine = await getMyProfile()
@@ -538,20 +524,21 @@ export const useMatchStore = defineStore('match', () => {
       })
       await supabase.from('match_queue').delete().in('user_id', [myId, partnerId])
 
+      // 🔧 FIXED: no description in table → use personality
       const { data: prof } = await supabase
         .from('profiles')
-        .select('username, profile_photo, description')
+        .select('username, profile_photo, personality')
         .eq('user_id', partnerId)
         .maybeSingle()
       if (prof?.username) {
         match.value.partner = {
           name: prof.username,
           photo: prof.profile_photo,
-          description: prof.description,
+          description: prof.personality ?? null,
         }
       }
       stage.value = 'match'
-      startCountdown(() => declineMatch(partnerId)) // 👈 timeout declines but NO auto-rematch
+      startCountdown(() => declineMatch(partnerId))
       persist()
       return roomId
     }
@@ -579,7 +566,7 @@ export const useMatchStore = defineStore('match', () => {
 
         await setPartnerFromRoom(existingRoomId)
         stage.value = 'match'
-        startCountdown(() => declineMatch()) // 👈 someone else declined, keep old behavior
+        startCountdown(() => declineMatch())
         persist()
         return existingRoomId
       }
@@ -626,9 +613,10 @@ export const useMatchStore = defineStore('match', () => {
 
     const partnerId = room.user1 === myId ? room.user2 : room.user1
 
+    // 🔧 FIXED: select personality, not description
     const { data: partner } = await supabase
       .from('profiles')
-      .select('username, profile_photo, description')
+      .select('username, profile_photo, personality')
       .eq('user_id', partnerId)
       .single()
 
@@ -648,7 +636,7 @@ export const useMatchStore = defineStore('match', () => {
       match.value.partner = {
         name: partner.username,
         photo: partner.profile_photo,
-        description: partner.description,
+        description: partner.personality ?? null,
       }
     }
   }
@@ -669,9 +657,10 @@ export const useMatchStore = defineStore('match', () => {
     if (!room) return
     const partnerId = room.user1 === myId ? room.user2 : room.user1
 
+    // 🔧 FIXED: fetch personality
     const { data: prof } = await supabase
       .from('profiles')
-      .select('username, profile_photo, description')
+      .select('username, profile_photo, personality')
       .eq('user_id', partnerId)
       .single()
 
@@ -679,7 +668,7 @@ export const useMatchStore = defineStore('match', () => {
       match.value.partner = {
         name: prof.username,
         photo: prof.profile_photo,
-        description: prof.description,
+        description: prof.personality ?? null,
       }
     }
   }
