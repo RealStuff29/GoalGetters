@@ -3,11 +3,11 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useAuth } from '@/composables/useAuth'
 import router from '@/router';
 
-// 🧠 Form state
+// Form state
 const email = ref('');
 const password = ref('');
 
-// 🖼️ Assets
+// Assets
 import logo from '@/assets/images/Logo.png';
 import login1 from '@/assets/images/login1.jpg';
 import login2 from '@/assets/images/login2.jpg';
@@ -17,7 +17,7 @@ import login4 from '@/assets/images/login4.jpg';
 const { registerUser, error, loading, loginUserWithGoogle } = useAuth();
 const SMU_EMAIL = /^[A-Za-z0-9._%+-]+@smu\.edu\.sg$/i;
 
-// ✨ Dynamic quote rotator (same as Login)
+// Dynamic quote rotator (same as Login)
 const quotes = [
     { text: "Every big dream starts small.", author: "GoalGetters" },
     { text: "Your first step matters most.", author: "GoalGetters" },
@@ -52,7 +52,7 @@ onUnmounted(() => {
     clearInterval(bgInterval);
 });
 
-// 🧭 Register Logic (same logic as before)
+// Register Logic (same logic as before)
 async function handleRegister() {
     if (!SMU_EMAIL.test(email.value)) {
         alert('Please use your SMU email (must end with @smu.edu.sg).');

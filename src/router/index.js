@@ -88,23 +88,32 @@ router.beforeEach(async (to) => {
 
 
   // ================================================================================
+  // Force profile setup for new users
+  // ================================================================================
 
   let complete = null;
+
   if (session) {
+    // Use the useAuth composable to check if user has completed setup
     const { hasCompletedProfile } = useAuth();
-    complete = await hasCompletedProfile();
+    try {
+      complete = await hasCompletedProfile();
+    } catch (err) {
+      console.error('Error checking profile completion:', err);
+    }
   }
 
-  const allowWhenIncomplete = ['profilesetup', 'auth-callback']; //setting these pages to not do the following behaviour, so no infinite routing loop
+  // routes that new users are allowed to access even before completing setup
+  const allowWhenIncomplete = ['profilesetup', 'auth-callback'];
 
-  // force setup when incomplete, except when already on an allowed route
-
-  //logged in session, complete is false, the routed page is part of requiresAuth, but NOT profilesetup or auth-callback
-  if (session && complete === false && to.meta?.requiresAuth && !allowWhenIncomplete.includes(to.name)) {
-    return { name: 'profilesetup' };
+  // if logged in but has NOT completed profile, force them back to setup
+  if (session && complete === false) {
+    // allow navigating to profile setup or logout only
+    if (!allowWhenIncomplete.includes(to.name)) {
+      console.warn('Redirecting new user to profile setup...');
+      return { name: 'profilesetup' };
+    }
   }
-
-
   // ================================================================================
 
 
