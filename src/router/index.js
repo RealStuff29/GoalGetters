@@ -30,15 +30,13 @@ const router = createRouter({
       path: '/',
       component: MainLayout,
       children: [
-        { path: '', name: 'home', component: HomeView, meta: { requiresAuth: true } },
+        // Home is now public
+        { path: '', name: 'home', component: HomeView },
         { path: 'crudview', name: 'crud', component: CrudView, meta: { requiresAuth: true } },
         { path: 'profilesetupview', name: 'profilesetup', component: ProfileSetupView, meta: { requiresAuth: true } },
         { path: 'profilesettingsview', name: 'profilesettings', component: ProfileSettingsView, meta: { requiresAuth: true } },
         { path: 'feedbackview', name: 'feedback', component: FeedbackView, meta: { requiresAuth: true } },
-
-        // New 3-page matchmaking flow 
         { path: 'matchlandingview', name: 'matchlanding', component: MatchLanding, meta: { requiresAuth: true } },
-        //Added chatid and id
         { path: 'matchdecisionview/:id?', name: 'matchdecision', component: MatchDecision, meta: { requiresAuth: true } },
         { path: 'matchchatview/:chatId?', name: 'matchchat', component: MatchChat, meta: { requiresAuth: true } },
       ],
@@ -102,7 +100,7 @@ router.beforeEach(async (to) => {
   // force setup when incomplete, except when already on an allowed route
 
   //logged in session, complete is false, the routed page is part of requiresAuth, but NOT profilesetup or auth-callback
-  if (session && complete === false && to.meta?.requiresAuth && !allowWhenIncomplete.includes(to.name)) { 
+  if (session && complete === false && to.meta?.requiresAuth && !allowWhenIncomplete.includes(to.name)) {
     return { name: 'profilesetup' };
   }
 

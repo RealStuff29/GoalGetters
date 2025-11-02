@@ -6,37 +6,28 @@
         <div class="row align-items-center">
           <div class="col-lg-7">
             <div class="welcome-content">
-              <div class="welcome-badge">
+              <div v-if="isLoggedIn" class="welcome-badge">
                 <i class="pi pi-check-circle"></i>
                 <span>You're logged in</span>
               </div>
               <h1 class="welcome-heading">
-                Welcome back, <span class="user-name">{{ userName }}</span>! 
+                Welcome back, <span class="user-name">{{ userName }}</span>!
               </h1>
               <p class="welcome-subtitle">
                 Ready to achieve your goals today? Let's find you the perfect study partner.
               </p>
               <div class="cta-buttons">
                 <RouterLink to="/matchlandingview" class="no-decoration">
-                  <Button 
-                    label="Find Study Partner" 
-                    icon="pi pi-users"
-                    class="primary-cta"
-                  />
+                  <Button label="Find Study Partner" icon="pi pi-users" class="primary-cta" />
                 </RouterLink>
                 <RouterLink to="/profilesettingsview" class="no-decoration">
-                  <Button 
-                    label="View Profile" 
-                    icon="pi pi-user" 
-                    outlined
-                    class="secondary-cta"
-                    @click="navigateTo('/profilesettingsview')"
-                  />
+                  <Button label="View Profile" icon="pi pi-user" outlined class="secondary-cta"
+                    @click="navigateTo('/profilesettingsview')" />
                 </RouterLink>
               </div>
             </div>
           </div>
-          
+
           <!-- Animated Illustration -->
           <div class="col-lg-5 d-none d-lg-block">
             <div class="hero-illustration">
@@ -55,48 +46,50 @@
     </section>
 
     <!-- Quick Stats Section -->
-    <section class="stats-section">
-      <div class="container">
-        <div class="stats-grid">
-          <div class="stat-card stat-card--large">
-            <div class="stat-icon">
-              <i class="pi pi-book" style="font-size: 1.3rem;"></i>
+    <transition name="fade">
+      <section v-if="isLoggedIn" class="stats-section">
+        <div class="container">
+          <div class="stats-grid">
+            <div class="stat-card stat-card--large">
+              <div class="stat-icon">
+                <i class="pi pi-book" style="font-size: 1.3rem;"></i>
+              </div>
+              <div class="stat-content">
+                <h3 class="stat-number stat-number--small">{{ major }}</h3>
+                <p class="stat-label">Your School</p>
+              </div>
             </div>
-            <div class="stat-content">
-              <h3 class="stat-number stat-number--small">{{ major }}</h3>
-              <p class="stat-label">Your School</p>
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="pi pi-star" style="font-size: 1.3rem;"></i>
+              </div>
+              <div class="stat-content">
+                <h3 class="stat-number">{{ userRating }}</h3>
+                <p class="stat-label">Average Rating</p>
+              </div>
             </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">
-              <i class="pi pi-star" style="font-size: 1.3rem;"></i>
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="pi pi-clock" style="font-size: 1.3rem;"></i>
+              </div>
+              <div class="stat-content">
+                <h3 class="stat-number">{{ studyHours }}h</h3>
+                <p class="stat-label">Total Study Hours</p>
+              </div>
             </div>
-            <div class="stat-content">
-              <h3 class="stat-number">{{ userRating }}</h3>
-              <p class="stat-label">Average Rating</p>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">
-              <i class="pi pi-clock" style="font-size: 1.3rem;"></i>
-            </div>
-            <div class="stat-content">
-              <h3 class="stat-number">{{ studyHours }}h</h3>
-              <p class="stat-label">Total Study Hours</p>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">
-              <i class="pi pi-users" style="font-size: 1.3rem;"></i>
-            </div>
-            <div class="stat-content">
-              <h3 class="stat-number">{{ studyPartners }}</h3>
-              <p class="stat-label">Study Partners</p>
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="pi pi-users" style="font-size: 1.3rem;"></i>
+              </div>
+              <div class="stat-content">
+                <h3 class="stat-number">{{ studyPartners }}</h3>
+                <p class="stat-label">Study Partners</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </transition>
 
     <!-- Features Section -->
     <section class="features-section">
@@ -114,12 +107,7 @@
               </p>
 
               <RouterLink to="/matchlandingview" class="no-decoration">
-                <Button 
-                label="Start Matching" 
-                icon="pi pi-arrow-right" 
-                iconPos="right" 
-                text class="feature-btn"
-                />
+                <Button label="Start Matching" icon="pi pi-arrow-right" iconPos="right" text class="feature-btn" />
               </RouterLink>
             </template>
           </Card>
@@ -134,12 +122,7 @@
                 Keep your profile up-to-date with your current subjects and study preferences.
               </p>
               <RouterLink to="/profilesetupview" class="no-decoration">
-                <Button 
-                label="Edit Profile" 
-                icon="pi pi-arrow-right" 
-                iconPos="right" 
-                text class="feature-btn"
-                />
+                <Button label="Edit Profile" icon="pi pi-arrow-right" iconPos="right" text class="feature-btn" />
               </RouterLink>
             </template>
           </Card>
@@ -154,12 +137,7 @@
                 Help us improve GoalGetters by sharing your experience and suggestions.
               </p>
               <RouterLink to="/feedbackview" class="no-decoration">
-                <Button 
-                label="Give Feedback" 
-                icon="pi pi-arrow-right" 
-                iconPos="right" 
-                text class="feature-btn"
-                />
+                <Button label="Give Feedback" icon="pi pi-arrow-right" iconPos="right" text class="feature-btn" />
               </RouterLink>
             </template>
           </Card>
@@ -216,6 +194,7 @@ import Card from 'primevue/card';
 import logo from '@/assets/images/Logo.png';
 import { supabase } from '@/lib/supabase'
 
+const isLoggedIn = ref(false);
 const router = useRouter();
 
 // User data (replace with actual user data from your store/API)
@@ -247,17 +226,17 @@ const quotes = [
 const changeQuote = () => {
   // console.log('changeQuote called');
   console.log('Current quote:', motivationalQuote.value.text);
-  
+
   let randomIndex;
   let newQuote;
-  
+
   // Keep picking until we get a different quote
   do {
     randomIndex = Math.floor(Math.random() * quotes.length);
     newQuote = quotes[randomIndex];
     // console.log('Trying quote:', newQuote.text);
   } while (newQuote.text === motivationalQuote.value.text && quotes.length > 1);
-  
+
   motivationalQuote.value = newQuote;
   console.log('New quote:', motivationalQuote.value.text);
 };
@@ -294,12 +273,22 @@ const navigateTo = (path) => {
 };
 
 onMounted(async () => {
-  // Get current user
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    console.warn('No user logged in')
-    return
+  // Get current session
+  const { data: { session } } = await supabase.auth.getSession();
+  isLoggedIn.value = !!session;
+
+  // Watch for auth changes
+  supabase.auth.onAuthStateChange((_event, session) => {
+    isLoggedIn.value = !!session;
+  });
+
+  // If no user logged in, skip fetching profile
+  if (!session) {
+    console.warn('No user logged in');
+    return;
   }
+
+  const user = session.user;
   //Fetch user data
   const { data, error } = await supabase
     .from('profiles')
@@ -369,6 +358,7 @@ onMounted(async () => {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -394,6 +384,7 @@ onMounted(async () => {
     opacity: 0;
     transform: translateX(-30px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -502,9 +493,12 @@ onMounted(async () => {
 }
 
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0) scale(1);
   }
+
   50% {
     transform: translateY(-20px) scale(1.05);
   }
@@ -532,9 +526,12 @@ onMounted(async () => {
 }
 
 @keyframes bounce {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-15px);
   }
@@ -565,9 +562,10 @@ onMounted(async () => {
 }
 
 .stat-card--large {
-  flex: 1.5;                 /* makes it wider relative to others */
-  min-width: 250px;          
-  padding: 1rem;           
+  flex: 1.5;
+  /* makes it wider relative to others */
+  min-width: 250px;
+  padding: 1rem;
 }
 
 .stat-card:hover {
@@ -595,8 +593,8 @@ onMounted(async () => {
 }
 
 .stat-number--small {
-  font-size: 0.9rem;   
-  font-weight: 800;  
+  font-size: 0.9rem;
+  font-weight: 800;
   color: #333;
   margin-bottom: 13px;
   margin-top: 10px;
@@ -683,7 +681,7 @@ onMounted(async () => {
 .feature-btn:hover {
   transform: translateY(-2px);
   background: #ff9800 !important;
-  color: white !important; 
+  color: white !important;
 }
 
 /* Activity Section */
@@ -805,20 +803,30 @@ onMounted(async () => {
   font-weight: 600;
 }
 
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.4s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .welcome-heading {
     font-size: 2rem;
   }
-  
+
   .welcome-subtitle {
     font-size: 1rem;
   }
-  
+
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .features-grid {
     grid-template-columns: 1fr;
   }

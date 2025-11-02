@@ -1,37 +1,83 @@
 <script setup>
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/composables/useAuth';
-import { useRouter } from 'vue-router'; //RESEARCH WHY IT'S PREFERRED TO IMPORT "useRouter", instead of just doing "import router from '@/router'", like done in registerView
-const {logoutUser} = useAuth();
+import Button from 'primevue/button';
+
 const router = useRouter();
-async function handleLogout(){
+const { logoutUser } = useAuth();
+const userSession = ref(null);
+
+// Watch authentication state
+onMounted(async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  userSession.value = session;
+
+  supabase.auth.onAuthStateChange((_event, session) => {
+    userSession.value = session;
+  });
+});
+
+async function handleLogout() {
   const logoutOK = await logoutUser();
-  if (logoutOK){
-    router.push({name: 'login'});
+  if (logoutOK) {
+    userSession.value = null;
+    router.push({ name: 'home' });
+  }
+}
+
+function handleLogin() {
+  router.push({ name: 'login' });
+}
+
+function handleRegister() {
+  router.push({ name: 'register' });
+}
+
+// Redirect to login if user not logged in
+function handleProtectedNavigation(path) {
+  if (!userSession.value) {
+    router.push({ name: 'login' });
+  } else {
+    router.push(path);
   }
 }
 </script>
 
 <template>
   <div>
-    <nav class="navbar bg-light px-3">
-      <div class="d-flex">
-        <!-- INCONSISTENCIES WITH V-BIND ARE BECAUSE I ONLY REFACTORED /AUTH PATHS (TIME CRUNCH, WILL REFACTOR AFTER PRESENTATION) -->
-        <router-link to="/" class="nav-link mx-3">Home</router-link>
-        <!-- <router-link v-bind:to="{name: 'login'}" class="nav-link mx-3">Login</router-link> -->
-        <router-link to="/crudview" class="nav-link mx-3">Crud Test</router-link>
-        <!-- <router-link v-bind:to="{name: 'register'}" class="nav-link mx-3">Register Test</router-link> -->
-        <router-link to="/profilesetupview" class="nav-link mx-3">Profile Setup</router-link>
-        <router-link to="/profilesettingsview" class="nav-link mx-3">Profile Settings</router-link>
-        <router-link to="/matchlandingview" class="nav-link mx-3">Matchmake Now</router-link>
-        <router-link to="/feedbackview" class="nav-link mx-3">Feedback</router-link>
-        <router-link to="/matchchatview/:chatId?" class="nav-link mx-3">MatchChat</router-link>
+    <nav class="navbar bg-light px-3 d-flex justify-content-between align-items-center">
+      <!-- Left navigation links -->
+      <div class="d-flex align-items-center">
+        <a @click="router.push('/')" class="nav-link mx-3" style="cursor: pointer;">Home</a>
+        <a @click="handleProtectedNavigation('/crudview')" class="nav-link mx-3" style="cursor: pointer;">Crud Test</a>
+        <a @click="handleProtectedNavigation('/profilesetupview')" class="nav-link mx-3"
+          style="cursor: pointer;">Profile Setup</a>
+        <a @click="handleProtectedNavigation('/profilesettingsview')" class="nav-link mx-3"
+          style="cursor: pointer;">Profile Settings</a>
+        <a @click="handleProtectedNavigation('/matchlandingview')" class="nav-link mx-3"
+          style="cursor: pointer;">Matchmake Now</a>
+        <a @click="handleProtectedNavigation('/feedbackview')" class="nav-link mx-3"
+          style="cursor: pointer;">Feedback</a>
+        <a @click="handleProtectedNavigation('/matchchatview')" class="nav-link mx-3"
+          style="cursor: pointer;">MatchChat</a>
       </div>
+
+      <!-- Right side: Conditional buttons -->
       <div>
-        <Button severity="warn" label="Logout" @click="handleLogout()"/>
+        <!-- Logged in -->
+        <Button v-if="userSession" severity="warn" label="Log Out" @click="handleLogout" />
+
+        <!-- Not logged in -->
+        <div v-else class="d-flex gap-2">
+          <Button severity="secondary" label="Log In" @click="handleLogin" />
+          <Button severity="warn" label="Sign Up" @click="handleRegister" />
+        </div>
       </div>
     </nav>
 
-    <!-- <div class="container mt-4 mx-5 p-0"> -->
+    <!-- Page Content -->
     <div class="mx-0 p-0">
       <router-view />
     </div>
@@ -41,11 +87,12 @@ async function handleLogout(){
 <style scoped>
 .nav-link {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+  color: #333;
 }
 
 .nav-link:hover {
   transform: translateY(-2px);
-  
 }
 
 /* For PrimeVue Button */
@@ -54,7 +101,7 @@ async function handleLogout(){
 }
 
 :deep(.p-button:hover) {
-  transform: translateY(-15px);
+  transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
 }
 </style>
