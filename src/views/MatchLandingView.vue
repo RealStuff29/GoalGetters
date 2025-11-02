@@ -129,7 +129,6 @@ function toggleSlot(id: string) {
 }
 
 function backToLanding() {
-  store.leaveQueue()  // 👈 remove me from match_queue
   store.stage = 'landing'
 }
 
