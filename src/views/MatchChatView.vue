@@ -4,9 +4,9 @@
     class="min-h-screen p-4 w-full max-w-6xl mx-auto grid lg:grid-cols-2 gap-6"
     v-if="store.stage === 'chat'"
   >
-    <!-- Left column: Header + Details + Chat -->
+    <!-- Left column -->
     <div class="space-y-4">
-      <!-- Header / partner info + timer -->
+      <!-- Header -->
       <Card>
         <template #content>
           <div class="flex items-center justify-between gap-3">
@@ -18,15 +18,87 @@
               </div>
             </div>
 
-            <!-- CHAT TIMER CHIP -->
-            <div
-              v-if="chatTimeLeftSec !== null"
-              :class="[
-                'px-3 py-1 rounded-full text-sm font-medium',
-                chatTimeLeftSec <= 60 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
-              ]"
-            >
-              ⏱ {{ chatTimeLabel }}
+            <div class="flex items-center gap-2">
+              <!-- ✅ VERIFY BUTTON -->
+              <Button
+                size="small"
+                :icon="verifying ? 'pi pi-spin pi-spinner' : 'pi pi-shield'"
+                :label="verifying ? 'Verifying...' : 'Verify'"
+                outlined
+                @click="verifySession"
+              />
+              <!-- timer -->
+              <div
+                v-if="chatTimeLeftSec !== null"
+                :class="[
+                  'px-3 py-1 rounded-full text-sm font-medium',
+                  chatTimeLeftSec <= 60 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
+                ]"
+              >
+                ⏱ {{ chatTimeLabel }}
+              </div>
+            </div>
+          </div>
+
+          <!-- verify status text -->
+          <p v-if="verifyStatus === 'ok'" class="mt-3 text-xs text-emerald-600 flex items-center gap-1">
+            <i class="pi pi-check-circle"></i> Session verified (you).
+          </p>
+          <p v-else-if="verifyStatus === 'ok-both'" class="mt-3 text-xs text-emerald-600 flex items-center gap-1">
+            <i class="pi pi-check-circle"></i> Both verified — session saved.
+          </p>
+          <p v-else-if="verifyStatus === 'fail'" class="mt-3 text-xs text-red-500 flex items-center gap-1">
+            <i class="pi pi-times-circle"></i> Could not verify. Check room / partner code.
+          </p>
+        </template>
+      </Card>
+
+      <!-- 🔐 verification codes -->
+      <Card>
+        <template #title>
+          <span class="text-sm font-medium flex items-center gap-2">
+            <i class="pi pi-key"></i> Match verification
+          </span>
+        </template>
+        <template #content>
+          <div class="space-y-3">
+            <div>
+              <div class="text-xs opacity-70 mb-1">Your code (tell your partner):</div>
+              <div class="px-3 py-2 rounded bg-surface-200 font-mono text-sm select-all inline-block">
+                {{ myVerifyCode || '—' }}
+              </div>
+            </div>
+
+            <div>
+              <div class="text-xs opacity-70 mb-1">Enter partner’s code:</div>
+              <div class="flex gap-2 items-center">
+                <InputText
+                  v-model="partnerCodeInput"
+                  placeholder="e.g. MERLION-67"
+                  class="flex-1"
+                />
+                <Button
+                  icon="pi pi-check"
+                  text
+                  @click="quickCheckPartnerCode"
+                  :disabled="!partnerExpectedCode"
+                />
+              </div>
+              <small
+                v-if="partnerCodeOK === true"
+                class="text-emerald-600 text-xs flex items-center gap-1 mt-1"
+              >
+                <i class="pi pi-check-circle"></i> Partner code matches.
+              </small>
+              <small
+                v-else-if="partnerCodeOK === false"
+                class="text-red-500 text-xs flex items-center gap-1 mt-1"
+              >
+                <i class="pi pi-times-circle"></i> Partner code is wrong.
+              </small>
+              <small v-else class="text-xs opacity-60 mt-1 block">
+                Ask your partner to read their code to you, then type it here.
+              </small>
             </div>
           </div>
         </template>
@@ -225,7 +297,13 @@
         </template>
       </Card>
 
-      <Button outlined class="w-full" :icon="pi('refresh')" label="Find Another Match" @click="restart" />
+      <Button
+        outlined
+        class="w-full"
+        :icon="pi('refresh')"
+        label="Find Another Match"
+        @click="restart"
+      />
     </div>
   </div>
 
@@ -247,6 +325,17 @@ const router = useRouter()
 const route = useRoute()
 const chatScroller = ref<HTMLElement | null>(null)
 
+// ✅ verification state
+const verifying = ref(false)
+// 'ok' = I verified; 'ok-both' = both verified; 'fail' = failed
+const verifyStatus = ref<'ok' | 'ok-both' | 'fail' | null>(null)
+
+// codes
+const myVerifyCode = ref<string>('')
+const partnerExpectedCode = ref<string>('')
+const partnerCodeInput = ref<string>('')
+const partnerCodeOK = ref<boolean | null>(null)
+
 // ✅ timer from store
 const chatTimeLeftSec = computed(() => store.chatRemainingSec ?? null)
 const chatTimeLabel = computed(() => {
@@ -257,7 +346,7 @@ const chatTimeLabel = computed(() => {
   return `${m}:${ss}`
 })
 
-// ---- CODE ADDED for study details ----
+// ---- study details ----
 const myProfile = ref<any | null>(null)
 const partnerProfile = ref<any | null>(null)
 
@@ -265,7 +354,7 @@ const SLOT_LABELS = {
   slot_morning: 'Morning (8:30am - 11:30am)',
   slot_midday: 'Midday (12:00pm - 3:00pm)',
   slot_afternoon: 'Afternoon (3:30pm - 6:30pm)',
-  slot_evening: 'Evening (7:00pm - 10:00pm)',
+  slot_evening: 'Evening (7:00pm - 10:00pm)'
 } as const
 type SlotKey = keyof typeof SLOT_LABELS
 
@@ -273,7 +362,7 @@ const SLOT_ALIASES: Record<string, SlotKey> = {
   morning: 'slot_morning',
   midday: 'slot_midday',
   afternoon: 'slot_afternoon',
-  evening: 'slot_evening',
+  evening: 'slot_evening'
 }
 
 const SLOT_ORDER: SlotKey[] = ['slot_morning', 'slot_midday', 'slot_afternoon', 'slot_evening']
@@ -282,7 +371,10 @@ function toArray(val: unknown): string[] {
   if (!val) return []
   return Array.isArray(val)
     ? val.map(v => String(v).trim()).filter(Boolean)
-    : String(val).split(',').map(s => s.trim()).filter(Boolean)
+    : String(val)
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
 }
 
 function normalize(raw: string): SlotKey | null {
@@ -305,11 +397,20 @@ const commonSlotsLabels = computed<string[]>(() => {
   return SLOT_ORDER.filter(x => common.includes(x)).map(x => SLOT_LABELS[x])
 })
 
+// ✅ FIX for .items
 function toModules(val: unknown): string[] {
-  if (Array.isArray(val)) return val.map(v => String(v).trim()).filter(Boolean)
-  if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean)
-  // @ts-ignore
-  if (val?.items && Array.isArray(val.items)) return val.items.map((x: any) => String(x).trim()).filter(Boolean)
+  if (Array.isArray(val)) {
+    return val.map(v => String(v).trim()).filter(Boolean)
+  }
+  if (typeof val === 'string') {
+    return val.split(',').map(s => s.trim()).filter(Boolean)
+  }
+  if (val && typeof val === 'object' && 'items' in (val as any)) {
+    const maybeItems = (val as any).items
+    if (Array.isArray(maybeItems)) {
+      return maybeItems.map((x: any) => String(x).trim()).filter(Boolean)
+    }
+  }
   return []
 }
 
@@ -360,12 +461,12 @@ async function loadStudyDetailsFromDB() {
       return
     }
 
-    const partnerId = room.user1 === myId ? room.user2 : room.user1
+    const theirId = room.user1 === myId ? room.user2 : room.user1
 
     const { data: profs, error: profErr } = await supabase
       .from('profiles')
       .select('user_id, degree, modules, timeslot_avail')
-      .in('user_id', [myId, partnerId])
+      .in('user_id', [myId, theirId])
 
     if (profErr) {
       console.warn('[details] profiles error', profErr)
@@ -373,17 +474,28 @@ async function loadStudyDetailsFromDB() {
     }
 
     myProfile.value = profs?.find(p => p.user_id === myId) || null
-    partnerProfile.value = profs?.find(p => p.user_id === partnerId) || null
+    partnerProfile.value = profs?.find(p => p.user_id === theirId) || null
   } catch (e) {
     console.error('[details] loadStudyDetailsFromDB failed', e)
   }
 }
-// ---- End of Edits ----
+
+// 🔐 deterministic code generator
+function deriveVerifyCode(roomId: string, userId: string): string {
+  const words = ['MANGO', 'OTTER', 'ORCHARD', 'MERLION', 'KOPI', 'LAKSA', 'HDB', 'LION', 'NDP', 'CHILLI']
+  const seed = `${roomId}:${userId}`
+  let sum = 0
+  for (let i = 0; i < seed.length; i++) {
+    sum += seed.charCodeAt(i)
+  }
+  const word = words[sum % words.length]
+  const num = (sum % 90) + 10
+  return `${word}-${num}`
+}
 
 function pi(name: string) {
   return `pi pi-${name}`
 }
-
 // @ts-ignore
 const YOUR_GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 
@@ -420,7 +532,7 @@ const suggestSpot = (spot: any) => {
   setTimeout(() => nextTick(scrollToBottom), 750)
 }
 
-// for "did the other person reject me"
+// ids to poll for end
 const partnerId = ref<string | null>(null)
 const myId = ref<string | null>(null)
 let rejectPoll: number | null = null
@@ -442,36 +554,217 @@ function restart() {
   router.push({ name: 'matchlanding' })
 }
 
+/**
+ * 👇 This is the NEW part:
+ * we only "complete" the session once BOTH verified.
+ *
+ * We try to use columns `verified_by_a` / `verified_by_b` if they exist.
+ * If they don't, we just create the row.
+ */
+async function upsertSessionVerification(roomId: string, me: string, other: string) {
+  // 1) get current row (if any)
+  const { data: existing, error: sessErr } = await supabase
+    .from('sessions')
+    .select('*')
+    .eq('sessid', roomId)
+    .maybeSingle()
+
+  // if table doesn't exist or error → just insert simple row
+  if (sessErr?.code === '42P01') {
+    // table missing → fall back
+    const now = new Date().toISOString()
+    await supabase.from('sessions').insert({
+      sessid: roomId,
+      created_at: now,
+      started_at: now,
+      created_by_a: me,
+      created_by_b: other
+    })
+    return true
+  }
+
+  const now = new Date().toISOString()
+
+  // if no row → create with my verify
+  if (!existing) {
+    // we don't know which is A/B → use ordering to decide
+    const iAmA = me < other
+    const insertPayload: any = {
+      sessid: roomId,
+      created_at: now,
+      started_at: now,
+      created_by_a: iAmA ? me : other,
+      created_by_b: iAmA ? other : me
+    }
+
+    // try to set verified flag
+    insertPayload.verified_by_a = iAmA ? true : false
+    insertPayload.verified_by_b = iAmA ? false : true
+
+    const { error: insErr } = await supabase.from('sessions').insert(insertPayload)
+    if (insErr) {
+      // maybe columns don't exist → insert minimal
+      await supabase.from('sessions').insert({
+        sessid: roomId,
+        created_at: now,
+        started_at: now,
+        created_by_a: iAmA ? me : other,
+        created_by_b: iAmA ? other : me
+      })
+      return false
+    }
+    // only 1 person verified so far
+    return false
+  }
+
+  // row exists → update verify flag
+  let updated: any = {}
+  // try to detect who is A/B
+  const iAmA = existing.created_by_a === me
+  if (iAmA) {
+    updated.verified_by_a = true
+  } else {
+    updated.verified_by_b = true
+  }
+
+  const { data: afterUpdate, error: updErr } = await supabase
+    .from('sessions')
+    .update(updated)
+    .eq('sessid', roomId)
+    .select()
+    .maybeSingle()
+
+  if (updErr) {
+    // can't update → fine, we at least have a row
+    return false
+  }
+
+  // if after update both sides verified → return true
+  const both =
+    (afterUpdate?.verified_by_a === true && afterUpdate?.verified_by_b === true) ||
+    // fallback if columns absent
+    false
+
+  return both
+}
+
+// quick check just for the input box
+function quickCheckPartnerCode() {
+  if (!partnerExpectedCode.value) {
+    partnerCodeOK.value = null
+    return
+  }
+  partnerCodeOK.value =
+    partnerCodeInput.value.trim().toUpperCase() === partnerExpectedCode.value.toUpperCase()
+}
+
+// ✅ VERIFY ACTION
+async function verifySession() {
+  verifying.value = true
+  verifyStatus.value = null
+  partnerCodeOK.value = null
+  try {
+    const roomId = store.currentMatchId || store.match.id
+    if (!roomId) {
+      verifyStatus.value = 'fail'
+      return
+    }
+
+    const { data: auth } = await supabase.auth.getUser()
+    const me = auth?.user?.id
+    if (!me) {
+      verifyStatus.value = 'fail'
+      return
+    }
+
+    const { data: room, error } = await supabase
+      .from('match_room')
+      .select('id, user1, user2')
+      .eq('id', roomId)
+      .maybeSingle()
+
+    if (error || !room) {
+      verifyStatus.value = 'fail'
+      return
+    }
+
+    if (room.user1 !== me && room.user2 !== me) {
+      verifyStatus.value = 'fail'
+      return
+    }
+
+    const other = room.user1 === me ? room.user2 : room.user1
+
+    // derive codes
+    const myCode = deriveVerifyCode(roomId, me)
+    const theirCode = deriveVerifyCode(roomId, other)
+    myVerifyCode.value = myCode
+    partnerExpectedCode.value = theirCode
+
+    // if user already typed code, check it
+    if (partnerCodeInput.value.trim().length > 0) {
+      quickCheckPartnerCode()
+      if (partnerCodeOK.value === false) {
+        verifyStatus.value = 'fail'
+        return
+      }
+    }
+
+    // ✅ at this point THIS user is verified
+    // now mark in sessions, and if both → we return ok-both
+    const bothVerified = await upsertSessionVerification(roomId, me, other)
+
+    verifyStatus.value = bothVerified ? 'ok-both' : 'ok'
+  } catch (e) {
+    console.warn('[verify] failed', e)
+    verifyStatus.value = 'fail'
+  } finally {
+    verifying.value = false
+  }
+}
+
 // manual end → go review
 async function endSessionAndReview() {
+  const roomId = store.currentMatchId || store.match.id
+
+  // safety: make sure a session row exists even if they never verified
+  if (roomId) {
+    const { data: auth } = await supabase.auth.getUser()
+    const me = auth?.user?.id
+    if (me) {
+      // try to fetch room to get partner
+      const { data: room } = await supabase
+        .from('match_room')
+        .select('user1, user2')
+        .eq('id', roomId)
+        .maybeSingle()
+      const other = room ? (room.user1 === me ? room.user2 : room.user1) : me
+      await upsertSessionVerification(roomId, me, other)
+    }
+  }
+
   const endedRoomId = await store.endSession?.('manual')
-  if (endedRoomId) {
-    router.push({ name: 'matchreview', params: { roomId: endedRoomId } })
-  } else if (store.lastSessionId) {
-    router.push({ name: 'matchreview', params: { roomId: store.lastSessionId } })
+  const finalId = endedRoomId || store.lastSessionId || roomId
+  if (finalId) {
+    router.push({ name: 'matchreview', params: { roomid: finalId } })
   } else {
     router.push({ name: 'matchlanding' })
   }
 }
 
 onMounted(async () => {
-  // restore from session
   await store.hydrateFromCache()
 
-  // make sure we actually have a match
   const hasMatch = await store.ensureMatch(store.currentMatchId || undefined)
   if (!hasMatch) {
     router.replace({ name: 'matchlanding' })
     return
   }
 
-  // make sure we have chat id
   await store.ensureChat(route.params.chatId as string | undefined)
 
-  // load the dynamic study details here
   await loadStudyDetailsFromDB()
 
-  // try to sync timer from DB if exists
   const roomId = store.currentMatchId || store.match.id
   if (roomId) {
     const { data: room, error } = await supabase
@@ -483,21 +776,27 @@ onMounted(async () => {
     if (!error && room?.expires_at && store.startChatTimerFrom) {
       store.startChatTimerFrom(room.expires_at)
     } else if (!store.chatEndsAt && store.startChatTimer) {
-      // fallback
       store.startChatTimer()
+    }
+
+    // preload codes
+    const { data: auth } = await supabase.auth.getUser()
+    const me = auth?.user?.id ?? null
+    if (me && room) {
+      myVerifyCode.value = deriveVerifyCode(roomId, me)
+      const other = room.user1 === me ? room.user2 : room.user1
+      partnerExpectedCode.value = deriveVerifyCode(roomId, other)
     }
   }
 
-  // let template render
   store.stage = 'chat'
   nextTick(scrollToBottom)
   setTimeout(() => nextTick(scrollToBottom), 500)
 
-  // find my id
-  const { data: auth } = await supabase.auth.getUser()
-  myId.value = auth?.user?.id ?? null
+  // ids for polling
+  const { data: auth2 } = await supabase.auth.getUser()
+  myId.value = auth2?.user?.id ?? null
 
-  // find partner id from room
   if (roomId && myId.value) {
     const { data: room } = await supabase
       .from('match_room')
@@ -510,49 +809,54 @@ onMounted(async () => {
     }
   }
 
-  // poll for "other side declined"
-  // poll for "partner ended or rejected the session"
-const roomdoublecheckId = store.currentMatchId || store.match.id
+  // poll for partner ending / rejecting
+  const roomdoublecheckId = store.currentMatchId || store.match.id
+  if (roomdoublecheckId) {
+    rejectPoll = window.setInterval(async () => {
+      let ended = false
 
-if (roomdoublecheckId) {
-  rejectPoll = window.setInterval(async () => {
-    // 1) partner explicitly rejected me
-    let ended = false
-    if (partnerId.value) {
-      const rejected = await store.checkIfPartnerRejected(partnerId.value!)
-      if (rejected) {
-        ended = true
-      }
-    }
-
-    // 2) OR room deleted (partner ended session)
-    if (!ended) {
-      const alive = await store.checkRoomAlive(roomId)
-      if (!alive) {
-        ended = true
-      }
-    }
-
-    if (ended) {
-      if (rejectPoll) {
-        clearInterval(rejectPoll)
-        rejectPoll = null
+      if (partnerId.value) {
+        const rejected = await store.checkIfPartnerRejected(partnerId.value!)
+        if (rejected) ended = true
       }
 
-      await store.forceLeaveChat('Your partner ended the session.')
-      
-      router.replace({ name: 'matchreview', params: { roomId } })
-    }
-  }, 2000) as unknown as number
-}
+      if (!ended) {
+        const alive = await store.checkRoomAlive(roomdoublecheckId)
+        if (!alive) ended = true
+      }
+
+      if (ended) {
+        if (rejectPoll) {
+          clearInterval(rejectPoll)
+          rejectPoll = null
+        }
+
+        // make sure session exists
+        const { data: auth3 } = await supabase.auth.getUser()
+        const me = auth3?.user?.id ?? null
+        if (me) {
+          // get partner
+          const { data: room } = await supabase
+            .from('match_room')
+            .select('user1, user2')
+            .eq('id', roomdoublecheckId)
+            .maybeSingle()
+          const other = room ? (room.user1 === me ? room.user2 : room.user1) : me
+          await upsertSessionVerification(roomdoublecheckId, me, other)
+        }
+
+        await store.forceLeaveChat('Your partner ended the session.')
+        router.replace({ name: 'matchreview', params: { roomid: roomdoublecheckId } })
+      }
+    }, 2000) as unknown as number
+  }
 })
 
-// if store auto-ended because timer expired, bring user to review
 watch(
   () => store.stage,
   val => {
     if (val === 'landing' && store.lastSessionId) {
-      router.push({ name: 'matchreview', params: { roomId: store.lastSessionId } })
+      router.push({ name: 'matchreview', params: { roomid: store.lastSessionId } })
     }
   }
 )

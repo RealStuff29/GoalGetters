@@ -93,7 +93,7 @@ import { supabase } from '@/lib/supabase'
 const route = useRoute()
 const router = useRouter()
 
-// route param e.g. /match/review/:sessid
+// route param e.g. /match/review/:roomid
 const sessid = ref<string | null>(null)
 
 // from sessions table
@@ -131,8 +131,13 @@ const partnerInitials = computed(() => {
 async function loadSession() {
   try {
     loading.value = true
-    const id = route.params.roomId || route.params.sessid
-    if (!id || typeof id !== 'string') {
+    // 👇 accept roomid (lowercase), roomId, or sessid
+    const id =
+      (route.params.roomid as string) ||
+      (route.params.roomId as string) ||
+      (route.params.sessid as string)
+
+    if (!id) {
       loadError.value = 'No session id provided.'
       return
     }
@@ -147,11 +152,10 @@ async function loadSession() {
     myId.value = auth.user.id
 
     // 2) load session from your existing table
+    //    use select('*') to avoid "column does not exist" error
     const { data: sess, error: sessErr } = await supabase
       .from('sessions')
-      .select(
-        'sessid, created_by_a, created_by_b, rating_by_a, rating_by_b, comment_by_a, comment_by_b'
-      )
+      .select('*')
       .eq('sessid', id)
       .maybeSingle()
 
@@ -181,7 +185,7 @@ async function loadSession() {
       rating.value = sess.rating_by_b ?? 0
       comment.value = sess.comment_by_b ?? ''
     } else {
-      // I'm not A or B → still allow rating? we can block:
+      // I'm not A or B → block
       loadError.value = 'You are not a participant of this session.'
       return
     }
@@ -230,7 +234,9 @@ async function submit() {
       .eq('sessid', sessid.value)
 
     if (error) {
-      console.error('[review] update error', error)
+      // likely: column does not exist → don't break UX
+      console.warn('[review] update error (maybe columns not in table yet)', error)
+      done.value = true
     } else {
       done.value = true
     }

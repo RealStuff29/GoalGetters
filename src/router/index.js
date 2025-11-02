@@ -40,7 +40,7 @@ const router = createRouter({
         //Added chatid and id
         { path: 'matchdecisionview/:id?', name: 'matchdecision', component: MatchDecision, meta: { requiresAuth: true } },
         { path: 'matchchatview/:chatId?', name: 'matchchat', component: MatchChat, meta: { requiresAuth: true } },
-        { path: 'matchreviewview/:sessid?', name: 'matchreview', component: MatchReview, meta: { requiresAuth: true } },
+        { path: 'matchreviewview/:roomid?', name: 'matchreview', component: MatchReview, meta: { requiresAuth: true } },
       ],
     },
     {
