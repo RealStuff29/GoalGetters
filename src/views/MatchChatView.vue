@@ -303,7 +303,7 @@ onMounted(async () => {
           clearInterval(rejectPoll)
           rejectPoll = null
         }
-        await store.forceLeaveChat()
+        await store.forceLeaveChat('Your partner left the match.')   // 👈 add message
         router.replace({ name: 'matchlanding' })
       }
     }, 2000) as unknown as number

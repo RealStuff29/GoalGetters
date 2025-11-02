@@ -112,7 +112,7 @@ export const useMatchStore = defineStore('match', () => {
   const currentMatchId = ref<string | null>(null)
   const chatId = ref<string | null>(null)
   const availability = ref<string>('')
-
+  const landingNotice = ref<string | null>(null) 
   const match = ref<Match>({
     subject: 'WAD2',
     description: 'Homework discussion and review',
@@ -165,48 +165,49 @@ export const useMatchStore = defineStore('match', () => {
 
   // ---------- Persistence ----------
   function persist() {
-    const payload = {
-      stage: stage.value,
-      resultAccepted: resultAccepted.value,
-      currentMatchId: currentMatchId.value,
-      chatId: chatId.value,
-      availability: availability.value,
-      match: { ...match.value },
-    }
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+  const payload = {
+    stage: stage.value,
+    resultAccepted: resultAccepted.value,
+    currentMatchId: currentMatchId.value,
+    chatId: chatId.value,
+    availability: availability.value,
+    match: { ...match.value },
+    landingNotice: landingNotice.value,            // 👈 add
   }
-
-  function restore() {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
-    if (!raw) return false
-    try {
-      const data = JSON.parse(raw)
-      if (data.stage) stage.value = data.stage as Stage
-      if ('resultAccepted' in data) resultAccepted.value = !!data.resultAccepted
-      currentMatchId.value = data.currentMatchId ?? null
-      chatId.value = data.chatId ?? null
-      if (typeof data.availability === 'string') availability.value = data.availability
-      if (data.match) {
-        match.value = {
-          subject: data.match.subject ?? match.value.subject,
-          description: data.match.description ?? match.value.description,
-          time: data.match.time ?? match.value.time,
-          duration: data.match.duration ?? match.value.duration,
-          location: data.match.location ?? match.value.location,
-          partner: {
-            name: data.match.partner?.name ?? match.value.partner.name,
-            photo: data.match.partner?.photo ?? null,
-            description: data.match.partner?.description ?? null,
-          },
-          id: data.match.id ?? currentMatchId.value ?? undefined,
-        }
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+}
+ function restore() {
+  const raw = sessionStorage.getItem(STORAGE_KEY)
+  if (!raw) return false
+  try {
+    const data = JSON.parse(raw)
+    if (data.stage) stage.value = data.stage as Stage
+    if ('resultAccepted' in data) resultAccepted.value = !!data.resultAccepted
+    currentMatchId.value = data.currentMatchId ?? null
+    chatId.value = data.chatId ?? null
+    if (typeof data.availability === 'string') availability.value = data.availability
+    if (data.match) {
+      match.value = {
+        subject: data.match.subject ?? match.value.subject,
+        description: data.match.description ?? match.value.description,
+        time: data.match.time ?? match.value.time,
+        duration: data.match.duration ?? match.value.duration,
+        location: data.match.location ?? match.value.location,
+        partner: {
+          name: data.match.partner?.name ?? match.value.partner.name,
+          photo: data.match.partner?.photo ?? null,
+          description: data.match.partner?.description ?? null,
+        },
+        id: data.match.id ?? currentMatchId.value ?? undefined,
       }
-      return true
-    } catch {
-      sessionStorage.removeItem(STORAGE_KEY)
-      return false
     }
+    landingNotice.value = data.landingNotice ?? null     // 👈 restore
+    return true
+  } catch {
+    sessionStorage.removeItem(STORAGE_KEY)
+    return false
   }
+}
 
   watch([stage, resultAccepted, currentMatchId, chatId, match, availability], persist, { deep: true })
 
@@ -228,6 +229,15 @@ export const useMatchStore = defineStore('match', () => {
       clearInterval(tick)
       tick = null
     }
+  }
+    function setLandingNotice(msg: string) {
+    landingNotice.value = msg
+    persist()
+  }
+
+  function clearLandingNotice() {
+    landingNotice.value = null
+    persist()
   }
 
   async function putUserBackToQueue(userId: string) {
@@ -297,9 +307,13 @@ export const useMatchStore = defineStore('match', () => {
   }
 
   // 👇 NEW: cleanly kick user out of chat if partner leaves
-  async function forceLeaveChat() {
-  console.log('[match] forceLeaveChat → partner left, resetting...')
+  async function forceLeaveChat(msg?: string) {
   stopCountdown()
+
+  if (msg) {
+    landingNotice.value = msg
+  }
+
   stage.value = 'landing'
   resultAccepted.value = false
   currentMatchId.value = null
@@ -730,10 +744,11 @@ export const useMatchStore = defineStore('match', () => {
     chatId,
     availability,
     availabilityList,
-
+    landingNotice,
     // computed
     partnerInitials,
     countdownText,
+    
 
     // actions
     acceptMatch,
@@ -757,5 +772,7 @@ export const useMatchStore = defineStore('match', () => {
     // NEW
     checkIfPartnerRejected,
     forceLeaveChat,
+    setLandingNotice,
+    clearLandingNotice
   }
 })

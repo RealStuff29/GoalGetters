@@ -1,6 +1,11 @@
 <!-- src/views/MatchLandingView.vue -->
 <template>
   <div class="match-landing-container">
+    <!--NOTICE BANNER-->
+     <div v-if="store.landingNotice" class="notice-banner">
+      <span>{{ store.landingNotice }}</span>
+      <button class="notice-close" @click="store.clearLandingNotice()">×</button>
+    </div>
     <!-- LANDING / FORM -->
     <div v-if="store.stage === 'landing'" class="match-form">
       <div class="match-header">
@@ -319,5 +324,29 @@ async function onStart() {
   font-size: 1.6rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
+}
+
+.notice-banner {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem 0.75rem 1rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  z-index: 9999;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+.notice-close {
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: inherit;
 }
 </style>
