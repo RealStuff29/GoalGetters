@@ -173,46 +173,33 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, nextTick, computed } from 'vue'
+import { onMounted, onUnmounted, ref, nextTick, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMatchStore } from '@/stores/match'
+import { supabase } from '@/lib/supabase'
 function pi(name: string) { return `pi pi-${name}` }
 
-//import { usePrimeVue } from 'primevue/config';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
-import StudySpotMap from './StudySpotMap.vue'; // Import the map component
+import StudySpotMap from './StudySpotMap.vue';
 
-// const { pi } = usePrimeVue().config;
-
-//API key goes here
-
-//@jordan - I just put a @ts-ignore and did it the JS way, if you want to do it the proper ts way, theres some setup you need to do
-//@ts-ignore
 const YOUR_GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-//studyspots
 const studySpots = ref<any[]>([]);
 const currentPage = ref(1);
 const itemsPerPage = 4;
 const mapRef = ref<InstanceType<typeof StudySpotMap> | null>(null);
 
-// Computed property for pagination
 const totalPages = computed(() => Math.ceil(studySpots.value.length / itemsPerPage));
-
 const paginatedSpots = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage;
   const end = start + itemsPerPage;
   return studySpots.value.slice(start, end);
 });
 
-
 const handlePlacesUpdate = (places:any) => {
-  console.log(' Parent received places:', places.length);
-  console.log(' Places:', places);
   studySpots.value = [...places];
-  currentPage.value = 1; // Reset to first page on new search
-  console.log(' studySpots.value updated to:', studySpots.value.length);
+  currentPage.value = 1;
 };
 
 const focusOnSpot = (spot:any) => {
@@ -222,19 +209,14 @@ const focusOnSpot = (spot:any) => {
   }
 };
 
-//suggestSpot function 
-const suggestSpot = (spot: any) => {
-  const message = `Let's meet at ${spot.name}! Location @${spot.vicinity || spot.formatted_address || ''}`;
-  store.sendMessage(message);
-  store.draft = '';
-  nextTick(scrollToBottom);
-  setTimeout(() => nextTick(scrollToBottom), 750);
-};
-
 const store = useMatchStore()
 const router = useRouter()
 const route = useRoute()
 const chatScroller = ref<HTMLElement | null>(null)
+
+// 👇 add this
+let chatPollTimer: number | null = null
+const isAlive = ref(true)
 
 function scrollToBottom() {
   const el = chatScroller.value
@@ -248,29 +230,122 @@ function send() {
   setTimeout(() => nextTick(scrollToBottom), 750)
 }
 
+const suggestSpot = (spot: any) => {
+  const message = `Let's meet at ${spot.name}! Location @${spot.vicinity || spot.formatted_address || ''}`;
+  store.sendMessage(message);
+  store.draft = '';
+  nextTick(scrollToBottom);
+  setTimeout(() => nextTick(scrollToBottom), 750);
+};
+
 function restart() {
   store.startOver()
-  router.push({ name: 'matchchat', params: { chatId: store.chatId }}) //to fix hard refresh on chat
+  router.push({ name: 'matchlanding' })
+}
+
+// 👇 helper: check if partner rejected me OR room is gone
+async function checkStillValid() {
+  // 1) who am I?
+  const { data: auth } = await supabase.auth.getUser()
+  const myId = auth?.user?.id
+  if (!myId) return false
+
+  // 2) what room am I in?
+  const roomId = store.currentMatchId || store.match.id
+  if (!roomId) return false
+
+  // 3) does the room still exist?
+  const { data: room, error: roomErr } = await supabase
+    .from('match_room')
+    .select('id, user1, user2')
+    .eq('id', roomId)
+    .maybeSingle()
+
+  // if room is gone → other person declined (or we deleted it)
+  if (roomErr || !room) {
+    console.log('[chat poll] room missing → treat as rejected')
+    return false
+  }
+
+  // 4) who is the other person?
+  const otherId = room.user1 === myId ? room.user2 : room.user1
+
+  // 5) did the OTHER person reject ME?
+  const { data: rej, error: rejErr } = await supabase
+    .from('match_rejects')
+    .select('user_id')
+    .eq('user_id', otherId)
+    .eq('rejected_user_id', myId)
+    .maybeSingle()
+
+  if (rejErr) {
+    console.warn('[chat poll] reject check error', rejErr)
+    // if error, don't kick user out
+    return true
+  }
+
+  // if rej exists → otherId rejected me
+  if (rej) {
+    console.log('[chat poll] partner rejected me → leaving chat')
+    return false
+  }
+
+  // otherwise still valid
+  return true
 }
 
 onMounted(async () => {
-  // 1) restore
   await store.hydrateFromCache()
-  // 2) ensure a match exists (needed for header/details)
+
   const hasMatch = await store.ensureMatch(store.currentMatchId || undefined)
   if (!hasMatch) {
     router.replace({ name: 'matchlanding' })
     return
   }
-  // 3) ensure chat id (from route or cache)
+
   await store.ensureChat(route.params.chatId as string | undefined)
-  // 4) set stage so template renders
+
   store.stage = 'chat'
-  // 5) scroll once ready
+
   nextTick(scrollToBottom)
-  setTimeout(() => nextTick(scrollToBottom), 500)}
-)
-  
+  setTimeout(() => nextTick(scrollToBottom), 500)
+
+  // 👇 start polling
+  chatPollTimer = window.setInterval(async () => {
+    // if component is already unmounting, don't do anything
+    if (!isAlive.value) return
+
+    const ok = await checkStillValid()
+
+    // user still ok in room
+    if (ok) return
+
+    // 👇 from here: user is NOT ok → stop timer FIRST
+    if (chatPollTimer) {
+      clearInterval(chatPollTimer)
+      chatPollTimer = null
+    }
+
+    // also stop further work if unmounted in between
+    if (!isAlive.value) return
+
+    // clean local state
+    store.startOver()
+    // optional: clean queue
+    store.leaveQueue?.().catch(() => {})
+
+    // finally navigate
+    router.replace({ name: 'matchlanding' })
+  }, 2000) as unknown as number
+})
+
+onUnmounted(() => {
+  isAlive.value = false
+  if (chatPollTimer) {
+    clearInterval(chatPollTimer)
+  }
+  chatPollTimer = null
+})
 </script>
 
 <style scoped>

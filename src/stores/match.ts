@@ -274,7 +274,20 @@ export const useMatchStore = defineStore('match', () => {
     .eq('user_id', myId)
     if (error) {
     console.warn('[match] clearMyRejections failed:', error)
+    }
   }
+  async function leaveQueue() {
+  const { data: auth } = await supabase.auth.getUser()
+  const myId = auth?.user?.id
+  if (!myId) return
+
+  const {error} = await supabase
+    .from('match_queue')
+    .delete()
+    .eq('user_id', myId)
+    if (error) {
+    console.warn('[match] leaveQueue failed', error)
+   }
   }
 
   async function acceptMatch() {
@@ -325,6 +338,9 @@ export const useMatchStore = defineStore('match', () => {
 
   function startOver() {
     stopCountdown()
+    // ensure I’m not lingering in queue
+    leaveQueue().catch(err => console.warn('[match] leaveQueue in startOver failed', err))
+    
     stage.value = 'landing'
     messages.value = seedMessages()
     draft.value = ''
@@ -591,7 +607,10 @@ export const useMatchStore = defineStore('match', () => {
       const existingRoomId = await findRoomForMe(myId)
       if (existingRoomId) {
         console.log(`📦 Someone matched me → room ${existingRoomId}`)
-
+        await supabase // even if someone else matched me, I am removed from the queue
+        .from('match_queue')
+        .delete()
+        .eq('user_id', myId)
         // There is a match
         // Remove this person from match_queue LINE 584
         currentMatchId.value = existingRoomId
@@ -745,6 +764,7 @@ export const useMatchStore = defineStore('match', () => {
     loadPartnerForCurrent,
     setPartnerFromRoom,
     getIdleOthers,
-    clearMyRejections
+    clearMyRejections,
+    leaveQueue
   }
 })
