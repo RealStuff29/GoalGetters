@@ -25,6 +25,7 @@ type Match = {
 
 const STORAGE_KEY = 'match-store-v1'
 
+// --- helpers ---
 function strToArray(val: string | string[] | null | undefined): string[] {
   if (!val) return []
   if (Array.isArray(val)) return val.filter(Boolean).map(v => v.trim())
@@ -112,7 +113,9 @@ export const useMatchStore = defineStore('match', () => {
   const currentMatchId = ref<string | null>(null)
   const chatId = ref<string | null>(null)
   const availability = ref<string>('')
-  const landingNotice = ref<string | null>(null) 
+
+  const landingNotice = ref<string | null>(null)
+
   const match = ref<Match>({
     subject: 'WAD2',
     description: 'Homework discussion and review',
@@ -131,7 +134,7 @@ export const useMatchStore = defineStore('match', () => {
       .toUpperCase()
   )
 
-  // ---------- Timer ----------
+  // ---------- decision timer ----------
   const totalSeconds = 60
   const secondsLeft = ref(totalSeconds)
   let tick: number | null = null
@@ -163,53 +166,109 @@ export const useMatchStore = defineStore('match', () => {
     { name: 'SOE L3 - Breakout Area', desc: 'Open space • Near elevators' },
   ])
 
+  // 🔥 NEW: chat session timer
+  const CHAT_DEFAULT_SECS = 45 * 60 // 45 mins
+  const chatEndsAt = ref<string | null>(null)
+  const chatRemainingSec = ref<number | null>(null)
+  const lastSessionId = ref<string | null>(null) // for redirect to review later
+  let chatTick: number | null = null
+
+  function setupChatTick() {
+    if (chatTick) return
+    chatTick = window.setInterval(async () => {
+      if (!chatEndsAt.value) return
+      const diff = new Date(chatEndsAt.value).getTime() - Date.now()
+      if (diff <= 0) {
+        chatRemainingSec.value = 0
+        await endSession('expired') // auto end
+      } else {
+        chatRemainingSec.value = Math.floor(diff / 1000)
+      }
+    }, 1000) as unknown as number
+  }
+
+  function clearChatTimer() {
+    if (chatTick) {
+      clearInterval(chatTick)
+      chatTick = null
+    }
+    chatEndsAt.value = null
+    chatRemainingSec.value = null
+  }
+
+  function startChatTimer(durationSec = CHAT_DEFAULT_SECS) {
+    chatEndsAt.value = new Date(Date.now() + durationSec * 1000).toISOString()
+    setupChatTick()
+    persist()
+  }
+
+  function startChatTimerFrom(iso: string) {
+    chatEndsAt.value = iso
+    setupChatTick()
+    persist()
+  }
+
   // ---------- Persistence ----------
   function persist() {
-  const payload = {
-    stage: stage.value,
-    resultAccepted: resultAccepted.value,
-    currentMatchId: currentMatchId.value,
-    chatId: chatId.value,
-    availability: availability.value,
-    match: { ...match.value },
-    landingNotice: landingNotice.value,            // 👈 add
-  }
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
-}
- function restore() {
-  const raw = sessionStorage.getItem(STORAGE_KEY)
-  if (!raw) return false
-  try {
-    const data = JSON.parse(raw)
-    if (data.stage) stage.value = data.stage as Stage
-    if ('resultAccepted' in data) resultAccepted.value = !!data.resultAccepted
-    currentMatchId.value = data.currentMatchId ?? null
-    chatId.value = data.chatId ?? null
-    if (typeof data.availability === 'string') availability.value = data.availability
-    if (data.match) {
-      match.value = {
-        subject: data.match.subject ?? match.value.subject,
-        description: data.match.description ?? match.value.description,
-        time: data.match.time ?? match.value.time,
-        duration: data.match.duration ?? match.value.duration,
-        location: data.match.location ?? match.value.location,
-        partner: {
-          name: data.match.partner?.name ?? match.value.partner.name,
-          photo: data.match.partner?.photo ?? null,
-          description: data.match.partner?.description ?? null,
-        },
-        id: data.match.id ?? currentMatchId.value ?? undefined,
-      }
+    const payload = {
+      stage: stage.value,
+      resultAccepted: resultAccepted.value,
+      currentMatchId: currentMatchId.value,
+      chatId: chatId.value,
+      availability: availability.value,
+      match: { ...match.value },
+      landingNotice: landingNotice.value,
+      chatEndsAt: chatEndsAt.value,
+      lastSessionId: lastSessionId.value,
     }
-    landingNotice.value = data.landingNotice ?? null     // 👈 restore
-    return true
-  } catch {
-    sessionStorage.removeItem(STORAGE_KEY)
-    return false
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
   }
-}
 
-  watch([stage, resultAccepted, currentMatchId, chatId, match, availability], persist, { deep: true })
+  function restore() {
+    const raw = sessionStorage.getItem(STORAGE_KEY)
+    if (!raw) return false
+    try {
+      const data = JSON.parse(raw)
+      if (data.stage) stage.value = data.stage as Stage
+      if ('resultAccepted' in data) resultAccepted.value = !!data.resultAccepted
+      currentMatchId.value = data.currentMatchId ?? null
+      chatId.value = data.chatId ?? null
+      if (typeof data.availability === 'string') availability.value = data.availability
+      if (data.match) {
+        match.value = {
+          subject: data.match.subject ?? match.value.subject,
+          description: data.match.description ?? match.value.description,
+          time: data.match.time ?? match.value.time,
+          duration: data.match.duration ?? match.value.duration,
+          location: data.match.location ?? match.value.location,
+          partner: {
+            name: data.match.partner?.name ?? match.value.partner.name,
+            photo: data.match.partner?.photo ?? null,
+            description: data.match.partner?.description ?? null,
+          },
+          id: data.match.id ?? currentMatchId.value ?? undefined,
+        }
+      }
+      landingNotice.value = data.landingNotice ?? null
+      chatEndsAt.value = data.chatEndsAt ?? null
+      lastSessionId.value = data.lastSessionId ?? null
+
+      // if we restored a timer, resume it
+      if (chatEndsAt.value) {
+        setupChatTick()
+      }
+      return true
+    } catch {
+      sessionStorage.removeItem(STORAGE_KEY)
+      return false
+    }
+  }
+
+  watch(
+    [stage, resultAccepted, currentMatchId, chatId, match, availability, landingNotice, chatEndsAt, lastSessionId],
+    persist,
+    { deep: true }
+  )
 
   // ---------- Countdown helpers ----------
   function startCountdown(onExpired?: () => void) {
@@ -230,7 +289,8 @@ export const useMatchStore = defineStore('match', () => {
       tick = null
     }
   }
-    function setLandingNotice(msg: string) {
+
+  function setLandingNotice(msg: string) {
     landingNotice.value = msg
     persist()
   }
@@ -285,8 +345,21 @@ export const useMatchStore = defineStore('match', () => {
       console.warn('[match] clearMyRejections failed:', error)
     }
   }
+  async function checkRoomAlive(roomId: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('match_room')
+      .select('id')
+      .eq('id', roomId)
+      .maybeSingle()
 
-  // 👇 NEW: view calls this to check if the other side rejected me
+    if (error) {
+      console.warn('[match] checkRoomAlive error', error)
+      return true // be safe: assume alive if error
+    }
+    return !!data
+  }
+
+  // 👇 check if other side rejected me
   async function checkIfPartnerRejected(partnerId?: string | null): Promise<boolean> {
     const { data: auth } = await supabase.auth.getUser()
     const myId = auth?.user?.id
@@ -306,22 +379,25 @@ export const useMatchStore = defineStore('match', () => {
     return !!data
   }
 
-  // 👇 NEW: cleanly kick user out of chat if partner leaves
+  // 👇 used when partner leaves
   async function forceLeaveChat(msg?: string) {
-  stopCountdown()
+    stopCountdown()
+    clearChatTimer()
 
-  if (msg) {
-    landingNotice.value = msg
+    if (msg) {
+      landingNotice.value = msg
+    }
+
+    stage.value = 'landing'
+    resultAccepted.value = false
+    lastSessionId.value = currentMatchId.value // so we can review
+    currentMatchId.value = null
+    chatId.value = null
+    match.value.partner = { name: '', photo: null, description: null }
+    messages.value = seedMessages()
+    persist()
   }
 
-  stage.value = 'landing'
-  resultAccepted.value = false
-  currentMatchId.value = null
-  chatId.value = null
-  match.value.partner = { name: '', photo: null, description: null }
-  messages.value = seedMessages()
-  persist()
-}
   async function acceptMatch() {
     stopCountdown()
     resultAccepted.value = true
@@ -329,45 +405,38 @@ export const useMatchStore = defineStore('match', () => {
       chatId.value = crypto.randomUUID?.() ?? `chat-${Date.now()}`
     }
     stage.value = 'chat'
+    // 🔥 start chat timer on accept
+    startChatTimer()
     persist()
   }
 
- async function declineMatch(partnerId?: string | null, autoRematch = false) {
-  stopCountdown()
-  resultAccepted.value = false
+  async function declineMatch(partnerId?: string | null, autoRematch = false) {
+    stopCountdown()
+    resultAccepted.value = false
 
-  const { data: auth } = await supabase.auth.getUser()
-  const myId = auth?.user?.id ?? null
+    const { data: auth } = await supabase.auth.getUser()
+    const myId = auth?.user?.id ?? null
 
-    // 1) remove the room if I was in one
     if (currentMatchId.value) {
       await supabase.from('match_room').delete().eq('id', currentMatchId.value)
     }
 
-    // 2) record the rejection pair so the other side can detect it
     if (myId && partnerId) {
       await recordRejection(myId, partnerId)
     }
 
-    // 3) ✅ decliner ALWAYS goes back to queue
     if (myId) {
       await putUserBackToQueue(myId)
     }
 
-    // 4) ❌ DO NOT put partner into queue here
-    //    because the partner might already be in chat; they'll detect the
-    //    rejection (via polling) and go back to landing without requeue.
-
-    // 5) reset local ui state
     match.value.partner = { name: '', photo: null, description: null }
     currentMatchId.value = null
+    clearChatTimer()
 
     if (autoRematch) {
-      // only if we explicitly asked for it
       stage.value = 'searching'
       queueAndPoll().catch(err => console.error('[match] auto-rematch failed', err))
     } else {
-      // 👇 what you asked for: show main screen
       stage.value = 'landing'
       persist()
     }
@@ -375,6 +444,7 @@ export const useMatchStore = defineStore('match', () => {
 
   function startOver() {
     stopCountdown()
+    clearChatTimer()
     stage.value = 'landing'
     messages.value = seedMessages()
     draft.value = ''
@@ -387,6 +457,8 @@ export const useMatchStore = defineStore('match', () => {
   function goToChat() {
     stage.value = 'chat'
     if (!chatId.value) chatId.value = crypto.randomUUID?.() ?? `chat-${Date.now()}`
+    // optional: start timer here too
+    if (!chatEndsAt.value) startChatTimer()
     persist()
   }
 
@@ -581,15 +653,19 @@ export const useMatchStore = defineStore('match', () => {
     )
 
     const markMatched = async (partnerId: string): Promise<string | null> => {
-      const roomId = globalThis.crypto?.randomUUID?.() ?? String(Date.now())
-      const now = new Date().toISOString()
-      await supabase.from('match_room').insert({
-        id: roomId,
-        user1: myId,
-        user2: partnerId,
-        created_at: now,
-      })
-      await supabase.from('match_queue').delete().in('user_id', [myId, partnerId])
+    const roomId = globalThis.crypto?.randomUUID?.() ?? String(Date.now())
+    const now = new Date().toISOString()
+    const expiresAt = new Date(Date.now() + CHAT_DEFAULT_SECS * 1000).toISOString()
+
+    await supabase.from('match_room').insert({
+      id: roomId,
+      user1: myId,
+      user2: partnerId,
+      created_at: now,
+      expires_at: expiresAt,   // 👈 now it's real
+    })
+
+    await supabase.from('match_queue').delete().in('user_id', [myId, partnerId])
 
       const { data: prof } = await supabase
         .from('profiles')
@@ -670,7 +746,7 @@ export const useMatchStore = defineStore('match', () => {
 
   // ---------- partner loading ----------
   async function loadPartnerProfile(roomId: string, myId: string) {
-    const { data: room } = await supabase.from('match_room').select('user1, user2').eq('id', roomId).single()
+    const { data: room } = await supabase.from('match_room').select('user1, user2').eq('id', roomId).maybeSingle()
 
     if (!room) return null
 
@@ -680,7 +756,7 @@ export const useMatchStore = defineStore('match', () => {
       .from('profiles')
       .select('username, profile_photo, personality')
       .eq('user_id', partnerId)
-      .single()
+      .maybeSingle()
 
     return partner
   }
@@ -710,7 +786,7 @@ export const useMatchStore = defineStore('match', () => {
     const myId = auth?.user?.id
     if (!myId) return
 
-    const { data: room } = await supabase.from('match_room').select('user1, user2').eq('id', roomId).single()
+    const { data: room } = await supabase.from('match_room').select('user1, user2').eq('id', roomId).maybeSingle()
 
     if (!room) return
     const partnerId = room.user1 === myId ? room.user2 : room.user1
@@ -719,7 +795,7 @@ export const useMatchStore = defineStore('match', () => {
       .from('profiles')
       .select('username, profile_photo, personality')
       .eq('user_id', partnerId)
-      .single()
+      .maybeSingle()
 
     if (prof?.username) {
       match.value.partner = {
@@ -728,6 +804,33 @@ export const useMatchStore = defineStore('match', () => {
         description: prof.personality ?? null,
       }
     }
+  }
+
+  // 🔥 NEW: unified “end session”
+  async function endSession(reason: 'expired' | 'manual' = 'manual'): Promise<string | null> {
+    const roomId = currentMatchId.value || match.value.id || null
+
+    clearChatTimer()
+    stopCountdown()
+
+    if (roomId) {
+      // delete room so we don’t leave zombie chats
+      await supabase.from('match_room').delete().eq('id', roomId)
+    }
+
+    lastSessionId.value = roomId // so UI can route to /review/:id
+
+    stage.value = 'landing'
+    resultAccepted.value = false
+    currentMatchId.value = null
+    chatId.value = null
+    match.value.partner = { name: '', photo: null, description: null }
+    messages.value = seedMessages()
+    landingNotice.value =
+      reason === 'expired' ? 'Your study session has ended.' : 'You ended the study session.'
+    persist()
+
+    return roomId
   }
 
   return {
@@ -745,10 +848,13 @@ export const useMatchStore = defineStore('match', () => {
     availability,
     availabilityList,
     landingNotice,
+    chatRemainingSec, // 🔥 expose
+    chatEndsAt,
+    lastSessionId,
+
     // computed
     partnerInitials,
     countdownText,
-    
 
     // actions
     acceptMatch,
@@ -768,11 +874,15 @@ export const useMatchStore = defineStore('match', () => {
     setPartnerFromRoom,
     getIdleOthers,
     clearMyRejections,
-
-    // NEW
     checkIfPartnerRejected,
     forceLeaveChat,
     setLandingNotice,
-    clearLandingNotice
+    clearLandingNotice,
+
+    // 🔥 new actions
+    startChatTimer,
+    startChatTimerFrom,
+    endSession,
+    checkRoomAlive
   }
 })

@@ -11,6 +11,7 @@ import ProfileSetupView from '../views/ProfileSetupView.vue'
 import ProfileSettingsView from '../views/ProfileSettingsView.vue'
 import FeedbackView from '../views/FeedbackView.vue'
 
+
 // Layouts 
 const MainLayout = () => import('@/layouts/MainLayout.vue')
 const AuthLayout = () => import('@/layouts/AuthLayout.vue')
@@ -19,6 +20,7 @@ const AuthLayout = () => import('@/layouts/AuthLayout.vue')
 const MatchLanding = () => import('@/views/MatchLandingView.vue')
 const MatchDecision = () => import('@/views/MatchDecisionView.vue')
 const MatchChat = () => import('@/views/MatchChatView.vue')
+const MatchReview = () => import('@/views/MatchReviewView.vue')
 
 const router = createRouter({
   history: createWebHistory(),
@@ -38,6 +40,7 @@ const router = createRouter({
         //Added chatid and id
         { path: 'matchdecisionview/:id?', name: 'matchdecision', component: MatchDecision, meta: { requiresAuth: true } },
         { path: 'matchchatview/:chatId?', name: 'matchchat', component: MatchChat, meta: { requiresAuth: true } },
+        { path: 'matchreviewview/:sessid?', name: 'matchreview', component: MatchReview, meta: { requiresAuth: true } },
       ],
     },
     {

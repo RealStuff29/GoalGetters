@@ -6,20 +6,32 @@
   >
     <!-- Left column: Header + Details + Chat -->
     <div class="space-y-4">
-      
+      <!-- Header / partner info + timer -->
       <Card>
         <template #content>
-          <div class="flex items-center gap-3">
-            <Avatar :label="store.partnerInitials" shape="circle" />
-            <div>
-              <div class="font-medium">{{ store.match.partner.name }}</div>
-              <small class="opacity-70">Online now</small>
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <Avatar :label="store.partnerInitials" shape="circle" />
+              <div>
+                <div class="font-medium">{{ store.match.partner.name }}</div>
+                <small class="opacity-70">Online now</small>
+              </div>
+            </div>
+
+            <!-- CHAT TIMER CHIP -->
+            <div
+              v-if="chatTimeLeftSec !== null"
+              :class="[
+                'px-3 py-1 rounded-full text-sm font-medium',
+                chatTimeLeftSec <= 60 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
+              ]"
+            >
+              ⏱ {{ chatTimeLabel }}
             </div>
           </div>
         </template>
       </Card>
 
-      <!-- !!! Code ADDED !!! -->
       <!-- Study Session Details -->
       <Card>
         <template #title>
@@ -29,11 +41,17 @@
           <div class="space-y-4">
             <!-- Common time slots -->
             <div class="flex items-start gap-3">
-              <i :class="pi('clock')" class="opacity-70 mt-1"/>
+              <i :class="pi('clock')" class="opacity-70 mt-1" />
               <div>
                 <div class="font-medium mb-1">Common Time Slots</div>
                 <div v-if="commonSlotsLabels.length">
-                  <Tag v-for="s in commonSlotsLabels" :key="s" severity="secondary" :value="s" class="mr-2 mb-2" />
+                  <Tag
+                    v-for="s in commonSlotsLabels"
+                    :key="s"
+                    severity="secondary"
+                    :value="s"
+                    class="mr-2 mb-2"
+                  />
                 </div>
                 <small v-else class="opacity-70">No overlapping availability yet.</small>
               </div>
@@ -41,11 +59,17 @@
 
             <!-- Common modules -->
             <div class="flex items-start gap-3">
-              <i :class="pi('book')" class="opacity-70 mt-1"/>
+              <i :class="pi('book')" class="opacity-70 mt-1" />
               <div>
                 <div class="font-medium mb-1">Common Modules</div>
                 <div v-if="commonModules.length">
-                  <Tag v-for="m in commonModules" :key="m" severity="secondary" :value="m" class="mr-2 mb-2" />
+                  <Tag
+                    v-for="m in commonModules"
+                    :key="m"
+                    severity="secondary"
+                    :value="m"
+                    class="mr-2 mb-2"
+                  />
                 </div>
                 <small v-else class="opacity-70">They have no common modules.</small>
               </div>
@@ -53,7 +77,7 @@
 
             <!-- Degrees / Schools -->
             <div class="flex items-start gap-3">
-              <i :class="pi('university')" class="opacity-70 mt-1"/>
+              <i :class="pi('university')" class="opacity-70 mt-1" />
               <div>
                 <div class="font-medium mb-1">School / Degree</div>
                 <div class="text-sm">
@@ -65,11 +89,20 @@
           </div>
         </template>
       </Card>
-      <!-- !!! END of Code !!! -->
 
+      <!-- Chat Card -->
       <Card class="h-96 flex flex-col">
         <template #title>
-          <span class="text-base font-medium">Chat</span>
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-base font-medium">Chat</span>
+            <Button
+              text
+              size="small"
+              icon="pi pi-stop"
+              label="End Session"
+              @click="endSessionAndReview"
+            />
+          </div>
         </template>
         <template #content>
           <div class="flex flex-col h-72">
@@ -202,23 +235,37 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, nextTick, computed } from 'vue'
+import { onMounted, onUnmounted, ref, nextTick, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMatchStore } from '@/stores/match'
 import { degrees } from '@/constants/degrees'
-import { supabase } from '@/lib/supabase'   
+import { supabase } from '@/lib/supabase'
 import StudySpotMap from './StudySpotMap.vue'
 
-// ---- CODE ADDED ----
+const store = useMatchStore()
+const router = useRouter()
+const route = useRoute()
+const chatScroller = ref<HTMLElement | null>(null)
+
+// ✅ timer from store
+const chatTimeLeftSec = computed(() => store.chatRemainingSec ?? null)
+const chatTimeLabel = computed(() => {
+  const s = chatTimeLeftSec.value
+  if (s == null) return '—'
+  const m = Math.floor(s / 60)
+  const ss = (s % 60).toString().padStart(2, '0')
+  return `${m}:${ss}`
+})
+
+// ---- CODE ADDED for study details ----
 const myProfile = ref<any | null>(null)
 const partnerProfile = ref<any | null>(null)
 
-// Label for display
 const SLOT_LABELS = {
-  slot_morning:  'Morning (8:30am - 11:30am)',
-  slot_midday:   'Midday (12:00pm - 3:00pm)',
-  slot_afternoon:'Afternoon (3:30pm - 6:30pm)',
-  slot_evening:  'Evening (7:00pm - 10:00pm)',
+  slot_morning: 'Morning (8:30am - 11:30am)',
+  slot_midday: 'Midday (12:00pm - 3:00pm)',
+  slot_afternoon: 'Afternoon (3:30pm - 6:30pm)',
+  slot_evening: 'Evening (7:00pm - 10:00pm)',
 } as const
 type SlotKey = keyof typeof SLOT_LABELS
 
@@ -229,10 +276,7 @@ const SLOT_ALIASES: Record<string, SlotKey> = {
   evening: 'slot_evening',
 }
 
-// Format of the display order for timeslot
-const SLOT_ORDER: SlotKey[] = [
-  'slot_morning','slot_midday','slot_afternoon','slot_evening'
-]
+const SLOT_ORDER: SlotKey[] = ['slot_morning', 'slot_midday', 'slot_afternoon', 'slot_evening']
 
 function toArray(val: unknown): string[] {
   if (!val) return []
@@ -252,28 +296,24 @@ function isSlotKey(x: unknown): x is SlotKey {
   return typeof x === 'string' && x in SLOT_LABELS
 }
 
-// compute: intersection + fixing order
 const commonSlotsLabels = computed<string[]>(() => {
   const a = toArray(myProfile.value?.timeslot_avail).map(normalize).filter(isSlotKey)
   const b = toArray(partnerProfile.value?.timeslot_avail).map(normalize).filter(isSlotKey)
   if (!a.length || !b.length) return []
-
   const setB = new Set<SlotKey>(b)
-  const common = Array.from(new Set(a.filter(x => setB.has(x)))) // unique intersect
-
+  const common = Array.from(new Set(a.filter(x => setB.has(x))))
   return SLOT_ORDER.filter(x => common.includes(x)).map(x => SLOT_LABELS[x])
 })
 
-// -------- modules + degree helpers --------
-function toModules (val: unknown): string[] {
+function toModules(val: unknown): string[] {
   if (Array.isArray(val)) return val.map(v => String(v).trim()).filter(Boolean)
   if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean)
-  // @ts-ignore handle { items: [...] }
+  // @ts-ignore
   if (val?.items && Array.isArray(val.items)) return val.items.map((x: any) => String(x).trim()).filter(Boolean)
   return []
 }
 
-function degreeLabel (value?: string|null) {
+function degreeLabel(value?: string | null) {
   if (!value) return null
   const found = degrees.find(d => d.value === value)
   return found ? found.label : null
@@ -290,8 +330,7 @@ const commonModules = computed<string[]>(() => {
 const myDegreeLabel = computed(() => degreeLabel(myProfile.value?.degree))
 const partnerDegreeLabel = computed(() => degreeLabel(partnerProfile.value?.degree))
 
-// -------- data loader --------
-async function loadStudyDetailsFromDB () {
+async function loadStudyDetailsFromDB() {
   try {
     const roomId = String(store.currentMatchId || store.match?.id || '')
     if (!roomId) {
@@ -335,15 +374,11 @@ async function loadStudyDetailsFromDB () {
 
     myProfile.value = profs?.find(p => p.user_id === myId) || null
     partnerProfile.value = profs?.find(p => p.user_id === partnerId) || null
-
-    console.log('[details] myProfile', myProfile.value)
-    console.log('[details] partnerProfile', partnerProfile.value)
   } catch (e) {
     console.error('[details] loadStudyDetailsFromDB failed', e)
   }
 }
 // ---- End of Edits ----
-
 
 function pi(name: string) {
   return `pi pi-${name}`
@@ -352,18 +387,12 @@ function pi(name: string) {
 // @ts-ignore
 const YOUR_GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 
-const store = useMatchStore()
-const router = useRouter()
-const route = useRoute()
-const chatScroller = ref<HTMLElement | null>(null)
-
 // studyspots
 const studySpots = ref<any[]>([])
 const currentPage = ref(1)
 const itemsPerPage = 4
 const mapRef = ref<InstanceType<typeof StudySpotMap> | null>(null)
 
-// pagination
 const totalPages = computed(() => Math.ceil(studySpots.value.length / itemsPerPage))
 const paginatedSpots = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
@@ -413,6 +442,18 @@ function restart() {
   router.push({ name: 'matchlanding' })
 }
 
+// manual end → go review
+async function endSessionAndReview() {
+  const endedRoomId = await store.endSession?.('manual')
+  if (endedRoomId) {
+    router.push({ name: 'matchreview', params: { roomId: endedRoomId } })
+  } else if (store.lastSessionId) {
+    router.push({ name: 'matchreview', params: { roomId: store.lastSessionId } })
+  } else {
+    router.push({ name: 'matchlanding' })
+  }
+}
+
 onMounted(async () => {
   // restore from session
   await store.hydrateFromCache()
@@ -427,10 +468,25 @@ onMounted(async () => {
   // make sure we have chat id
   await store.ensureChat(route.params.chatId as string | undefined)
 
-  // ---- !!!! CODE ADDED !!! ----
   // load the dynamic study details here
   await loadStudyDetailsFromDB()
-  // ---- !!!! END OF EDIT !!! ----
+
+  // try to sync timer from DB if exists
+  const roomId = store.currentMatchId || store.match.id
+  if (roomId) {
+    const { data: room, error } = await supabase
+      .from('match_room')
+      .select('id, user1, user2, expires_at')
+      .eq('id', roomId)
+      .maybeSingle()
+
+    if (!error && room?.expires_at && store.startChatTimerFrom) {
+      store.startChatTimerFrom(room.expires_at)
+    } else if (!store.chatEndsAt && store.startChatTimer) {
+      // fallback
+      store.startChatTimer()
+    }
+  }
 
   // let template render
   store.stage = 'chat'
@@ -442,7 +498,6 @@ onMounted(async () => {
   myId.value = auth?.user?.id ?? null
 
   // find partner id from room
-  const roomId = store.currentMatchId || store.match.id
   if (roomId && myId.value) {
     const { data: room } = await supabase
       .from('match_room')
@@ -456,20 +511,51 @@ onMounted(async () => {
   }
 
   // poll for "other side declined"
-  if (partnerId.value) {
-    rejectPoll = window.setInterval(async () => {
+  // poll for "partner ended or rejected the session"
+const roomdoublecheckId = store.currentMatchId || store.match.id
+
+if (roomdoublecheckId) {
+  rejectPoll = window.setInterval(async () => {
+    // 1) partner explicitly rejected me
+    let ended = false
+    if (partnerId.value) {
       const rejected = await store.checkIfPartnerRejected(partnerId.value!)
       if (rejected) {
-        if (rejectPoll) {
-          clearInterval(rejectPoll)
-          rejectPoll = null
-        }
-        await store.forceLeaveChat('Your partner left the match.')   // 👈 add message
-        router.replace({ name: 'matchlanding' })
+        ended = true
       }
-    }, 2000) as unknown as number
-  }
+    }
+
+    // 2) OR room deleted (partner ended session)
+    if (!ended) {
+      const alive = await store.checkRoomAlive(roomId)
+      if (!alive) {
+        ended = true
+      }
+    }
+
+    if (ended) {
+      if (rejectPoll) {
+        clearInterval(rejectPoll)
+        rejectPoll = null
+      }
+
+      await store.forceLeaveChat('Your partner ended the session.')
+      
+      router.replace({ name: 'matchreview', params: { roomId } })
+    }
+  }, 2000) as unknown as number
+}
 })
+
+// if store auto-ended because timer expired, bring user to review
+watch(
+  () => store.stage,
+  val => {
+    if (val === 'landing' && store.lastSessionId) {
+      router.push({ name: 'matchreview', params: { roomId: store.lastSessionId } })
+    }
+  }
+)
 
 onUnmounted(() => {
   if (rejectPoll) {
@@ -516,4 +602,3 @@ onUnmounted(() => {
   color: #fff;
 }
 </style>
-
