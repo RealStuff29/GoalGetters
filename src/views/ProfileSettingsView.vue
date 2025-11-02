@@ -4,9 +4,9 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { degrees } from '@/constants/degrees'
-import { MBTI_QUESTIONS } from '@/constants/MBTIQuestions'
+import { MBTI_QUESTIONS } from '@/constants/mbtiQuestions'
 import { useComputeMBTI } from '@/composables/useComputeMBTI'
-import { updateProfile } from '@/services/profileService'  // ← uses UPDATE only
+import { updateProfile } from '@/services/profileService'  
 
 const router = useRouter()
 
