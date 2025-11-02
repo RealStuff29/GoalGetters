@@ -1,12 +1,9 @@
 <!-- src/views/MatchChatView.vue -->
-
 <template>
-  <!-- Debug line
-  <div class="bg-blue-100 p-2">
-    Stage: {{ store.stage }} | StudySpots: {{ studySpots.length }}
-  </div> -->
-
-  <div class="min-h-screen p-4 w-full max-w-6xl mx-auto grid lg:grid-cols-2 gap-6" v-if="store.stage === 'chat'">
+  <div
+    class="min-h-screen p-4 w-full max-w-6xl mx-auto grid lg:grid-cols-2 gap-6"
+    v-if="store.stage === 'chat'"
+  >
     <!-- Left column: Header + Details + Chat -->
     <div class="space-y-4">
       <Card>
@@ -28,21 +25,21 @@
         <template #content>
           <div class="space-y-3">
             <div class="flex items-start gap-3">
-              <i :class="pi('book')" class="opacity-70 mt-1"/>
+              <i :class="pi('book')" class="opacity-70 mt-1" />
               <div>
                 <Tag severity="secondary" :value="store.match.subject" />
                 <p class="text-sm opacity-80 mt-1">{{ store.match.description }}</p>
               </div>
             </div>
             <div class="flex items-start gap-3">
-              <i :class="pi('clock')" class="opacity-70 mt-1"/>
+              <i :class="pi('clock')" class="opacity-70 mt-1" />
               <div>
                 <p class="text-sm">{{ store.match.time }}</p>
                 <small class="opacity-70">Duration: <b>{{ store.match.duration }}</b></small>
               </div>
             </div>
             <div class="flex items-start gap-3">
-              <i :class="pi('map-marker')" class="opacity-70 mt-1"/>
+              <i :class="pi('map-marker')" class="opacity-70 mt-1" />
               <p class="text-sm">{{ store.match.location }}</p>
             </div>
           </div>
@@ -57,8 +54,13 @@
           <div class="flex flex-col h-72">
             <div class="flex-1 overflow-auto pr-2 space-y-4" ref="chatScroller">
               <div v-for="m in store.messages" :key="m.id" class="mb-2">
-                <div :class="m.from==='me' ? 'text-right' : 'text-left'">
-                  <span :class="['inline-block px-3 py-2 rounded-lg', m.from==='me' ? 'bg-primary-500 text-white' : 'bg-surface-200']">
+                <div :class="m.from === 'me' ? 'text-right' : 'text-left'">
+                  <span
+                    :class="[
+                      'inline-block px-3 py-2 rounded-lg',
+                      m.from === 'me' ? 'bg-primary-500 text-white' : 'bg-surface-200'
+                    ]"
+                  >
                     {{ m.text }}
                   </span>
                 </div>
@@ -66,8 +68,13 @@
             </div>
             <Divider />
             <div class="flex gap-2 items-center">
-              <InputText v-model="store.draft" placeholder="Type a message..." class="flex-1" @keyup.enter="send"/>
-              <Button size="small" @click="send" icon="pi pi-send" label="Send"/>
+              <InputText
+                v-model="store.draft"
+                placeholder="Type a message..."
+                class="flex-1"
+                @keyup.enter="send"
+              />
+              <Button size="small" @click="send" icon="pi pi-send" label="Send" />
             </div>
           </div>
         </template>
@@ -78,21 +85,20 @@
     <div class="space-y-4">
       <Card>
         <template #title>
-          <span class="text-base font-medium"><i :class="pi('direction')" class="mr-2"/> Nearby Study Locations</span>
+          <span class="text-base font-medium">
+            <i :class="pi('direction')" class="mr-2" /> Nearby Study Locations
+          </span>
         </template>
         <template #content>
-          <StudySpotMap ref="mapRef" :api-key="YOUR_GOOGLE_MAPS_API_KEY" height="400px" @places-updated="handlePlacesUpdate"/>
+          <StudySpotMap
+            ref="mapRef"
+            :api-key="YOUR_GOOGLE_MAPS_API_KEY"
+            height="400px"
+            @places-updated="handlePlacesUpdate"
+          />
         </template>
       </Card>
-      <!-- <Card>
-        <template #content>
-          <div class="bg-yellow-100 p-4">
-            <strong>DEBUG:</strong> studySpots.length = {{ studySpots.length }}
-            <br>
-            <strong>First spot:</strong> {{ studySpots[0]?.name || 'none' }}
-          </div>
-        </template>
-      </Card> -->
+
       <Card :key="studySpots.length">
         <template #title>
           <div>
@@ -106,64 +112,66 @@
           </div>
           <div v-else>
             <div class="space-y-4 mb-3">
-
-              <div v-for="spot in paginatedSpots" :key="spot.place_id" 
-                  class="flex items-start justify-between p-3 rounded border surface-border hover:bg-gray-50 transition-colors">
+              <div
+                v-for="spot in paginatedSpots"
+                :key="spot.place_id"
+                class="flex items-start justify-between p-3 rounded border surface-border hover:bg-gray-50 transition-colors"
+              >
                 <div class="flex-1">
                   <div class="font-medium">{{ spot.name }}</div>
                   <small class="opacity-70 block">{{ spot.vicinity || spot.formatted_address }}</small>
                   <small v-if="spot.rating" class="text-yellow-600">
-                    ★ {{ spot.rating }} {{ spot.user_ratings_total ? `(${spot.user_ratings_total} reviews)` : '' }}
+                    ★ {{ spot.rating }}
+                    {{ spot.user_ratings_total ? `(${spot.user_ratings_total} reviews)` : '' }}
                   </small>
                 </div>
                 <div class="flex gap-3 space-y-4">
                   <Button
-                    outlined 
-                    size="small" 
-                    icon="pi pi-map-marker" 
-                    label="View" 
-                    @click="focusOnSpot(spot)">
-                  </Button>
-                  <Button 
-                    outlined 
-                    size="small" 
-                    icon="pi pi-plus" 
-                    label="Suggest" 
-                    @click="suggestSpot(spot)">
-                  </Button>
+                    outlined
+                    size="small"
+                    icon="pi pi-map-marker"
+                    label="View"
+                    @click="focusOnSpot(spot)"
+                  />
+                  <Button
+                    outlined
+                    size="small"
+                    icon="pi pi-plus"
+                    label="Suggest"
+                    @click="suggestSpot(spot)"
+                  />
                 </div>
-
               </div>
             </div>
           </div>
 
           <!-- Pagination Controls -->
           <div class="flex justify-between items-center pt-2 border-t">
-            <Button 
-              :disabled="currentPage === 1" 
-              @click="currentPage--" 
-              icon="pi pi-chevron-left" 
-              text 
+            <Button
+              :disabled="currentPage === 1"
+              @click="currentPage--"
+              icon="pi pi-chevron-left"
+              text
               size="small"
               label="Previous"
             />
             <small class="opacity-70">
               Page {{ currentPage }} of {{ totalPages }}
             </small>
-            <Button 
-              :disabled="currentPage === totalPages" 
-              @click="currentPage++" 
-              icon="pi pi-chevron-right" 
+            <Button
+              :disabled="currentPage === totalPages"
+              @click="currentPage++"
+              icon="pi pi-chevron-right"
               iconPos="right"
-              text 
+              text
               size="small"
               label="Next"
             />
           </div>
         </template>
-  </Card>
+      </Card>
 
-      <Button outlined class="w-full" :icon="pi('refresh')" label="Find Another Match" @click="restart"/>
+      <Button outlined class="w-full" :icon="pi('refresh')" label="Find Another Match" @click="restart" />
     </div>
   </div>
 
@@ -173,68 +181,64 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, nextTick, computed } from 'vue'
+import { onMounted, onUnmounted, ref, nextTick, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMatchStore } from '@/stores/match'
-function pi(name: string) { return `pi pi-${name}` }
+import { supabase } from '@/lib/supabase'   // 👈 you were missing this
+import Card from 'primevue/card'
+import Button from 'primevue/button'
+import StudySpotMap from './StudySpotMap.vue'
 
-//import { usePrimeVue } from 'primevue/config';
-import Card from 'primevue/card';
-import Button from 'primevue/button';
-import StudySpotMap from './StudySpotMap.vue'; // Import the map component
+function pi(name: string) {
+  return `pi pi-${name}`
+}
 
-// const { pi } = usePrimeVue().config;
-
-//API key goes here
-
-//@jordan - I just put a @ts-ignore and did it the JS way, if you want to do it the proper ts way, theres some setup you need to do
-//@ts-ignore
-const YOUR_GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-
-//studyspots
-const studySpots = ref<any[]>([]);
-const currentPage = ref(1);
-const itemsPerPage = 4;
-const mapRef = ref<InstanceType<typeof StudySpotMap> | null>(null);
-
-// Computed property for pagination
-const totalPages = computed(() => Math.ceil(studySpots.value.length / itemsPerPage));
-
-const paginatedSpots = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  const end = start + itemsPerPage;
-  return studySpots.value.slice(start, end);
-});
-
-
-const handlePlacesUpdate = (places:any) => {
-  console.log(' Parent received places:', places.length);
-  console.log(' Places:', places);
-  studySpots.value = [...places];
-  currentPage.value = 1; // Reset to first page on new search
-  console.log(' studySpots.value updated to:', studySpots.value.length);
-};
-
-const focusOnSpot = (spot:any) => {
-  if (mapRef.value && spot.geometry?.location) {
-    // @ts-ignore
-    mapRef.value.focusOnLocation(spot.geometry.location, spot.name, spot.place_id);
-  }
-};
-
-//suggestSpot function 
-const suggestSpot = (spot: any) => {
-  const message = `Let's meet at ${spot.name}! Location @${spot.vicinity || spot.formatted_address || ''}`;
-  store.sendMessage(message);
-  store.draft = '';
-  nextTick(scrollToBottom);
-  setTimeout(() => nextTick(scrollToBottom), 750);
-};
+// @ts-ignore
+const YOUR_GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 
 const store = useMatchStore()
 const router = useRouter()
 const route = useRoute()
 const chatScroller = ref<HTMLElement | null>(null)
+
+// studyspots
+const studySpots = ref<any[]>([])
+const currentPage = ref(1)
+const itemsPerPage = 4
+const mapRef = ref<InstanceType<typeof StudySpotMap> | null>(null)
+
+// pagination
+const totalPages = computed(() => Math.ceil(studySpots.value.length / itemsPerPage))
+const paginatedSpots = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return studySpots.value.slice(start, end)
+})
+
+const handlePlacesUpdate = (places: any) => {
+  studySpots.value = [...places]
+  currentPage.value = 1
+}
+
+const focusOnSpot = (spot: any) => {
+  if (mapRef.value && spot.geometry?.location) {
+    // @ts-ignore
+    mapRef.value.focusOnLocation(spot.geometry.location, spot.name, spot.place_id)
+  }
+}
+
+const suggestSpot = (spot: any) => {
+  const message = `Let's meet at ${spot.name}! Location @${spot.vicinity || spot.formatted_address || ''}`
+  store.sendMessage(message)
+  store.draft = ''
+  nextTick(scrollToBottom)
+  setTimeout(() => nextTick(scrollToBottom), 750)
+}
+
+// for "did the other person reject me"
+const partnerId = ref<string | null>(null)
+const myId = ref<string | null>(null)
+let rejectPoll: number | null = null
 
 function scrollToBottom() {
   const el = chatScroller.value
@@ -250,39 +254,105 @@ function send() {
 
 function restart() {
   store.startOver()
-  router.push({ name: 'matchchat', params: { chatId: store.chatId }}) //to fix hard refresh on chat
+  router.push({ name: 'matchlanding' })
 }
 
 onMounted(async () => {
-  // 1) restore
+  // restore from session
   await store.hydrateFromCache()
-  // 2) ensure a match exists (needed for header/details)
+
+  // make sure we actually have a match
   const hasMatch = await store.ensureMatch(store.currentMatchId || undefined)
   if (!hasMatch) {
     router.replace({ name: 'matchlanding' })
     return
   }
-  // 3) ensure chat id (from route or cache)
+
+  // make sure we have chat id
   await store.ensureChat(route.params.chatId as string | undefined)
-  // 4) set stage so template renders
+
+  // let template render
   store.stage = 'chat'
-  // 5) scroll once ready
   nextTick(scrollToBottom)
-  setTimeout(() => nextTick(scrollToBottom), 500)}
-)
-  
+  setTimeout(() => nextTick(scrollToBottom), 500)
+
+  // find my id
+  const { data: auth } = await supabase.auth.getUser()
+  myId.value = auth?.user?.id ?? null
+
+  // find partner id from room
+  const roomId = store.currentMatchId || store.match.id
+  if (roomId && myId.value) {
+    const { data: room } = await supabase
+      .from('match_room')
+      .select('user1, user2')
+      .eq('id', roomId)
+      .maybeSingle()
+
+    if (room) {
+      partnerId.value = room.user1 === myId.value ? room.user2 : room.user1
+    }
+  }
+
+  // poll for "other side declined"
+  if (partnerId.value) {
+    rejectPoll = window.setInterval(async () => {
+      const rejected = await store.checkIfPartnerRejected(partnerId.value!)
+      if (rejected) {
+        if (rejectPoll) {
+          clearInterval(rejectPoll)
+          rejectPoll = null
+        }
+        await store.forceLeaveChat()
+        router.replace({ name: 'matchlanding' })
+      }
+    }, 2000) as unknown as number
+  }
+})
+
+onUnmounted(() => {
+  if (rejectPoll) {
+    clearInterval(rejectPoll)
+  }
+  rejectPoll = null
+})
 </script>
 
 <style scoped>
-.min-h-screen { min-height: 100vh; }
-.grid { display: grid; }
-.lg\:grid-cols-2 { grid-template-columns: 1fr; }
-@media (min-width: 1024px) { .lg\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.gap-6 { gap: 1.5rem; }
-.space-y-4 > * + * { margin-top: 1rem; }
-.h-96 { height: 24rem; }
-.h-72 { height: 18rem; }
-.bg-primary-500 { background: var(--p-primary-color); }
-.bg-surface-200 { background: var(--p-content-border-color); }
-.text-white { color: #fff; }
+.min-h-screen {
+  min-height: 100vh;
+}
+.grid {
+  display: grid;
+}
+.lg\:grid-cols-2 {
+  grid-template-columns: 1fr;
+}
+@media (min-width: 1024px) {
+  .lg\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.gap-6 {
+  gap: 1.5rem;
+}
+.space-y-4 > * + * {
+  margin-top: 1rem;
+}
+.h-96 {
+  height: 24rem;
+}
+.h-72 {
+  height: 18rem;
+}
+.bg-primary-500 {
+  background: var(--p-primary-color);
+}
+.bg-surface-200 {
+  background: var(--p-content-border-color);
+}
+.text-white {
+  color: #fff;
+}
 </style>
+

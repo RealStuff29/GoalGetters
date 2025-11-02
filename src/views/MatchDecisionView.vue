@@ -94,8 +94,7 @@ const commonSlots = ref<string[]>([])
 const commonMods = ref<string[]>([])
 const sameDegree = ref<boolean>(false)
 
-let currentMyId = '';
-
+let currentMyId = ''
 let pollTimer: number | null = null
 
 function strToArray(val: string | string[] | null | undefined): string[] {
@@ -117,7 +116,6 @@ onMounted(async () => {
 
   const ok = await store.ensureMatch(route.params.id as string | undefined)
   if (!ok) {
-    console.log("[onMounted] Line 120")
     router.replace({ name: 'matchlanding' })
     return
   }
@@ -129,7 +127,7 @@ onMounted(async () => {
   const myId = auth?.user?.id
   if (!myId) return
 
-  currentMyId = myId; 
+  currentMyId = myId
 
   const { data: myProf } = await supabase
     .from('profiles')
@@ -166,21 +164,18 @@ onMounted(async () => {
       }
     }
 
-    // poll to detect "other side declined"
+    // 👇 poll to detect "other side declined"
     pollTimer = window.setInterval(async () => {
-    const nowRejected = await isRejected()
-    console.log('[pollTimer] rejected:', nowRejected)
-
-    if (nowRejected) {
-      // ✅ stop polling FIRST
-      if (pollTimer) {
-        clearInterval(pollTimer)
-        pollTimer = null
-      }
-
-      console.log('... sending the user back to match screen')
-      store.startOver()
-      router.push({ name: 'matchlanding' })
+      if (!partnerId.value) return
+      const nowRejected = await store.checkIfPartnerRejected(partnerId.value)
+      if (nowRejected) {
+        if (pollTimer) {
+          clearInterval(pollTimer)
+          pollTimer = null
+        }
+        // send user back
+        store.startOver()
+        router.push({ name: 'matchlanding' })
       }
     }, 2000) as unknown as number
   }
@@ -234,33 +229,6 @@ onUnmounted(() => {
   pollTimer = null
 })
 
-// TODO
-// Fix this by 5:30pm
-// did the OTHER person reject ME?
-async function isRejected() {
-  // we need both ids to check
-  if (!currentMyId || !partnerId.value) {
-    return false
-  }
-
-   const { data, error } = await supabase
-    .from('match_rejects')
-    .select('user_id')
-    // the other person is the one who would have inserted the row
-    .eq('user_id', partnerId.value)
-    // and they would have rejected ME
-    .eq('rejected_user_id', currentMyId)
-    .maybeSingle()
-
-    if (error) {
-    console.warn('[isRejected] error:', error)
-    return false
-  }
-  // if data exists → other side rejected me
-  return !!data
-
-}
-
 function onAccept() {
   store.acceptMatch()
   const chatId = store.chatId
@@ -272,16 +240,13 @@ function onAccept() {
 }
 
 async function onDecline() {
-  // 👇 THIS is the important change\
-
-  await store.declineMatch(partnerId.value, true)
-  console.log("[onMounted] Line 266")
+  // decliner: back to queue (store does it) + show landing
+  await store.declineMatch(partnerId.value ?? null, false)
   router.replace({ name: 'matchlanding' })
 }
 
 function startOver() {
   store.startOver()
-  console.log("[onMounted] Line 272")
   router.push({ name: 'matchlanding' })
 }
 </script>

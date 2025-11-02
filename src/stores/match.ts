@@ -67,24 +67,29 @@ async function computeMatchScore(meId: string, otherId: string): Promise<number>
 
     let score = 0
 
+    // +100 same gender
     if (me.gender && other.gender && me.gender === other.gender) {
       score += 100
     }
 
+    // +100 timeslot overlap
     const mySlots = strToArray(me.timeslot_avail)
     const otherSlots = strToArray(other.timeslot_avail)
     if (overlapCount(mySlots, otherSlots) > 0) {
       score += 100
     }
 
+    // +1 per common mod
     const myMods = strToArray(me.modules)
     const otherMods = strToArray(other.modules)
     score += overlapCount(myMods, otherMods)
 
+    // +1 same degree
     if (me.degree && other.degree && me.degree === other.degree) {
       score += 1
     }
 
+    // +1 similar study hours
     const myStudy = Number(me.study_hours ?? 0)
     const otherStudy = Number(other.study_hours ?? 0)
     if (Math.abs(myStudy - otherStudy) <= 2) {
@@ -238,45 +243,71 @@ export const useMatchStore = defineStore('match', () => {
   }
 
   async function recordRejection(myId: string, otherId?: string | null) {
-  if (!otherId) return
-  const now = new Date().toISOString()
+    if (!otherId) return
+    const now = new Date().toISOString()
 
-  await supabase
-    .from('match_rejects')
-    .upsert(
-      [
-        // 1) me → I rejected them
-        {
-          user_id: myId,
-          rejected_user_id: otherId,
-          created_at: now,
-        },
-        // 2) them → they were rejected by me
-        {
-          user_id: otherId,
-          rejected_user_id: myId,
-          created_at: now,
-        },
-      ],
-      { onConflict: 'user_id,rejected_user_id' }
-    )
-  } 
+    await supabase
+      .from('match_rejects')
+      .upsert(
+        [
+          {
+            user_id: myId,
+            rejected_user_id: otherId,
+            created_at: now,
+          },
+          {
+            user_id: otherId,
+            rejected_user_id: myId,
+            created_at: now,
+          },
+        ],
+        { onConflict: 'user_id,rejected_user_id' }
+      )
+  }
 
   async function clearMyRejections() {
-  const { data: auth } = await supabase.auth.getUser()
-  const myId = auth?.user?.id
-  if (!myId) return
+    const { data: auth } = await supabase.auth.getUser()
+    const myId = auth?.user?.id
+    if (!myId) return
 
-  // delete all rows where I was the one rejecting
-  const { error } = await supabase
-    .from('match_rejects')
-    .delete()
-    .eq('user_id', myId)
+    const { error } = await supabase.from('match_rejects').delete().eq('user_id', myId)
     if (error) {
-    console.warn('[match] clearMyRejections failed:', error)
-  }
+      console.warn('[match] clearMyRejections failed:', error)
+    }
   }
 
+  // 👇 NEW: view calls this to check if the other side rejected me
+  async function checkIfPartnerRejected(partnerId?: string | null): Promise<boolean> {
+    const { data: auth } = await supabase.auth.getUser()
+    const myId = auth?.user?.id
+    if (!myId || !partnerId) return false
+
+    const { data, error } = await supabase
+      .from('match_rejects')
+      .select('user_id')
+      .eq('user_id', partnerId)
+      .eq('rejected_user_id', myId)
+      .maybeSingle()
+
+    if (error) {
+      console.warn('[match] checkIfPartnerRejected error:', error)
+      return false
+    }
+    return !!data
+  }
+
+  // 👇 NEW: cleanly kick user out of chat if partner leaves
+  async function forceLeaveChat() {
+  console.log('[match] forceLeaveChat → partner left, resetting...')
+  stopCountdown()
+  stage.value = 'landing'
+  resultAccepted.value = false
+  currentMatchId.value = null
+  chatId.value = null
+  match.value.partner = { name: '', photo: null, description: null }
+  messages.value = seedMessages()
+  persist()
+}
   async function acceptMatch() {
     stopCountdown()
     resultAccepted.value = true
@@ -287,38 +318,43 @@ export const useMatchStore = defineStore('match', () => {
     persist()
   }
 
-  async function declineMatch(partnerId?: string | null, autoRematch = false) {
-    stopCountdown()
-    resultAccepted.value = false
+ async function declineMatch(partnerId?: string | null, autoRematch = false) {
+  stopCountdown()
+  resultAccepted.value = false
 
-    const { data: auth } = await supabase.auth.getUser()
-    const myId = auth?.user?.id ?? null
+  const { data: auth } = await supabase.auth.getUser()
+  const myId = auth?.user?.id ?? null
 
+    // 1) remove the room if I was in one
     if (currentMatchId.value) {
       await supabase.from('match_room').delete().eq('id', currentMatchId.value)
     }
 
+    // 2) record the rejection pair so the other side can detect it
+    if (myId && partnerId) {
+      await recordRejection(myId, partnerId)
+    }
+
+    // 3) ✅ decliner ALWAYS goes back to queue
     if (myId) {
       await putUserBackToQueue(myId)
-      if (partnerId) {
-        await recordRejection(myId, partnerId)
-      }
     }
 
-    if (partnerId) {
-      await putUserBackToQueue(partnerId)
-    }
+    // 4) ❌ DO NOT put partner into queue here
+    //    because the partner might already be in chat; they'll detect the
+    //    rejection (via polling) and go back to landing without requeue.
 
+    // 5) reset local ui state
     match.value.partner = { name: '', photo: null, description: null }
     currentMatchId.value = null
 
     if (autoRematch) {
-      console.log("autoRematch [TRUE]")
+      // only if we explicitly asked for it
       stage.value = 'searching'
       queueAndPoll().catch(err => console.error('[match] auto-rematch failed', err))
     } else {
-      console.log("autoRematch [FALSE]")
-      stage.value = 'result'
+      // 👇 what you asked for: show main screen
+      stage.value = 'landing'
       persist()
     }
   }
@@ -390,10 +426,7 @@ export const useMatchStore = defineStore('match', () => {
     }
     const myId = auth.user.id
 
-    const { error: updErr } = await supabase
-      .from('profiles')
-      .update({ timeslot_avail: slotsString })
-      .eq('user_id', myId)
+    const { error: updErr } = await supabase.from('profiles').update({ timeslot_avail: slotsString }).eq('user_id', myId)
     if (updErr) console.error('[match] failed to update timeslot_avail', updErr)
     persist()
   }
@@ -412,7 +445,6 @@ export const useMatchStore = defineStore('match', () => {
     const { data: prof, error } = await supabase
       .from('profiles')
       .select(
-        // NOTE: description not in table → using personality
         'user_id, username, email, profile_photo, personality, gender, avg_rating, rating_count, created_at, modules, study_hours, degree, timeslot_avail'
       )
       .eq('user_id', userId)
@@ -426,15 +458,8 @@ export const useMatchStore = defineStore('match', () => {
   }
 
   async function getBlockedFor(meId: string): Promise<Set<string>> {
-    const { data: iRejected } = await supabase
-      .from('match_rejects')
-      .select('rejected_user_id')
-      .eq('user_id', meId)
-
-    const { data: rejectedMe } = await supabase
-      .from('match_rejects')
-      .select('user_id')
-      .eq('rejected_user_id', meId)
+    const { data: iRejected } = await supabase.from('match_rejects').select('rejected_user_id').eq('user_id', meId)
+    const { data: rejectedMe } = await supabase.from('match_rejects').select('user_id').eq('rejected_user_id', meId)
 
     const blocked = new Set<string>()
     ;(iRejected ?? []).forEach(r => blocked.add(r.rejected_user_id))
@@ -494,9 +519,7 @@ export const useMatchStore = defineStore('match', () => {
       return null
     }
 
-    const candidateIds = others
-      .map(o => o.user_id)
-      .filter(cid => !blocked.has(cid))
+    const candidateIds = others.map(o => o.user_id).filter(cid => !blocked.has(cid))
 
     if (!candidateIds.length) {
       console.log('🚫 Everyone in queue is blocked (mutual rejections).')
@@ -554,7 +577,6 @@ export const useMatchStore = defineStore('match', () => {
       })
       await supabase.from('match_queue').delete().in('user_id', [myId, partnerId])
 
-      // 🔧 FIXED: no description in table → use personality
       const { data: prof } = await supabase
         .from('profiles')
         .select('username, profile_photo, personality')
@@ -585,15 +607,13 @@ export const useMatchStore = defineStore('match', () => {
     } else {
       console.log('⏳ No immediate candidate, will poll...')
     }
-    //not match is found but the room is still created, modify it for only when there is matched found
+
     const deadline = Date.now() + 15_000
     while (Date.now() < deadline) {
       const existingRoomId = await findRoomForMe(myId)
       if (existingRoomId) {
         console.log(`📦 Someone matched me → room ${existingRoomId}`)
 
-        // There is a match
-        // Remove this person from match_queue LINE 584
         currentMatchId.value = existingRoomId
         match.value.id = existingRoomId
 
@@ -607,7 +627,7 @@ export const useMatchStore = defineStore('match', () => {
       const polled = await findBestCandidateForMe(myId, myProfile)
       if (polled?.user_id) {
         console.log(`💞 Polled match found: ${myId} ↔ ${polled.user_id}`)
-        const rid = await markMatched(polled.user_id) // match_queue
+        const rid = await markMatched(polled.user_id)
         if (rid) {
           currentMatchId.value = rid
           match.value.id = rid
@@ -617,9 +637,6 @@ export const useMatchStore = defineStore('match', () => {
 
       await new Promise(r => setTimeout(r, 2000))
     }
-
-    // I am here because there was no match
-
 
     await supabase.from('match_queue').upsert(
       {
@@ -639,17 +656,12 @@ export const useMatchStore = defineStore('match', () => {
 
   // ---------- partner loading ----------
   async function loadPartnerProfile(roomId: string, myId: string) {
-    const { data: room } = await supabase
-      .from('match_room')
-      .select('user1, user2')
-      .eq('id', roomId)
-      .single()
+    const { data: room } = await supabase.from('match_room').select('user1, user2').eq('id', roomId).single()
 
     if (!room) return null
 
     const partnerId = room.user1 === myId ? room.user2 : room.user1
 
-    // 🔧 FIXED: select personality, not description
     const { data: partner } = await supabase
       .from('profiles')
       .select('username, profile_photo, personality')
@@ -684,16 +696,11 @@ export const useMatchStore = defineStore('match', () => {
     const myId = auth?.user?.id
     if (!myId) return
 
-    const { data: room } = await supabase
-      .from('match_room')
-      .select('user1, user2')
-      .eq('id', roomId)
-      .single()
+    const { data: room } = await supabase.from('match_room').select('user1, user2').eq('id', roomId).single()
 
     if (!room) return
     const partnerId = room.user1 === myId ? room.user2 : room.user1
 
-    // 🔧 FIXED: fetch personality
     const { data: prof } = await supabase
       .from('profiles')
       .select('username, profile_photo, personality')
@@ -745,6 +752,10 @@ export const useMatchStore = defineStore('match', () => {
     loadPartnerForCurrent,
     setPartnerFromRoom,
     getIdleOthers,
-    clearMyRejections
+    clearMyRejections,
+
+    // NEW
+    checkIfPartnerRejected,
+    forceLeaveChat,
   }
 })
