@@ -135,14 +135,16 @@ function backToLanding() {
 async function onStart() {
   if (selectedSlots.value.length === 0) return
 
-  // 1️⃣ save selected slots
+  // 1️ save selected slots
   await store.setAvailability(selectedSlots.value)
+  // 2️ clear my old rejections so I can be matched with them again
+  await store.clearMyRejections()
 
-  // 2️⃣ show searching UI
+  // 3 show searching UI
   store.stage = 'searching'
 
   try {
-    // 3️⃣ try to match
+    // 4 try to match
     const roomId = await store.queueAndPoll()
 
     // if store couldn't find ≥200, it will set stage='notfound' and return ''
@@ -151,7 +153,7 @@ async function onStart() {
       return
     }
 
-    // 4️⃣ go to decision page
+    // 5 go to decision page
     router.push({ name: 'matchdecision', params: { id: roomId } })
   } catch (err: any) {
     console.error('[matchlanding] matchmaking failed', err)

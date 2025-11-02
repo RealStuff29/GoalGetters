@@ -168,22 +168,19 @@ onMounted(async () => {
 
     // poll to detect "other side declined"
     pollTimer = window.setInterval(async () => {
-      // const { data: roomExists } = await supabase
-      //   .from('match_room')
-      //   .select('id')
-      //   .eq('id', roomId)
-      //   .maybeSingle()
+    const nowRejected = await isRejected()
+    console.log('[pollTimer] rejected:', nowRejected)
 
-      const nowRejected = await isRejected() // wait here
-      console.log("[pollTimer while] rejected: " + nowRejected)
+    if (nowRejected) {
+      // ✅ stop polling FIRST
+      if (pollTimer) {
+        clearInterval(pollTimer)
+        pollTimer = null
+      }
 
-      if(nowRejected) {
-         console.log("... sending the user back to match screen")
-         store.startOver()
-         console.log("[onMounted] Line 183")
-         router.push({ name: 'matchlanding' })
-        // Stop the timer and bring the user to match screen
-
+      console.log('... sending the user back to match screen')
+      store.startOver()
+      router.push({ name: 'matchlanding' })
       }
     }, 2000) as unknown as number
   }
@@ -231,30 +228,37 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  // if (pollTimer) {
-  //   clearInterval(pollTimer) 
-  // }
-  // pollTimer = null
+  if (pollTimer) {
+    clearInterval(pollTimer)
+  }
+  pollTimer = null
 })
 
 // TODO
 // Fix this by 5:30pm
+// did the OTHER person reject ME?
 async function isRejected() {
-  const { data, error } = await supabase
-        .from('match_rejects')
-        .select('user_id')
-        .eq('user_id', currentMyId)
+  // we need both ids to check
+  if (!currentMyId || !partnerId.value) {
+    return false
+  }
 
-  console.log("[isRejected] data: ", data)
+   const { data, error } = await supabase
+    .from('match_rejects')
+    .select('user_id')
+    // the other person is the one who would have inserted the row
+    .eq('user_id', partnerId.value)
+    // and they would have rejected ME
+    .eq('rejected_user_id', currentMyId)
+    .maybeSingle()
 
-  //return false
+    if (error) {
+    console.warn('[isRejected] error:', error)
+    return false
+  }
+  // if data exists → other side rejected me
+  return !!data
 
-  return data.length === 0
-
-  if(!data || data.length === 0)
-    return true
-
-  return false
 }
 
 function onAccept() {

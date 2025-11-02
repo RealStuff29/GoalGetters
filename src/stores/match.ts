@@ -238,17 +238,43 @@ export const useMatchStore = defineStore('match', () => {
   }
 
   async function recordRejection(myId: string, otherId?: string | null) {
-    if (!otherId) return
-    await supabase
-      .from('match_rejects')
-      .upsert(
+  if (!otherId) return
+  const now = new Date().toISOString()
+
+  await supabase
+    .from('match_rejects')
+    .upsert(
+      [
+        // 1) me → I rejected them
         {
           user_id: myId,
           rejected_user_id: otherId,
-          created_at: new Date().toISOString(),
+          created_at: now,
         },
-        { onConflict: 'user_id,rejected_user_id' }
-      )
+        // 2) them → they were rejected by me
+        {
+          user_id: otherId,
+          rejected_user_id: myId,
+          created_at: now,
+        },
+      ],
+      { onConflict: 'user_id,rejected_user_id' }
+    )
+  } 
+
+  async function clearMyRejections() {
+  const { data: auth } = await supabase.auth.getUser()
+  const myId = auth?.user?.id
+  if (!myId) return
+
+  // delete all rows where I was the one rejecting
+  const { error } = await supabase
+    .from('match_rejects')
+    .delete()
+    .eq('user_id', myId)
+    if (error) {
+    console.warn('[match] clearMyRejections failed:', error)
+  }
   }
 
   async function acceptMatch() {
@@ -719,5 +745,6 @@ export const useMatchStore = defineStore('match', () => {
     loadPartnerForCurrent,
     setPartnerFromRoom,
     getIdleOthers,
+    clearMyRejections
   }
 })
