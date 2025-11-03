@@ -79,7 +79,11 @@ router.beforeEach(async (to) => {
   console.log('to.meta.requiresAuth', to.meta.requiresAuth)
   console.log('session', session)
 
-
+  // If user is logged in and tries to access LandingView ('/'), redirect to HomeView
+  if (to.name === 'landing' && session) {
+    console.log('Redirecting logged-in user from landing to home...');
+    return { name: 'home' };
+  }
 
   //booting user if not logged in and trying to route to a route that needs login
   if (to.meta && to.meta.requiresAuth && !session) { //Checking meta, and if the meta is "requiresAuth", and if there is no session

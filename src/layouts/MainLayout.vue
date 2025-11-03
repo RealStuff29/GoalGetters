@@ -8,14 +8,18 @@ import Button from 'primevue/button';
 const router = useRouter();
 const { logoutUser } = useAuth();
 const userSession = ref(null);
+const checkedSession = ref(false);
 
 // Watch authentication state
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession();
   userSession.value = session;
+  checkedSession.value = true; // ✅ mark session as checked
 
+  // Keep session reactive on login/logout
   supabase.auth.onAuthStateChange((_event, session) => {
     userSession.value = session;
+    checkedSession.value = true; // ensure state is settled
   });
 });
 
@@ -74,7 +78,7 @@ function handleHomeNav() {
       </div>
 
       <!-- Right side: Conditional buttons -->
-      <div>
+      <div v-if="checkedSession">
         <!-- Logged in -->
         <Button v-if="userSession" severity="warn" label="Log Out" @click="handleLogout" />
 
@@ -83,6 +87,11 @@ function handleHomeNav() {
           <Button severity="secondary" label="Log In" @click="handleLogin" />
           <Button severity="warn" label="Sign Up" @click="handleRegister" />
         </div>
+      </div>
+
+      <!-- 👇 This shows while session check is in progress -->
+      <div v-else>
+        <span>Loading...</span>
       </div>
     </nav>
 
