@@ -173,6 +173,9 @@ onMounted(async () => {
           clearInterval(pollTimer)
           pollTimer = null
         }
+        // tell landing to show a popup
+        store.setLandingNotice('Your partner declined the match.')
+
         // send user back
         store.startOver()
         router.push({ name: 'matchlanding' })
