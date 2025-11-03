@@ -88,7 +88,7 @@
               </div>
 
               <small class="opacity-70">
-                Both of you should enter the <i>same</i> word below to confirm you’re talking to the right person.
+                Both of you should enter the <i>same</i> word below to confirm you're talking to the right person.
               </small>
             </div>
 
@@ -120,36 +120,67 @@
         </template>
       </Card>
 
-      <!-- Chat -->
-      <Card class="h-96 flex flex-col">
+      <!-- Chat - FIXED SECTION -->
+      <Card class="chat-card">
         <template #title>
           <span class="text-base font-medium">Chat</span>
         </template>
         <template #content>
-          <div class="flex flex-col h-72">
-            <div class="flex-1 overflow-auto pr-2 space-y-4" ref="chatScroller">
-              <div v-for="m in store.messages" :key="m.id" class="mb-2">
-                <div :class="m.from === 'me' ? 'text-right' : 'text-left'">
-                  <span
-                    :class="[
-                      'inline-block px-3 py-2 rounded-lg',
-                      m.from === 'me' ? 'bg-primary-500 text-white' : 'bg-surface-200'
-                    ]"
-                  >
-                    {{ m.text }}
-                  </span>
+          <div class="chat-wrapper">
+            <!-- Messages Area - THIS IS THE SCROLLABLE SECTION -->
+            <div class="messages-container" ref="chatScroller">
+              <!-- Loading State -->
+              <div v-if="isLoadingMessages" class="flex items-center justify-center h-full opacity-70">
+                <i class="pi pi-spin pi-spinner mr-2"></i>
+                Loading messages...
+              </div>
+              
+              <!-- No Messages -->
+              <div v-else-if="store.messages.length === 0" class="flex items-center justify-center h-full opacity-70">
+                No messages yet. Say hi! 👋
+              </div>
+              
+              <!-- Messages -->
+              <div v-else class="space-y-3">
+                <div v-for="m in store.messages" :key="m.id" class="message-item">
+                  <div :class="m.from === 'me' ? 'message-right' : 'message-left'">
+                    <div :class="m.from === 'me' ? 'message-content-right' : 'message-content-left'">
+                      <div
+                        :class="[
+                          'message-bubble',
+                          m.from === 'me' ? 'bg-primary-500 text-white' : 'bg-surface-200'
+                        ]"
+                      >
+                        {{ m.text }}
+                      </div>
+                      <div class="text-xs opacity-50 mt-1">
+                        {{ formatTime(m.created_at) }}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            <Divider />
-            <div class="flex gap-2 items-center">
+            
+            <Divider class="my-3" />
+            
+            <!-- Input Area - FIXED AT BOTTOM -->
+            <div class="input-area">
               <InputText
                 v-model="store.draft"
                 placeholder="Type a message..."
                 class="flex-1"
                 @keyup.enter="send"
+                :disabled="isSending"
               />
-              <Button size="small" @click="send" icon="pi pi-send" label="Send" />
+              <Button 
+                size="small" 
+                @click="send" 
+                icon="pi pi-send" 
+                label="Send"
+                :disabled="!store.draft.trim() || isSending"
+                :loading="isSending"
+              />
             </div>
           </div>
         </template>
@@ -251,7 +282,7 @@
   </div>
 
   <div v-else class="min-h-screen p-4 flex items-center justify-center opacity-70">
-    You haven’t accepted a match yet. Go back to the landing page.
+    You haven't accepted a match yet. Go back to the landing page.
   </div>
 </template>
 
@@ -368,13 +399,17 @@ const router = useRouter()
 const route = useRoute()
 const chatScroller = ref<HTMLElement | null>(null)
 
-// studyspots
+// Chat state
+const isLoadingMessages = ref(false)
+const isSending = ref(false)
+
+// Study spots
 const studySpots = ref<any[]>([])
 const currentPage = ref(1)
 const itemsPerPage = 4
 const mapRef = ref<InstanceType<typeof StudySpotMap> | null>(null)
 
-// pagination
+// Pagination
 const totalPages = computed(() => Math.ceil(studySpots.value.length / itemsPerPage))
 const paginatedSpots = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
@@ -394,10 +429,12 @@ const focusOnSpot = (spot: any) => {
   }
 }
 
-const suggestSpot = (spot: any) => {
-  const message = `Let's meet at ${spot.name}! Location @${spot.vicinity || spot.formatted_address || ''}`
-  store.sendMessage(message)
+const suggestSpot = async (spot: any) => {
+  const message = `Let's meet at ${spot.name}! Location: ${spot.vicinity || spot.formatted_address || ''}`
+  isSending.value = true
+  await store.sendMessage(message)
   store.draft = ''
+  isSending.value = false
   nextTick(scrollToBottom)
   setTimeout(() => nextTick(scrollToBottom), 750)
 }
@@ -409,17 +446,30 @@ let rejectPoll: number | null = null
 
 function scrollToBottom() {
   const el = chatScroller.value
-  if (el) el.scrollTop = el.scrollHeight
+  if (el) {
+    el.scrollTop = el.scrollHeight
+  }
 }
 function send() {
   store.sendMessage(store.draft)
   store.draft = ''
+  isSending.value = false
+  
   nextTick(scrollToBottom)
-  setTimeout(() => nextTick(scrollToBottom), 750)
+  setTimeout(() => nextTick(scrollToBottom), 300)
 }
 function restart() {
   store.startOver()
   router.push({ name: 'matchlanding' })
+}
+
+// Format timestamp
+const formatTime = (timestamp: string) => {
+  const date = new Date(timestamp)
+  return date.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  })
 }
 
 // init
@@ -443,17 +493,24 @@ onMounted(async () => {
   // load the dynamic study details here
   await loadStudyDetailsFromDB()
 
-  // let template render
-  store.stage = 'chat'
-  nextTick(scrollToBottom)
-  setTimeout(() => nextTick(scrollToBottom), 500)
+  // Initialize real-time chat
+  const roomId = store.currentMatchId || store.match.id
+  if (roomId) {
+    isLoadingMessages.value = true
+    await store.initializeChat(roomId)
+    isLoadingMessages.value = false
+    
+    // Scroll to bottom after messages load
+    nextTick(scrollToBottom)
+    setTimeout(() => nextTick(scrollToBottom), 500)
+  }
 
-  // find my id
+  // Set stage
+  store.stage = 'chat'
+  // Find my ID and partner ID
   const { data: auth } = await supabase.auth.getUser()
   myId.value = auth?.user?.id ?? null
 
-  // find partner id from room
-  const roomId = store.currentMatchId || store.match.id
   if (roomId && myId.value) {
     const { data: room } = await supabase
       .from('match_room')
@@ -465,7 +522,7 @@ onMounted(async () => {
     }
   }
 
-  // poll for "other side declined"
+  // Poll for partner rejection
   if (partnerId.value) {
     rejectPoll = window.setInterval(async () => {
       const rejected = await store.checkIfPartnerRejected(partnerId.value!)
@@ -521,9 +578,83 @@ onUnmounted(() => {
 }
 .gap-6 { gap: 1.5rem; }
 .space-y-4 > * + * { margin-top: 1rem; }
-.h-96 { height: 24rem; }
-.h-72 { height: 18rem; }
 .bg-primary-500 { background: var(--p-primary-color); }
 .bg-surface-200 { background: var(--p-content-border-color); }
 .text-white { color: #fff; }
+.flex-1 { flex: 1 1 0%; }
+
+/* CHAT CONTAINER - KEY STYLES FOR SCROLLING */
+.chat-card {
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 500px;
+  overflow: hidden;
+}
+
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+  min-height: 0; /* Important for flex scrolling */
+}
+
+.space-y-3 > * + * {
+  margin-top: 0.75rem;
+}
+
+.message-item {
+  margin-bottom: 0.75rem;
+}
+
+.message-right {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.message-left {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.message-content-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  max-width: 70%;
+}
+
+.message-content-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 70%;
+}
+
+.message-bubble-wrapper {
+  max-width: 70%;
+}
+
+.message-bubble {
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.input-area {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
+  padding-top: 0.5rem;
+}
 </style>

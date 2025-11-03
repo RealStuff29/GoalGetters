@@ -101,7 +101,84 @@ function callGetIdleOthers(myId: string) {
  * Mount: prefill timeslots, then silently resume.
  * We keep the whole page hidden until we decide where to go.
  */
+/**
+ * If the user already has an active chat, send them there.
+ * Cache-first (store), then DB lookup for match_room with non-null session_id.
+ */
+async function redirectIfActiveChat() {
+  // hydrate cache if present
+  await store.hydrateFromCache()
+
+  // If store already knows we’re in chat, go there
+  if (store.stage === 'chat' && (store.currentMatchId || store.sessionId)) {
+    await store.loadPartnerForCurrent()
+    await store.initVerificationForCurrentRoom()
+    router.replace(CHAT_ROUTE)
+    return true
+  }
+
+  // Otherwise, check DB for any established session
+  const { data: auth } = await supabase.auth.getUser()
+  const myId = auth?.user?.id
+  if (!myId) return false
+
+  const { data: rooms, error } = await supabase
+    .from('match_room')
+    .select('id, session_id, created_at')
+    .or(`user1.eq.${myId},user2.eq.${myId}`)
+    .not('session_id', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  if (error) {
+    console.warn('[landing] active chat lookup failed:', error)
+    return false
+  }
+
+  if (rooms && rooms.length) {
+    const rid = rooms[0].id as string
+    store.currentMatchId = rid
+    store.match.id = rid as any
+    store.stage = 'chat'
+    await store.ensureChat()
+    await store.setPartnerFromRoom(rid)
+    await store.initVerificationForCurrentRoom()
+    router.replace(CHAT_ROUTE)
+    return true
+  }
+
+  return false
+}
+
+const showUI = ref(false)
 onMounted(async () => {
+  // 0) auto-redirect if already in an active chat
+  await new Promise(r => setTimeout(r, 0))
+  const jumped = await redirectIfActiveChat()
+  if (jumped) return
+  showUI.value = true
+
+  // 1) try to restore from store (now store keeps string, so use availabilityList)
+  if (store.availabilityList.length > 0) {
+    selectedSlots.value = [...store.availabilityList]
+    return
+  }
+
+  // 2) else load from Supabase
+  const { data: auth } = await supabase.auth.getUser()
+  const userId = auth?.user?.id
+  if (!userId) return
+
+  const { data: prof, error } = await supabase
+    .from('profiles')
+    .select('timeslot_avail')
+    .eq('user_id', userId)
+    .single()
+
+  if (error) {
+    console.warn('[matchlanding] Could not load previous timeslot_avail:', error)
+    return
+  }
   try {
     // Prefill previously chosen timeslots
     if (store.availabilityList.length > 0) {
