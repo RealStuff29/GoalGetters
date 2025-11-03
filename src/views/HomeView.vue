@@ -59,8 +59,8 @@
                 <i class="pi pi-book" style="font-size: 1.3rem;"></i>
               </div>
               <div class="stat-content">
-                <h3 class="stat-number stat-number--small">{{ major }}</h3>
-                <p class="stat-label">Your School</p>
+                <h3 class="stat-number stat-number--faculty">Faculty</h3>
+                <p class="stat-label">{{ major }}</p>
               </div>
             </div>
             <div class="stat-card">
@@ -566,6 +566,13 @@ onMounted(async () => {
 
 .stat-number {
   font-size: 2rem;
+  font-weight: 800;
+  color: #333;
+  margin: 0;
+}
+
+.stat-number--faculty {
+  font-size: 1.6rem;
   font-weight: 800;
   color: #333;
   margin: 0;
