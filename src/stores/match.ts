@@ -47,7 +47,7 @@ function generateVerifyCode(): string {
   const w1 = words[Math.floor(Math.random() * words.length)]
   const w2 = words[Math.floor(Math.random() * words.length)]
   const n = Math.floor(100 + Math.random() * 900) // 100-999
-  return `${w1}-${w2}-${n}` // e.g., "mint-kite-472"
+  return `${w1}-${w2}-${n}`
 }
 
 // ============ scoring rules (IDs only) ============
@@ -140,13 +140,14 @@ export const useMatchStore = defineStore('match', () => {
   )
 
   // --- Verification state ---
-  const verifyWordInput = ref<string>('')      // what I type to verify
-  const verifyMessage = ref<string>('')        // UI feedback line
+  const verifyWordInput = ref<string>('')
+  const verifyDriftTimer = ref<number | null>(null)
+  const verifyMessage = ref<string>('')
   const myVerified = ref<boolean>(false)
   const partnerVerified = ref<boolean>(false)
   const myVerifyField = ref<'verified_a' | 'verified_b'>('verified_a')
   const partnerVerifyField = ref<'verified_a' | 'verified_b'>('verified_b')
-  const roomVerifyCode = ref<string>('')       // the passphrase stored in DB
+  const roomVerifyCode = ref<string>('')
   const sessionId = ref<string | null>(null)
 
   // live subscription handle
@@ -215,11 +216,6 @@ export const useMatchStore = defineStore('match', () => {
     // set my side = true
     const myField = myVerifyField.value
 
-    // SCHEMA NOTE: if your DB uses 'verifiedb' (no underscore), map here:
-    // const patch: Record<string, any> = {}
-    // patch[myField === 'verified_b' ? 'verifiedb' : 'verified_a'] = true
-    // await supabase.from('match_room').update(patch).eq('id', rid)
-
     const { error: updErr } = await supabase
       .from('match_room')
       .update({ [myField]: true })
@@ -240,6 +236,8 @@ export const useMatchStore = defineStore('match', () => {
 
     if (afterErr || !after) {
       verifyMessage.value = 'Verified on your side. Waiting for partner.'
+      // follow-up nudge in case realtime drops
+      setTimeout(() => { const rid2 = currentMatchId.value || match.value.id; if (rid2) loadVerification(rid2) }, 1200)
       return { ok: true, msg: verifyMessage.value }
     }
 
@@ -263,6 +261,10 @@ export const useMatchStore = defineStore('match', () => {
       ? 'Both verified. Session ready!'
       : 'Verified on your side. Waiting for partner.'
 
+    // light nudges to pick up partner's update shortly after mine
+    setTimeout(() => { const rid2 = currentMatchId.value || match.value.id; if (rid2) loadVerification(rid2) }, 1200)
+    setTimeout(() => { const rid3 = currentMatchId.value || match.value.id; if (rid3) loadVerification(rid3) }, 3000)
+
     return { ok: true, msg: verifyMessage.value }
   }
 
@@ -278,16 +280,49 @@ export const useMatchStore = defineStore('match', () => {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'match_room', filter: `id=eq.${roomId}` },
-        payload => {
+        async payload => {
           const row: any = payload.new
           if (!row) return
-          roomVerifyCode.value = row.verify_code ?? roomVerifyCode.value
-          myVerified.value = Boolean(row[myVerifyField.value])
+
+          // Fast path
+          roomVerifyCode.value  = row.verify_code ?? roomVerifyCode.value
+          myVerified.value      = Boolean(row[myVerifyField.value])
           partnerVerified.value = Boolean(row[partnerVerifyField.value])
-          sessionId.value = row.session_id ?? sessionId.value
+          sessionId.value       = row.session_id ?? sessionId.value
+
+          // Safety re-read
+          const { data: latest, error } = await supabase
+            .from('match_room')
+            .select('verify_code, verified_a, verified_b, session_id')
+            .eq('id', roomId)
+            .maybeSingle()
+          if (!error && latest) {
+            roomVerifyCode.value  = latest.verify_code ?? roomVerifyCode.value
+            myVerified.value      = Boolean(latest[myVerifyField.value])
+            partnerVerified.value = Boolean(latest[partnerVerifyField.value])
+            sessionId.value       = latest.session_id ?? sessionId.value
+          }
+
+          if (myVerified.value && partnerVerified.value) {
+            verifyMessage.value = 'Both verified. Session ready!'
+          } else if (myVerified.value) {
+            verifyMessage.value = 'Verified on your side. Waiting for partner.'
+          }
         }
       )
       .subscribe()
+  }
+
+  // unsubscribe + stop polling
+  async function teardownVerification() {
+    if (roomSub) {
+      try { await roomSub.unsubscribe() } catch {}
+      roomSub = null
+    }
+    if (verifyDriftTimer.value) {
+      clearInterval(verifyDriftTimer.value)
+      verifyDriftTimer.value = null
+    }
   }
 
   // helper to init the whole verification panel when you enter chat
@@ -296,6 +331,52 @@ export const useMatchStore = defineStore('match', () => {
     if (!rid) return
     await loadVerification(rid)
     await subscribeVerification(rid)
+
+    // one-shot refresh shortly after init
+    setTimeout(() => { loadVerification(rid) }, 1500)
+
+    // short-lived fallback polling to catch races
+    startVerifyDriftFix()
+  }
+
+  async function refreshVerificationNow() {
+    const rid = currentMatchId.value || match.value.id
+    if (!rid) return
+    await loadVerification(rid)
+  }
+
+  async function startVerifyDriftFix() {
+    // clear any previous timer
+    if (verifyDriftTimer.value) {
+      clearInterval(verifyDriftTimer.value)
+      verifyDriftTimer.value = null
+    }
+    const rid = currentMatchId.value || match.value.id
+    if (!rid) return
+
+    const start = Date.now()
+    verifyDriftTimer.value = window.setInterval(async () => {
+      // stop if both are verified
+      if (myVerified.value && partnerVerified.value) {
+        clearInterval(verifyDriftTimer.value!)
+        verifyDriftTimer.value = null
+        return
+      }
+      // hard stop after ~15s
+      if (Date.now() - start > 15000) {
+        clearInterval(verifyDriftTimer.value!)
+        verifyDriftTimer.value = null
+        return
+      }
+      await loadVerification(rid)
+    }, 1200) as unknown as number
+  }
+
+  function stopVerifyDriftFix() {
+    if (verifyDriftTimer.value) {
+      clearInterval(verifyDriftTimer.value)
+      verifyDriftTimer.value = null
+    }
   }
 
   // ---------- Timer ----------
@@ -429,16 +510,8 @@ export const useMatchStore = defineStore('match', () => {
       .from('match_rejects')
       .upsert(
         [
-          {
-            user_id: myId,
-            rejected_user_id: otherId,
-            created_at: now,
-          },
-          {
-            user_id: otherId,
-            rejected_user_id: myId,
-            created_at: now,
-          },
+          { user_id: myId, rejected_user_id: otherId, created_at: now },
+          { user_id: otherId, rejected_user_id: myId, created_at: now },
         ],
         { onConflict: 'user_id,rejected_user_id' }
       )
@@ -450,9 +523,7 @@ export const useMatchStore = defineStore('match', () => {
     if (!myId) return
 
     const { error } = await supabase.from('match_rejects').delete().eq('user_id', myId)
-    if (error) {
-      console.warn('[match] clearMyRejections failed:', error)
-    }
+    if (error) console.warn('[match] clearMyRejections failed:', error)
   }
 
   // view calls this to check if the other side rejected me
@@ -487,6 +558,8 @@ export const useMatchStore = defineStore('match', () => {
     match.value.partner = { name: '', photo: null, description: null }
     messages.value = seedMessages()
     persist()
+    // also teardown verification channel/poll
+    await teardownVerification()
   }
 
   async function acceptMatch() {
@@ -504,24 +577,22 @@ export const useMatchStore = defineStore('match', () => {
     const { data: auth } = await supabase.auth.getUser()
     const myId = auth?.user?.id ?? null
 
-    // remove the room if I was in one
     if (currentMatchId.value) {
       await supabase.from('match_room').delete().eq('id', currentMatchId.value)
     }
 
-    // record the rejection pair so the other side can detect it
     if (myId && partnerId) {
       await recordRejection(myId, partnerId)
     }
 
-    // decliner ALWAYS goes back to queue
     if (myId) {
       await putUserBackToQueue(myId)
     }
 
-    // reset local ui state
     match.value.partner = { name: '', photo: null, description: null }
     currentMatchId.value = null
+
+    await teardownVerification()
 
     if (autoRematch) {
       stage.value = 'searching'
@@ -620,7 +691,7 @@ export const useMatchStore = defineStore('match', () => {
       .select(
         'user_id, username, email, profile_photo, personality, gender, avg_rating, rating_count, created_at, modules, study_hours, degree, timeslot_avail'
       )
-      .eq('user_id', userId)
+    .eq('user_id', userId)
       .maybeSingle()
     if (error) {
       console.warn('[match] getMyProfile error', error)
@@ -731,12 +802,7 @@ export const useMatchStore = defineStore('match', () => {
     const myProfile = mine.profile
 
     await supabase.from('match_queue').upsert(
-      {
-        user_id: myId,
-        status: 'idle',
-        room_id: null,
-        updated_at: new Date().toISOString(),
-      },
+      { user_id: myId, status: 'idle', room_id: null, updated_at: new Date().toISOString() },
       { onConflict: 'user_id' }
     )
 
@@ -764,7 +830,6 @@ export const useMatchStore = defineStore('match', () => {
       const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString()
       const verifyWord = generateVerifyCode()
 
-      // Try insert once; if duplicate pair exists (race), we'll select it below.
       try {
         const { error: insErr } = await supabase.from('match_room').insert({
           id: proposedId,
@@ -772,8 +837,8 @@ export const useMatchStore = defineStore('match', () => {
           user2: partnerId,
           created_at: now,
           expires_at: expires,
-          verify_code: verifyWord,   // set word at creation
-          verified_a: false,         // if your schema is 'verifiedb', adapt when you update flags, not here
+          verify_code: verifyWord,
+          verified_a: false,
           verified_b: false,
           session_id: null,
         })
@@ -781,9 +846,7 @@ export const useMatchStore = defineStore('match', () => {
           console.error('[match] insert match_room failed', insErr)
           return null
         }
-      } catch (e) {
-        // swallow; we'll pick the existing row
-      }
+      } catch {}
 
       // Whether our insert won or not, fetch the SINGLE open room for this pair
       const { data: existing, error: selErr } = await supabase
@@ -842,7 +905,7 @@ export const useMatchStore = defineStore('match', () => {
         console.log(`📦 Someone matched me → room ${existingRoomId}`)
         currentMatchId.value = existingRoomId
         match.value.id = existingRoomId
-        await ensureVerifyCodeExists(existingRoomId) // ensure word present
+        await ensureVerifyCodeExists(existingRoomId)
         await setPartnerFromRoom(existingRoomId)
         stage.value = 'match'
         startCountdown(() => declineMatch())
@@ -866,12 +929,7 @@ export const useMatchStore = defineStore('match', () => {
 
     // time out → back to queue idle and show notfound
     await supabase.from('match_queue').upsert(
-      {
-        user_id: myId,
-        status: 'idle',
-        room_id: null,
-        updated_at: new Date().toISOString(),
-      },
+      { user_id: myId, status: 'idle', room_id: null, updated_at: new Date().toISOString() },
       { onConflict: 'user_id' }
     )
 
@@ -987,6 +1045,10 @@ export const useMatchStore = defineStore('match', () => {
     sessionId,
     submitVerification,
     initVerificationForCurrentRoom,
+    refreshVerificationNow,
+    teardownVerification,      // 👈 new
+    startVerifyDriftFix,
+    stopVerifyDriftFix,
 
     // misc
     checkIfPartnerRejected,
