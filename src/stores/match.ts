@@ -404,7 +404,7 @@ export const useMatchStore = defineStore('match', () => {
       try { await roomSub.unsubscribe() } catch {}
       roomSub = null
     }
-
+    // inside subscribeVerification(roomId)
     roomSub = supabase
       .channel(`match_room:${roomId}`)
       .on(
@@ -414,30 +414,34 @@ export const useMatchStore = defineStore('match', () => {
           const row: any = payload.new
           if (!row) return
 
-          // Fast path
-          roomVerifyCode.value  = row.verify_code ?? roomVerifyCode.value
-          myVerified.value      = Boolean(row[myVerifyField.value])
-          partnerVerified.value = Boolean(row[partnerVerifyField.value])
-          sessionId.value       = row.session_id ?? sessionId.value
+          // --- Apply realtime payload (authoritative, never stale) ---
+          roomVerifyCode.value = row.verify_code ?? roomVerifyCode.value
 
-          // Safety re-read
-          const { data: latest, error } = await supabase
-            .from('match_room')
-            .select('verify_code, verified_a, verified_b, session_id')
-            .eq('id', roomId)
-            .maybeSingle()
-          if (!error && latest) {
-            roomVerifyCode.value  = latest.verify_code ?? roomVerifyCode.value
-            myVerified.value      = Boolean(latest[myVerifyField.value])
-            partnerVerified.value = Boolean(latest[partnerVerifyField.value])
-            sessionId.value       = latest.session_id ?? sessionId.value
-          }
+          // Promote-only assignments: never turn true back to false
+          const mineNow = Boolean(row[myVerifyField.value])
+          const theirsNow = Boolean(row[partnerVerifyField.value])
 
-          if (myVerified.value && partnerVerified.value) {
-            verifyMessage.value = 'Both verified. Session ready!'
-          } else if (myVerified.value) {
-            verifyMessage.value = 'Verified on your side. Waiting for partner.'
-          }
+          if (mineNow)   myVerified.value = true
+          if (theirsNow) partnerVerified.value = true
+
+          if (row.session_id) sessionId.value = row.session_id
+
+          // delayed *promoting* re-read ---
+          setTimeout(async () => {
+            const { data: latest } = await supabase
+              .from('match_room')
+              .select('verify_code, verified_a, verified_b, session_id')
+              .eq('id', roomId)
+              .maybeSingle()
+
+            if (!latest) return
+
+            // again, promote-only
+            if (latest.session_id) sessionId.value = latest.session_id
+            if (Boolean(latest[myVerifyField.value])) myVerified.value = true
+            if (Boolean(latest[partnerVerifyField.value])) partnerVerified.value = true
+            if (latest.verify_code) roomVerifyCode.value = latest.verify_code
+          }, 400) // small delay to let replicas catch up
         }
       )
       .subscribe()

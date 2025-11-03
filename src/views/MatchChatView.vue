@@ -399,8 +399,20 @@ watch(
       })
     }
   },
-  { immediate: true }
+  { immediate: true, flush: 'post' } // ensure it runs after DOM/reactivity settles
 )
+
+//extra guard: if sessionId pops in after both flags are already true
+watch(
+  () => store.sessionId,
+  (sid) => {
+    if (sid && store.myVerified && store.partnerVerified && store.sessionSecondsLeft === 0) {
+      store.startSessionSlotTimer(/* same onExpired as above */)
+    }
+  },
+  { flush: 'post' }
+)
+
 
 // studyspots
 const studySpots = ref<any[]>([])
