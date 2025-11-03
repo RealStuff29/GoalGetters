@@ -113,7 +113,7 @@ async function redirectIfActiveChat() {
   if (store.stage === 'chat' && (store.currentMatchId || store.sessionId)) {
     await store.loadPartnerForCurrent()
     await store.initVerificationForCurrentRoom()
-    router.replace(CHAT_ROUTE)
+    router.replace({ name: 'matchchat', params: { id: store.currentMatchId! } })
     return true
   }
 
@@ -143,7 +143,7 @@ async function redirectIfActiveChat() {
     await store.ensureChat()
     await store.setPartnerFromRoom(rid)
     await store.initVerificationForCurrentRoom()
-    router.replace(CHAT_ROUTE)
+    router.replace({ name: 'matchchat', params: { id: rid } })
     return true
   }
 

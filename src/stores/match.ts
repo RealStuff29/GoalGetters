@@ -168,13 +168,25 @@ export const useMatchStore = defineStore('match', () => {
     const myId = auth?.user?.id
     if (!myId) throw new Error('Not authenticated')
 
+    // Debug: Check all rooms
+    const { data: allRooms, error: listError } = await supabase
+      .from('match_room')
+      .select('*')
+    
+    console.log('All rooms:', allRooms)
+    console.log('List error:', listError)
+    console.log('Looking for:', roomId)
+    console.log('My user ID:', myId)
+    console.log('Actual room IDs:', allRooms?.map(r => r.id))
+
     const { data: room, error } = await supabase
       .from('match_room')
       .select('user1, user2')
       .eq('id', roomId)
       .maybeSingle()
 
-    if (error || !room) throw new Error('match_room not found')
+    if (error) throw new Error(`Database error: ${error.message}`)
+    if (!room) throw new Error(`No match_room found with id: ${roomId}`)
 
     const amA = room.user1 === myId
     myVerifyField.value = amA ? 'verified_a' : 'verified_b'
@@ -794,9 +806,29 @@ export const useMatchStore = defineStore('match', () => {
     sendMessage(`Let's meet at ${spot.name}.`)
     persist()
   }
+  async function validateAndCleanStaleRoom() {
+  const roomId = currentMatchId.value || match.value.id
+  if (!roomId) return
 
+  // Check if room still exists
+  const { data: room } = await supabase
+    .from('match_room')
+    .select('id')
+    .eq('id', roomId)
+    .maybeSingle()
+
+  if (!room) {
+    console.log('🧹 Clearing stale room from storage')
+    currentMatchId.value = null
+    match.value.id = undefined
+    stage.value = 'landing'
+    persist()
+  }
+  }
+  
   async function hydrateFromCache() {
     const ok = restore()
+    await validateAndCleanStaleRoom()
     if (!currentMatchId.value && stage.value !== 'landing') stage.value = 'landing'
     return ok
   }
@@ -1114,7 +1146,13 @@ export const useMatchStore = defineStore('match', () => {
   }
 
   async function loadPartnerForCurrent() {
+    console.log('currentMatchId.value:', currentMatchId.value)
+    console.log('match.value.id:', match.value.id)
+    console.log('match.value:', match.value) // See the whole object
+    
     const roomId = currentMatchId.value || match.value.id
+    console.log('Using roomId:', roomId)
+    
     if (!roomId) return
 
     const { data: auth } = await supabase.auth.getUser()
