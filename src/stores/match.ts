@@ -69,7 +69,7 @@ const SESSION_SLOT_WINDOWS = {
   slot_morning:   { start: [8, 30],  end: [11, 30] },
   slot_midday:    { start: [12, 0],  end: [15, 0]  },
   slot_afternoon: { start: [15, 30], end: [18, 30] },
-  slot_evening:   { start: [19, 0],  end: [1, 30]  }, // overnight to next day
+  slot_evening:   { start: [19, 0],  end: [3, 10]  }, // overnight to next day
 } as const
 type SessionSlotId = keyof typeof SESSION_SLOT_WINDOWS
 
