@@ -60,38 +60,46 @@ function handleHomeNav() {
 
 <template>
   <div>
-    <nav class="navbar bg-light px-3 d-flex justify-content-between align-items-center">
-      <!-- Left navigation links -->
-      <div class="d-flex align-items-center">
-        <a @click="handleHomeNav" class="nav-link mx-3" style="cursor: pointer;">Home</a>
-        <a @click="handleProtectedNavigation('/crudview')" class="nav-link mx-3" style="cursor: pointer;">Crud Test</a>
-        <a @click="handleProtectedNavigation('/profilesetupview')" class="nav-link mx-3"
-          style="cursor: pointer;">Profile Setup</a>
-        <a @click="handleProtectedNavigation('/profilesettingsview')" class="nav-link mx-3"
-          style="cursor: pointer;">Profile Settings</a>
-        <a @click="handleProtectedNavigation('/matchlandingview')" class="nav-link mx-3"
-          style="cursor: pointer;">Matchmake Now</a>
-        <a @click="handleProtectedNavigation('/feedbackview')" class="nav-link mx-3"
-          style="cursor: pointer;">Feedback</a>
-        <a @click="handleProtectedNavigation('/matchchatview')" class="nav-link mx-3"
-          style="cursor: pointer;">MatchChat</a>
+    <nav class="navbar bg-light px-4 d-flex align-items-center shadow-sm position-relative" style="height: 64px;">
+      <!-- Left side: Brand with tagline -->
+      <div class="d-flex align-items-center gap-2">
+        <h3 class="brand-title mb-0" :class="{ 'brand-clickable': userSession }" @click="userSession && handleHomeNav()"
+          title="Go to Home">
+          GoalGetters
+        </h3>
+        <small class="brand-tagline text-muted d-none d-md-block">
+          Future of Accountability
+        </small>
       </div>
 
-      <!-- Right side: Conditional buttons -->
+      <!-- Center navigation -->
+      <div class="center-nav d-flex align-items-center justify-content-center gap-4 position-absolute top-50 start-50 translate-middle">
+        <!-- Show app features when logged in -->
+        <template v-if="userSession">
+          <a @click="handleProtectedNavigation('/crudview')" class="nav-link">Crud Test</a>
+          <a @click="handleProtectedNavigation('/profilesetupview')" class="nav-link">Profile Setup</a>
+          <a @click="handleProtectedNavigation('/profilesettingsview')" class="nav-link">Profile Settings</a>
+          <a @click="handleProtectedNavigation('/matchlandingview')" class="nav-link">Matchmake Now</a>
+          <a @click="handleProtectedNavigation('/feedbackview')" class="nav-link">Feedback</a>
+          <a @click="handleProtectedNavigation('/matchchatview')" class="nav-link">MatchChat</a>
+        </template>
+      </div>
+
+      <!-- Right side buttons -->
       <div v-if="checkedSession">
         <!-- Logged in -->
         <Button v-if="userSession" severity="warn" label="Log Out" @click="handleLogout" />
 
-        <!-- Not logged in -->
+        <!-- Logged out -->
         <div v-else class="d-flex gap-2">
-          <Button severity="secondary" label="Log In" @click="handleLogin" />
-          <Button severity="warn" label="Sign Up" @click="handleRegister" />
+          <Button severity="secondary" label="Log In" @click="handleLogin" class="btn-glass" />
+          <Button severity="warn" label="Sign Up" @click="handleRegister" class="btn-gradient" />
         </div>
       </div>
 
-      <!-- 👇 This shows while session check is in progress -->
+      <!-- Optional: simple loader while checking session -->
       <div v-else>
-        <span>Loading...</span>
+        <i class="pi pi-spin pi-spinner text-muted"></i>
       </div>
     </nav>
 
@@ -121,5 +129,132 @@ function handleHomeNav() {
 :deep(.p-button:hover) {
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.navbar {
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, #ff9800, #ffb347);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+  color: #ff9800;
+  transform: translateY(-2px);
+}
+
+.btn-gradient {
+  background: linear-gradient(90deg, #ff9800, #ffb347);
+  border: none;
+  color: white !important;
+  transition: all 0.3s ease;
+}
+
+.btn-gradient:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+
+.btn-glass {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #333;
+  transition: all 0.3s ease;
+}
+
+.btn-glass:hover {
+  background: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+.brand-title {
+  font-weight: 800;
+  font-size: 1.4rem;
+  background: linear-gradient(90deg, #ff9800, #ffb347);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: all 0.3s ease;
+  cursor: default;
+}
+
+/* Only clickable (home) when user is logged in */
+.brand-clickable {
+  cursor: pointer;
+  position: relative;
+}
+
+.brand-clickable::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 0%;
+  height: 2px;
+  background: linear-gradient(90deg, #ff9800, #ffb347);
+  transition: width 0.3s ease;
+}
+
+.brand-clickable:hover::after {
+  width: 100%;
+}
+
+.brand-clickable:hover {
+  transform: translateY(-1px);
+  text-shadow: 0 0 8px rgba(255, 152, 0, 0.4);
+}
+
+/* Subtle style for marketing links on landing */
+.nav-link[href^="#"] {
+  opacity: 0.8;
+}
+
+.nav-link[href^="#"]:hover {
+  opacity: 1;
+  color: #ff9800;
+}
+
+/* Subtle tagline beside logo */
+.brand-tagline {
+  background: linear-gradient(90deg, #ff9800, #ffb347);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  font-size: 0.9rem;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.navbar:hover .brand-tagline {
+  opacity: 1;
+}
+
+.center-nav a {
+  opacity: 0.9;
+  transition: opacity 0.3s ease, transform 0.2s ease;
+}
+
+.center-nav a:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .center-nav {
+    display: none;
+    /* hide nav links on mobile for cleaner design */
+  }
 }
 </style>
