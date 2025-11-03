@@ -125,6 +125,29 @@
         </template>
       </Card>
 
+      <!-- ======== !!! ADDED CODE !!! ========= -->
+      <Card v-if="store.myVerified && store.partnerVerified && store.sessionSecondsLeft > 0">
+        <template #title>
+          <span class="text-base font-medium">Time Remaining</span>
+        </template>
+
+        <template #content>
+          <!-- Row: countdown tag -->
+          <div class="flex items-center">
+            <Tag severity="danger" :value="store.sessionCountdownText" />
+          </div>
+
+          <small class="block opacity-70 mt-2">
+            Counts down to the end of the current time slot -
+            <b>{{ store.sessionActiveSlotLabel || 'Current slot' }}</b>.
+          </small>
+        </template>
+      </Card>
+
+
+      <!-- ======== !!! END OF EDIT CODE !!! ========= -->
+
+
       <!-- Chat -->
       <Card class="h-96 flex flex-col">
         <template #title>
@@ -268,7 +291,8 @@ import { degrees } from '@/constants/degrees'
 import { supabase } from '@/lib/supabase'
 import StudySpotMap from './StudySpotMap.vue'
 
-// ---- study details helpers (unchanged) ----
+
+// ---- study details helpers ----
 const myProfile = ref<any | null>(null)
 const partnerProfile = ref<any | null>(null)
 
@@ -372,6 +396,26 @@ const store = useMatchStore()
 const router = useRouter()
 const route = useRoute()
 const chatScroller = ref<HTMLElement | null>(null)
+
+// ============= ADDED CODE =============
+// Start session-slot timer once BOTH sides are verified
+watch(
+  () => [store.myVerified, store.partnerVerified],
+  ([mine, theirs]) => {
+    if (mine && theirs) {
+      store.startSessionSlotTimer(async () => {
+        // onExpired callback: leave chat and route to review
+        const rid = store.currentMatchId || store.match.id
+        await store.forceLeaveChat('Time’s up for this slot. Session ended.')
+        if (rid) router.replace({ name: 'matchreview', params: { id: rid } })
+        else router.replace({ name: 'matchreview' })
+      })
+    }
+  },
+  { immediate: true }
+)
+// ============= END OF CODE =============
+
 
 // studyspots
 const studySpots = ref<any[]>([])
@@ -507,10 +551,15 @@ watch(() => store.currentMatchId, async (rid) => {
   }
 })
 
+// ============= ADDED CODE =============
+// Start session-slot timer once BOTH sides are verified
 onUnmounted(() => {
   if (rejectPoll) clearInterval(rejectPoll)
   rejectPoll = null
+  store.stopSessionSlotTimer()
 })
+
+// ============= END OF CODE =============
 </script>
 
 <style scoped>

@@ -25,6 +25,92 @@ type Match = {
 
 const STORAGE_KEY = 'match-store-v1'
 
+// ============= ADDED CODE =============
+// ======== SESSION SLOT WINDOWS & TIMER ========
+
+const SESSION_SLOT_LABELS: Record<SessionSlotId, string> = {
+  slot_morning:   'Morning (8:30am - 11:30am)',
+  slot_midday:    'Midday (12:00pm - 3:00pm)',
+  slot_afternoon: 'Afternoon (3:30pm - 6:30pm)',
+  slot_evening:   'Evening (7:00pm - 10:00pm)',
+}
+
+const SESSION_SLOT_WINDOWS = {
+  slot_morning:   { start: [8, 30],  end: [11, 30] },
+  slot_midday:    { start: [12, 0],  end: [15, 0]  },
+  slot_afternoon: { start: [15, 30], end: [18, 30] },
+  slot_evening:   { start: [19, 0],  end: [22, 0]  },
+} as const
+type SessionSlotId = keyof typeof SESSION_SLOT_WINDOWS
+
+function isNowWithinSlot(now: Date, slot: SessionSlotId): boolean {
+  const [sh, sm] = SESSION_SLOT_WINDOWS[slot].start
+  const [eh, em] = SESSION_SLOT_WINDOWS[slot].end
+  const s = new Date(now); s.setHours(sh, sm, 0, 0)
+  const e = new Date(now); e.setHours(eh, em, 0, 0)
+  return now >= s && now < e
+}
+function activeSessionSlotNow(now = new Date()): SessionSlotId | null {
+  const order: SessionSlotId[] = ['slot_morning','slot_midday','slot_afternoon','slot_evening']
+  return order.find(id => isNowWithinSlot(now, id)) ?? null
+}
+function secondsUntilActiveSlotEnds(now = new Date()): number {
+  const id = activeSessionSlotNow(now)
+  if (!id) return 0
+  const [eh, em] = SESSION_SLOT_WINDOWS[id].end
+  const end = new Date(now); end.setHours(eh, em, 0, 0)
+  return Math.max(0, Math.floor((end.getTime() - now.getTime()) / 1000))
+}
+
+// store state for the session-slot countdown
+const sessionSecondsLeft = ref(0)
+let sessionTick: number | null = null
+
+// track which slot is active for display
+const sessionActiveSlotId = ref<SessionSlotId | null>(activeSessionSlotNow())
+const sessionActiveSlotLabel = computed(() =>
+  sessionActiveSlotId.value ? SESSION_SLOT_LABELS[sessionActiveSlotId.value] : null
+)
+
+const sessionCountdownText = computed(() => {
+  const s = Math.max(0, sessionSecondsLeft.value)
+  const hh = Math.floor(s / 3600).toString().padStart(2, '0')
+  const mm = Math.floor((s % 3600) / 60).toString().padStart(2, '0')
+  const ss = (s % 60).toString().padStart(2, '0')
+  return `${hh}:${mm}:${ss}`
+})
+
+function startSessionSlotTimer(onExpired?: () => void) {
+  stopSessionSlotTimer()
+  const now = new Date()
+  // set/refresh the active slot id & seconds
+  sessionActiveSlotId.value = activeSessionSlotNow(now)
+  const secs = secondsUntilActiveSlotEnds(now)
+  sessionSecondsLeft.value = secs
+
+  if (secs <= 0) {
+    onExpired?.()
+    return
+  }
+  sessionTick = window.setInterval(() => {
+    if (sessionSecondsLeft.value > 0) {
+      sessionSecondsLeft.value--
+    } else {
+      stopSessionSlotTimer()
+      onExpired?.()
+    }
+  }, 1000) as unknown as number
+}
+
+function stopSessionSlotTimer() {
+  if (sessionTick) {
+    clearInterval(sessionTick)
+    sessionTick = null
+  }
+}
+// ======== END SESSION SLOT WINDOWS & TIMER  ========
+
+
 // ---------------- helpers ----------------
 function strToArray(val: string | string[] | null | undefined): string[] {
   if (!val) return []
@@ -993,5 +1079,13 @@ export const useMatchStore = defineStore('match', () => {
     forceLeaveChat,
     setLandingNotice,
     clearLandingNotice,
+
+
+    // session-slot timer 
+    sessionSecondsLeft,
+    sessionCountdownText,
+    startSessionSlotTimer,
+    stopSessionSlotTimer,
+    sessionActiveSlotLabel
   }
 })
