@@ -6,6 +6,7 @@
   >
     <!-- Left column: Header + Details + Chat -->
     <div class="space-y-4">
+      
       <Card>
         <template #content>
           <div class="flex items-center gap-3">
@@ -18,33 +19,53 @@
         </template>
       </Card>
 
+      <!-- !!! Code ADDED !!! -->
+      <!-- Study Session Details -->
       <Card>
         <template #title>
           <span class="text-base font-medium">Study Session Details</span>
         </template>
         <template #content>
-          <div class="space-y-3">
+          <div class="space-y-4">
+            <!-- Common time slots -->
             <div class="flex items-start gap-3">
-              <i :class="pi('book')" class="opacity-70 mt-1" />
+              <i :class="pi('clock')" class="opacity-70 mt-1"/>
               <div>
-                <Tag severity="secondary" :value="store.match.subject" />
-                <p class="text-sm opacity-80 mt-1">{{ store.match.description }}</p>
+                <div class="font-medium mb-1">Common Time Slots</div>
+                <div v-if="commonSlotsLabels.length">
+                  <Tag v-for="s in commonSlotsLabels" :key="s" severity="secondary" :value="s" class="mr-2 mb-2" />
+                </div>
+                <small v-else class="opacity-70">No overlapping availability yet.</small>
               </div>
             </div>
+
+            <!-- Common modules -->
             <div class="flex items-start gap-3">
-              <i :class="pi('clock')" class="opacity-70 mt-1" />
+              <i :class="pi('book')" class="opacity-70 mt-1"/>
               <div>
-                <p class="text-sm">{{ store.match.time }}</p>
-                <small class="opacity-70">Duration: <b>{{ store.match.duration }}</b></small>
+                <div class="font-medium mb-1">Common Modules</div>
+                <div v-if="commonModules.length">
+                  <Tag v-for="m in commonModules" :key="m" severity="secondary" :value="m" class="mr-2 mb-2" />
+                </div>
+                <small v-else class="opacity-70">They have no common modules.</small>
               </div>
             </div>
+
+            <!-- Degrees / Schools -->
             <div class="flex items-start gap-3">
-              <i :class="pi('map-marker')" class="opacity-70 mt-1" />
-              <p class="text-sm">{{ store.match.location }}</p>
+              <i :class="pi('university')" class="opacity-70 mt-1"/>
+              <div>
+                <div class="font-medium mb-1">School / Degree</div>
+                <div class="text-sm">
+                  <div><b>You:</b> {{ myDegreeLabel || '-' }}</div>
+                  <div><b>Partner:</b> {{ partnerDegreeLabel || '-' }}</div>
+                </div>
+              </div>
             </div>
           </div>
         </template>
       </Card>
+      <!-- !!! END of Code !!! -->
 
       <Card class="h-96 flex flex-col">
         <template #title>
@@ -184,10 +205,145 @@
 import { onMounted, onUnmounted, ref, nextTick, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMatchStore } from '@/stores/match'
-import { supabase } from '@/lib/supabase'   // 👈 you were missing this
-import Card from 'primevue/card'
-import Button from 'primevue/button'
+import { degrees } from '@/constants/degrees'
+import { supabase } from '@/lib/supabase'   
 import StudySpotMap from './StudySpotMap.vue'
+
+// ---- CODE ADDED ----
+const myProfile = ref<any | null>(null)
+const partnerProfile = ref<any | null>(null)
+
+// Label for display
+const SLOT_LABELS = {
+  slot_morning:  'Morning (8:30am - 11:30am)',
+  slot_midday:   'Midday (12:00pm - 3:00pm)',
+  slot_afternoon:'Afternoon (3:30pm - 6:30pm)',
+  slot_evening:  'Evening (7:00pm - 10:00pm)',
+} as const
+type SlotKey = keyof typeof SLOT_LABELS
+
+const SLOT_ALIASES: Record<string, SlotKey> = {
+  morning: 'slot_morning',
+  midday: 'slot_midday',
+  afternoon: 'slot_afternoon',
+  evening: 'slot_evening',
+}
+
+// Format of the display order for timeslot
+const SLOT_ORDER: SlotKey[] = [
+  'slot_morning','slot_midday','slot_afternoon','slot_evening'
+]
+
+function toArray(val: unknown): string[] {
+  if (!val) return []
+  return Array.isArray(val)
+    ? val.map(v => String(v).trim()).filter(Boolean)
+    : String(val).split(',').map(s => s.trim()).filter(Boolean)
+}
+
+function normalize(raw: string): SlotKey | null {
+  const k = raw.trim()
+  if ((k as SlotKey) in SLOT_LABELS) return k as SlotKey
+  const a = SLOT_ALIASES[k.toLowerCase()]
+  return a ?? null
+}
+
+function isSlotKey(x: unknown): x is SlotKey {
+  return typeof x === 'string' && x in SLOT_LABELS
+}
+
+// compute: intersection + fixing order
+const commonSlotsLabels = computed<string[]>(() => {
+  const a = toArray(myProfile.value?.timeslot_avail).map(normalize).filter(isSlotKey)
+  const b = toArray(partnerProfile.value?.timeslot_avail).map(normalize).filter(isSlotKey)
+  if (!a.length || !b.length) return []
+
+  const setB = new Set<SlotKey>(b)
+  const common = Array.from(new Set(a.filter(x => setB.has(x)))) // unique intersect
+
+  return SLOT_ORDER.filter(x => common.includes(x)).map(x => SLOT_LABELS[x])
+})
+
+// -------- modules + degree helpers --------
+function toModules (val: unknown): string[] {
+  if (Array.isArray(val)) return val.map(v => String(v).trim()).filter(Boolean)
+  if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean)
+  // @ts-ignore handle { items: [...] }
+  if (val?.items && Array.isArray(val.items)) return val.items.map((x: any) => String(x).trim()).filter(Boolean)
+  return []
+}
+
+function degreeLabel (value?: string|null) {
+  if (!value) return null
+  const found = degrees.find(d => d.value === value)
+  return found ? found.label : null
+}
+
+const commonModules = computed<string[]>(() => {
+  const a = toModules(myProfile.value?.modules).map(x => x.toUpperCase())
+  const b = toModules(partnerProfile.value?.modules).map(x => x.toUpperCase())
+  if (!a.length || !b.length) return []
+  const setB = new Set(b)
+  return a.filter(x => setB.has(x))
+})
+
+const myDegreeLabel = computed(() => degreeLabel(myProfile.value?.degree))
+const partnerDegreeLabel = computed(() => degreeLabel(partnerProfile.value?.degree))
+
+// -------- data loader --------
+async function loadStudyDetailsFromDB () {
+  try {
+    const roomId = String(store.currentMatchId || store.match?.id || '')
+    if (!roomId) {
+      console.warn('[details] no roomId on store')
+      return
+    }
+
+    const { data: auth, error: authErr } = await supabase.auth.getUser()
+    if (authErr || !auth?.user?.id) {
+      console.warn('[details] auth error', authErr)
+      return
+    }
+    const myId = auth.user.id
+
+    const { data: room, error: roomErr } = await supabase
+      .from('match_room')
+      .select('id, user1, user2')
+      .eq('id', roomId)
+      .maybeSingle()
+
+    if (roomErr) {
+      console.warn('[details] match_room error', roomErr)
+      return
+    }
+    if (!room) {
+      console.warn('[details] no match_room for id', roomId)
+      return
+    }
+
+    const partnerId = room.user1 === myId ? room.user2 : room.user1
+
+    const { data: profs, error: profErr } = await supabase
+      .from('profiles')
+      .select('user_id, degree, modules, timeslot_avail')
+      .in('user_id', [myId, partnerId])
+
+    if (profErr) {
+      console.warn('[details] profiles error', profErr)
+      return
+    }
+
+    myProfile.value = profs?.find(p => p.user_id === myId) || null
+    partnerProfile.value = profs?.find(p => p.user_id === partnerId) || null
+
+    console.log('[details] myProfile', myProfile.value)
+    console.log('[details] partnerProfile', partnerProfile.value)
+  } catch (e) {
+    console.error('[details] loadStudyDetailsFromDB failed', e)
+  }
+}
+// ---- End of Edits ----
+
 
 function pi(name: string) {
   return `pi pi-${name}`
@@ -270,6 +426,11 @@ onMounted(async () => {
 
   // make sure we have chat id
   await store.ensureChat(route.params.chatId as string | undefined)
+
+  // ---- !!!! CODE ADDED !!! ----
+  // load the dynamic study details here
+  await loadStudyDetailsFromDB()
+  // ---- !!!! END OF EDIT !!! ----
 
   // let template render
   store.stage = 'chat'
@@ -355,4 +516,3 @@ onUnmounted(() => {
   color: #fff;
 }
 </style>
-
