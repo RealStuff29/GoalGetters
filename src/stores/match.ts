@@ -25,6 +25,134 @@ type Match = {
 
 const STORAGE_KEY = 'match-store-v1'
 
+// ============= DEV CLOCK (for testing) =============
+// Call in console: matchSetNow('21:15') or matchSetNow('00:10').
+// Call matchSetNow(null) to restore real time.
+const __DEV_NOW = ref<Date | null>(null)
+/** Accepts 'HH:MM' (today) or ISO string. null to clear. */
+function setDevNow(val: string | null) {
+  if (!val) { __DEV_NOW.value = null; return }
+  if (/^\d{1,2}:\d{2}$/.test(val)) {
+    const [hh, mm] = val.split(':').map(n => parseInt(n, 10))
+    const d = new Date()
+    d.setHours(hh, mm, 0, 0)
+    __DEV_NOW.value = d
+  } else {
+    const d = new Date(val)
+    __DEV_NOW.value = isNaN(+d) ? null : d
+  }
+}
+function getNow(): Date {
+  return __DEV_NOW.value ? new Date(__DEV_NOW.value) : new Date()
+}
+// expose to window for quick testing
+// @ts-ignore
+if (typeof window !== 'undefined') (window as any).matchSetNow = setDevNow
+// ====================================================
+
+// ======== SESSION SLOT WINDOWS & TIMER ========
+const SESSION_SLOT_LABELS: Record<SessionSlotId, string> = {
+  slot_morning:   'Morning (8:30am - 11:30am)',
+  slot_midday:    'Midday (12:00pm - 3:00pm)',
+  slot_afternoon: 'Afternoon (3:30pm - 6:30pm)',
+  slot_evening:   'Evening (7:00pm - 1:30am)',    // updated label
+}
+
+const SESSION_SLOT_WINDOWS = {
+  slot_morning:   { start: [8, 30],  end: [11, 30] },
+  slot_midday:    { start: [12, 0],  end: [15, 0]  },
+  slot_afternoon: { start: [15, 30], end: [18, 30] },
+  slot_evening:   { start: [19, 0],  end: [1, 30]  }, // overnight to next day
+} as const
+type SessionSlotId = keyof typeof SESSION_SLOT_WINDOWS
+
+function makeRangeFor(base: Date, slot: SessionSlotId) {
+  const [sh, sm] = SESSION_SLOT_WINDOWS[slot].start
+  const [eh, em] = SESSION_SLOT_WINDOWS[slot].end
+  const start = new Date(base); start.setHours(sh, sm, 0, 0)
+  const end   = new Date(base); end.setHours(eh, em, 0, 0)
+  // overnight window (end <= start) → push end to next day
+  if (end <= start) end.setDate(end.getDate() + 1)
+  return { start, end }
+}
+
+function isNowWithinSlot(now: Date, slot: SessionSlotId): boolean {
+  // Check today’s window
+  const today = makeRangeFor(now, slot)
+  if (now >= today.start && now < today.end) return true
+  // If the window could have started yesterday (overnight), check yesterday’s window
+  const y = new Date(now); y.setDate(y.getDate() - 1)
+  const yd = makeRangeFor(y, slot)
+  return now >= yd.start && now < yd.end
+}
+
+function activeSessionSlotNow(now = getNow()): SessionSlotId | null {
+  const order: SessionSlotId[] = ['slot_morning','slot_midday','slot_afternoon','slot_evening']
+  return order.find(id => isNowWithinSlot(now, id)) ?? null
+}
+
+function secondsUntilActiveSlotEnds(now = getNow()): number {
+  const id = activeSessionSlotNow(now)
+  if (!id) return 0
+  // Prefer today’s window; if we’re not in it, we must be in yesterday’s overnight window
+  const today = makeRangeFor(now, id)
+  if (now >= today.start && now < today.end) {
+    return Math.max(0, Math.floor((today.end.getTime() - now.getTime()) / 1000))
+  }
+  const y = new Date(now); y.setDate(y.getDate() - 1)
+  const yd = makeRangeFor(y, id)
+  return Math.max(0, Math.floor((yd.end.getTime() - now.getTime()) / 1000))
+}
+
+// store state for the session-slot countdown
+const sessionSecondsLeft = ref(0)
+let sessionTick: number | null = null
+
+// track which slot is active for display
+const sessionActiveSlotId = ref<SessionSlotId | null>(activeSessionSlotNow())
+const sessionActiveSlotLabel = computed(() =>
+  sessionActiveSlotId.value ? SESSION_SLOT_LABELS[sessionActiveSlotId.value] : null
+)
+
+const sessionCountdownText = computed(() => {
+  const s = Math.max(0, sessionSecondsLeft.value)
+  const hh = Math.floor(s / 3600).toString().padStart(2, '0')
+  const mm = Math.floor((s % 3600) / 60).toString().padStart(2, '0')
+  const ss = (s % 60).toString().padStart(2, '0')
+  return `${hh}:${mm}:${ss}`
+})
+
+function startSessionSlotTimer(onExpired?: () => void) {
+  stopSessionSlotTimer()
+  const now = getNow()
+  // set/refresh the active slot id & seconds
+  sessionActiveSlotId.value = activeSessionSlotNow(now)
+  const secs = secondsUntilActiveSlotEnds(now)
+  sessionSecondsLeft.value = secs
+
+  if (secs <= 0) {
+    onExpired?.()
+    return
+  }
+  sessionTick = window.setInterval(() => {
+    if (sessionSecondsLeft.value > 0) {
+      sessionSecondsLeft.value--
+    } else {
+      stopSessionSlotTimer()
+      onExpired?.()
+    }
+  }, 1000) as unknown as number
+}
+
+function stopSessionSlotTimer() {
+  if (sessionTick) {
+    clearInterval(sessionTick)
+    sessionTick = null
+  }
+}
+// ======== END SESSION SLOT WINDOWS & TIMER  ========
+
+
 // ---------------- helpers ----------------
 function strToArray(val: string | string[] | null | undefined): string[] {
   if (!val) return []
@@ -1047,6 +1175,66 @@ export const useMatchStore = defineStore('match', () => {
     await initVerificationForCurrentRoom()
   }
 
+  // === session finalization ===
+  async function upsertSessionFromRoom(roomId: string) {
+    try {
+      const { data: room, error } = await supabase
+        .from('match_room')
+        .select('id, session_id, user1, user2, created_at')
+        .eq('id', roomId)
+        .maybeSingle()
+      if (error || !room) return
+
+      if (!room.session_id) {
+        console.warn('[session] No session_id on match_room; skipping session insert.')
+        return
+      }
+
+      const payload = {
+        session_id: room.session_id,
+        room_id: room.id,
+        user1: room.user1,
+        user2: room.user2,
+        started_at: room.created_at,
+        ended_at: new Date().toISOString(),
+      }
+
+      // Upsert to avoid duplicates if called twice
+      const { error: insErr } = await supabase
+        .from('sessions') // ensure this table exists with columns above
+        .upsert(payload, { onConflict: 'session_id' })
+
+      if (insErr) {
+        console.warn('[session] upsert to sessions failed:', insErr)
+      } else {
+        console.log('[session] session row upserted for', room.session_id)
+      }
+    } catch (e) {
+      console.warn('[session] unexpected error:', e)
+    }
+  }
+
+  /** Public API: cleanly end current chat/session (e.g., on timer expiry) */
+  async function endCurrentSession(message?: string) {
+    stopCountdown()
+    stopSessionSlotTimer()
+    const rid = currentMatchId.value || match.value.id
+    if (rid) await upsertSessionFromRoom(rid)
+
+    if (message) landingNotice.value = message
+
+    stage.value = 'landing'
+    resultAccepted.value = false
+    const oldRid = currentMatchId.value
+    currentMatchId.value = null
+    chatId.value = null
+    match.value.partner = { name: '', photo: null, description: null }
+    messages.value = seedMessages()
+    persist()
+    await teardownVerification()
+    return oldRid
+  }
+
   // NEW: no-flicker auto-resume
   async function resumeSilently(): Promise<'chat' | 'decision' | 'landing'> {
     booting.value = true
@@ -1091,7 +1279,7 @@ export const useMatchStore = defineStore('match', () => {
     availability,
     availabilityList,
     landingNotice,
-    booting, // NEW
+    booting,
 
     // computed
     partnerInitials,
@@ -1140,6 +1328,16 @@ export const useMatchStore = defineStore('match', () => {
     findActiveSessionForMe,
     findOpenRoomForMe,
     prepareChatFromRoom,
-    resumeSilently, // NEW
+    resumeSilently,
+
+    // session-slot timer 
+    sessionSecondsLeft,
+    sessionCountdownText,
+    startSessionSlotTimer,
+    stopSessionSlotTimer,
+    sessionActiveSlotLabel,
+
+    // session finalize
+    endCurrentSession,
   }
 })

@@ -120,6 +120,24 @@
         </template>
       </Card>
 
+      <!-- Time Remaining -->
+      <Card v-if="store.myVerified && store.partnerVerified && store.sessionSecondsLeft > 0">
+        <template #title>
+          <span class="text-base font-medium">Time Remaining</span>
+        </template>
+
+        <template #content>
+          <div class="flex items-center">
+            <Tag severity="danger" :value="store.sessionCountdownText" />
+          </div>
+
+          <small class="block opacity-70 mt-2">
+            Counts down to the end of the current time slot -
+            <b>{{ store.sessionActiveSlotLabel || 'Current slot' }}</b>.
+          </small>
+        </template>
+      </Card>
+
       <!-- Chat -->
       <Card class="h-96 flex flex-col">
         <template #title>
@@ -271,7 +289,7 @@ const SLOT_LABELS = {
   slot_morning:  'Morning (8:30am - 11:30am)',
   slot_midday:   'Midday (12:00pm - 3:00pm)',
   slot_afternoon:'Afternoon (3:30pm - 6:30pm)',
-  slot_evening:  'Evening (7:00pm - 10:00pm)',
+  slot_evening:  'Evening (7:00pm - 1:30am)', // updated label
 } as const
 type SlotKey = keyof typeof SLOT_LABELS
 const SLOT_ALIASES: Record<string, SlotKey> = {
@@ -367,6 +385,22 @@ const store = useMatchStore()
 const router = useRouter()
 const route = useRoute()
 const chatScroller = ref<HTMLElement | null>(null)
+
+// Start session-slot timer once BOTH sides are verified.
+// When it expires: finalize session row + redirect to review.
+watch(
+  () => [store.myVerified, store.partnerVerified],
+  async ([mine, theirs]) => {
+    if (mine && theirs) {
+      store.startSessionSlotTimer(async () => {
+        const rid = await store.endCurrentSession('Time’s up for this slot. Session ended.')
+        if (rid) router.replace({ name: 'matchreview', params: { id: rid } })
+        else router.replace({ name: 'matchreview' })
+      })
+    }
+  },
+  { immediate: true }
+)
 
 // studyspots
 const studySpots = ref<any[]>([])
@@ -509,6 +543,7 @@ onUnmounted(() => {
   rejectPoll = null
   // stop realtime + short-lived verification polling if still running
   store.teardownVerification()
+  store.stopSessionSlotTimer()
 })
 </script>
 
