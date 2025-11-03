@@ -1,11 +1,12 @@
 <!-- src/views/MatchLandingView.vue -->
 <template>
-  <div class="match-landing-container">
+  <div v-if="showUI" class="match-landing-container">
     <!--NOTICE BANNER-->
-     <div v-if="store.landingNotice" class="notice-banner">
+    <div v-if="store.landingNotice" class="notice-banner">
       <span>{{ store.landingNotice }}</span>
       <button class="notice-close" @click="store.clearLandingNotice()">×</button>
     </div>
+
     <!-- LANDING / FORM -->
     <div v-if="store.stage === 'landing'" class="match-form">
       <div class="match-header">
@@ -146,10 +147,13 @@ async function redirectIfActiveChat() {
 /**
  * Prefill the user's last chosen timeslots
  */
+const showUI = ref(false)
 onMounted(async () => {
   // 0) auto-redirect if already in an active chat
+  await new Promise(r => setTimeout(r, 0))
   const jumped = await redirectIfActiveChat()
   if (jumped) return
+  showUI.value = true
 
   // 1) try to restore from store (now store keeps string, so use availabilityList)
   if (store.availabilityList.length > 0) {
