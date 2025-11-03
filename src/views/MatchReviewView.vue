@@ -263,7 +263,7 @@ async function submit() {
 
     alreadySubmitted.value = true
     toast.add({ severity: 'success', summary: 'Review submitted', detail: 'Thanks for your feedback!', life: 2000 })
-    setTimeout(() => router.replace({ name: 'matchlanding' }), 1200)
+    setTimeout(() => router.replace({ name: 'home' }), 1200)
   } catch (e: any) {
     errorMsg.value = 'Could not submit your review. Please try again.'
     toast.add({ severity: 'error', summary: 'Submission failed', detail: e?.message || 'Unknown error', life: 2500 })
