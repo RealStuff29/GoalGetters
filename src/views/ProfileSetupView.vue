@@ -5,8 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { updateProfile } from '@/services/profileService'
 import { useProfileSetup } from '@/composables/useProfileSetup'
 import { degrees } from '@/constants/degrees'
-import { modules_with_label, module_index } from '@/constants/modules'
-import { MBTI_QUESTIONS } from '@/constants/mbtiQuestions'
+import { modulesWithLabel, moduleIndex } from '@/constants/modules'
+import { mbtiQuestions } from '@/constants/mbti'
 import { useComputeMBTI } from '@/composables/useComputeMBTI'
 
 
@@ -52,10 +52,10 @@ watch(moduleObjects, (objs) => {
 function searchModules(event) {
   const q = String(event.query || '').trim().toLowerCase()
   if (!q) {
-    moduleSuggestions.value = modules_with_label
+    moduleSuggestions.value = modulesWithLabel
     return
   }
-  moduleSuggestions.value = modules_with_label.filter(m =>
+  moduleSuggestions.value = modulesWithLabel.filter(m =>
     m.code.toLowerCase().includes(q) || m.title.toLowerCase().includes(q)
   )
 }
@@ -72,7 +72,7 @@ function addModuleOption(opt) {
 function addFreeTypedCode() {
   const raw = String(moduleQuery.value || '').trim().toUpperCase()
   if (!raw) return
-  const opt = module_index[raw] ? { ...module_index[raw], label: `${raw} ${module_index[raw].title}` }
+  const opt = moduleIndex[raw] ? { ...moduleIndex[raw], label: `${raw} ${moduleIndex[raw].title}` }
                                 : { code: raw, title: '', label: raw } // unknown code fallback
   addModuleOption(opt)
 }
@@ -136,12 +136,12 @@ async function handleAcademicNext(activateCallback) {
 
 // CHANGE 1
 // --- Step 3: MBTI state + logic (NEW) ---
-const mbtiAnswers = ref(Array(MBTI_QUESTIONS.length).fill(null))
+const mbtiAnswers = ref(Array(  mbtiQuestions.length).fill(null))
 const mbtiResult = ref("");
 const isStep3Answered = computed(() => mbtiAnswers.value.every(a => a !== null));
 
 function handleComputeMbti() {
-  mbtiResult.value = computeMbtiType(mbtiAnswers.value, MBTI_QUESTIONS)
+  mbtiResult.value = computeMbtiType(mbtiAnswers.value,   mbtiQuestions)
   console.log("Result stored:", mbtiResult.value) // debug
 }
 
@@ -348,7 +348,7 @@ async function handleSavePersonality() {
             <h5 class="fw-semibold mb-3">Tell us about yourself</h5>
 
             <!-- 10 questions -->
-            <div v-for="(q, i) in MBTI_QUESTIONS" :key="q.id" class="border rounded p-3 mb-3">
+            <div v-for="(q, i) in   mbtiQuestions" :key="q.id" class="border rounded p-3 mb-3">
               <p class="mb-2">{{ i + 1 }}. {{ q.text }}</p>
 
               <div class="d-flex gap-3 flex-wrap">

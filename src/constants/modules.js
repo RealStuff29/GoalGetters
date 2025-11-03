@@ -18,5 +18,5 @@ export const modules = [
 ]
 
 // with label + an index for quick lookups
-export const modules_with_label = modules.map(m => ({ ...m, label: `${m.code} ${m.title}` }))
-export const module_index = Object.fromEntries(modules.map(m => [m.code, m]))
+export const modulesWithLabel = modules.map(m => ({ ...m, label: `${m.code} ${m.title}` }))
+export const moduleIndex = Object.fromEntries(modules.map(m => [m.code, m]))

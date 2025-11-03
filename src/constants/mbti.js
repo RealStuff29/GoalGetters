@@ -1,4 +1,4 @@
-export const MBTI_QUESTIONS = [
+export const mbtiQuestions = [
     { id: 1, text: "You prefer to spend time with a large group of people rather than alone.", dim: "EI", pos: "E", neg: "I" },
     { id: 2, text: "You focus more on details than the big picture.", dim: "SN", pos: "S", neg: "N" },
     { id: 3, text: "You make decisions based on logic rather than emotions.", dim: "TF", pos: "T", neg: "F" },

@@ -3,8 +3,8 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { degrees } from '@/constants/degrees'
-import { modules_with_label, module_index } from '@/constants/modules'
-import { MBTI_QUESTIONS } from '@/constants/mbtiQuestions'
+import { modulesWithLabel, moduleIndex } from '@/constants/modules'
+import {  mbtiQuestions } from '@/constants/mbti'
 import { useComputeMBTI } from '@/composables/useComputeMBTI'
 import { updateProfile } from '@/services/profileService'  
 
@@ -118,7 +118,7 @@ onMounted(async () => {
 
     // hydrate chip objects from codes we just normalized
     moduleObjects.value = (modules.value || []).map(code => {
-      const m = module_index[code]
+      const m = moduleIndex[code]
       return m ? { ...m, label: `${m.code} ${m.title}` } : { code, title: '', label: code }
     })
 
@@ -144,13 +144,13 @@ onMounted(async () => {
         if (isA) {
           const r = row.rating_by_b
           const c = row.comment_by_b ?? ''
-          if (r != null && counts[r] != null) counts[r]  
+          if (r != null && counts[r] != null) counts[r]++  
           if (c || r != null) list.push({ id: `${row.sessid}-b`, rating: Number(r ?? 0), comment: c || '' })
         }
         if (isB) {
           const r = row.rating_by_a
           const c = row.comment_by_a ?? ''
-          if (r != null && counts[r] != null) counts[r]  
+          if (r != null && counts[r] != null) counts[r]++  
           if (c || r != null) list.push({ id: `${row.sessid}-a`, rating: Number(r ?? 0), comment: c || '' })
         }
       }
@@ -194,10 +194,10 @@ async function changePassword() {
 function searchModules(event) {
   const q = String(event.query || '').trim().toLowerCase()
   if (!q) {
-    moduleSuggestions.value = modules_with_label
+    moduleSuggestions.value = modulesWithLabel
     return
   }
-  moduleSuggestions.value = modules_with_label.filter(m =>
+  moduleSuggestions.value = modulesWithLabel.filter(m =>
     m.code.toLowerCase().includes(q) || m.title.toLowerCase().includes(q)
   )
 }
@@ -212,8 +212,8 @@ function addModuleOption(opt) {
 function addFreeTypedCode() {
   const raw = String(moduleQuery.value || '').trim().toUpperCase()
   if (!raw) return
-  const opt = module_index[raw]
-    ? { ...module_index[raw], label: `${raw} ${module_index[raw].title}` }
+  const opt = moduleIndex[raw]
+    ? { ...moduleIndex[raw], label: `${raw} ${moduleIndex[raw].title}` }
     : { code: raw, title: '', label: raw } // unknown code fallback
   addModuleOption(opt)
 }
@@ -352,7 +352,7 @@ function gotoMatchHistory() { openMatchHistory() }
 
 /* --------------- MBTI dialog --------------- */
 const showMbtiDialog = ref(false)
-const mbtiAnswers = ref(Array(MBTI_QUESTIONS.length).fill(null))
+const mbtiAnswers = ref(Array( mbtiQuestions.length).fill(null))
 const mbtiWorking = ref(false)
 const mbtiResult = ref('')
 
@@ -360,12 +360,12 @@ const mbtiCtaLabel = computed(() => (mbti.value ? 'Redo MBTI' : 'Take MBTI Test'
 const allAnswered = computed(() => mbtiAnswers.value.every(a => a !== null))
 
 function openMbtiDialog() {
-  mbtiAnswers.value = Array(MBTI_QUESTIONS.length).fill(null)
+  mbtiAnswers.value = Array( mbtiQuestions.length).fill(null)
   mbtiResult.value = ''
   showMbtiDialog.value = true
 }
 function computeMbtiNow() {
-  mbtiResult.value = computeMbtiType(mbtiAnswers.value, MBTI_QUESTIONS)
+  mbtiResult.value = computeMbtiType(mbtiAnswers.value,  mbtiQuestions)
 }
 async function saveMbtiToProfile() {
   if (!mbtiResult.value) return alert('Please compute your MBTI result first.')
@@ -577,7 +577,7 @@ async function saveMbtiToProfile() {
 
           <ScrollPanel style="height: 220px" class="p-3 bg-light rounded-4 mt-3">
             <div v-if="visibleReviews.length === 0" class="text-center text-muted">
-              {{ selectedStar == null ? 'No reviews yet' : `No ${selectedStar}★ reviews` }}
+              {{ selectedStar == null ? 'No reviews yet' : `No ${selectedStar} ★ reviews` }}
             </div>
             <div v-else class="d-flex flex-column gap-3">
               <div v-for="r in visibleReviews" :key="r.id" class="p-3 bg-white rounded-3 shadow-sm">
@@ -597,7 +597,7 @@ async function saveMbtiToProfile() {
             <div v-if="!mbtiResult">
               <div class="small text-muted mb-3">Answer each statement. You can agree, feel neutral, or disagree.</div>
               <div class="d-flex flex-column gap-3" style="max-height: 60vh; overflow: auto;">
-                <div v-for="(q, i) in MBTI_QUESTIONS" :key="q.id" class="border rounded p-3">
+                <div v-for="(q, i) in  mbtiQuestions" :key="q.id" class="border rounded p-3">
                   <p class="mb-2">{{ i + 1 }}. {{ q.text }}</p>
                   <div class="d-flex gap-4 flex-wrap">
                     <label class="d-flex align-items-center gap-2">
