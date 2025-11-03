@@ -7,7 +7,10 @@
     <!-- Left column -->
     <div class="space-y-4">
 <<<<<<< HEAD
+<<<<<<< HEAD
       <!-- Header -->
+=======
+>>>>>>> parent of a2482d4 ([corrected] Update Study Session Details from hardcode to actual data pulled from profiles table in database)
 =======
 >>>>>>> parent of a2482d4 ([corrected] Update Study Session Details from hardcode to actual data pulled from profiles table in database)
       <Card>
@@ -108,7 +111,10 @@
       </Card>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
       <!-- Study Session Details -->
+=======
+>>>>>>> parent of a2482d4 ([corrected] Update Study Session Details from hardcode to actual data pulled from profiles table in database)
 =======
 >>>>>>> parent of a2482d4 ([corrected] Update Study Session Details from hardcode to actual data pulled from profiles table in database)
       <Card>
@@ -118,6 +124,7 @@
         <template #content>
           <div class="space-y-3">
             <div class="flex items-start gap-3">
+<<<<<<< HEAD
 <<<<<<< HEAD
               <i :class="pi('clock')" class="opacity-70 mt-1" />
               <div>
@@ -174,6 +181,24 @@
                 </div>
               </div>
 =======
+              <i :class="pi('map-marker')" class="opacity-70 mt-1" />
+              <p class="text-sm">{{ store.match.location }}</p>
+>>>>>>> parent of a2482d4 ([corrected] Update Study Session Details from hardcode to actual data pulled from profiles table in database)
+=======
+              <i :class="pi('book')" class="opacity-70 mt-1" />
+              <div>
+                <Tag severity="secondary" :value="store.match.subject" />
+                <p class="text-sm opacity-80 mt-1">{{ store.match.description }}</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <i :class="pi('clock')" class="opacity-70 mt-1" />
+              <div>
+                <p class="text-sm">{{ store.match.time }}</p>
+                <small class="opacity-70">Duration: <b>{{ store.match.duration }}</b></small>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
               <i :class="pi('map-marker')" class="opacity-70 mt-1" />
               <p class="text-sm">{{ store.match.location }}</p>
 >>>>>>> parent of a2482d4 ([corrected] Update Study Session Details from hardcode to actual data pulled from profiles table in database)
@@ -336,6 +361,7 @@
 import { onMounted, onUnmounted, ref, nextTick, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMatchStore } from '@/stores/match'
+<<<<<<< HEAD
 <<<<<<< HEAD
 import { degrees } from '@/constants/degrees'
 import { supabase } from '@/lib/supabase'
@@ -514,6 +540,13 @@ function deriveVerifyCode(roomId: string, userId: string): string {
   return `${word}-${num}`
 }
 
+=======
+import { supabase } from '@/lib/supabase'   // 👈 you were missing this
+import Card from 'primevue/card'
+import Button from 'primevue/button'
+import StudySpotMap from './StudySpotMap.vue'
+
+>>>>>>> parent of a2482d4 ([corrected] Update Study Session Details from hardcode to actual data pulled from profiles table in database)
 =======
 import { supabase } from '@/lib/supabase'   // 👈 you were missing this
 import Card from 'primevue/card'
@@ -792,6 +825,7 @@ onMounted(async () => {
   await store.ensureChat(route.params.chatId as string | undefined)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   await loadStudyDetailsFromDB()
 
   const roomId = store.currentMatchId || store.match.id
@@ -819,6 +853,8 @@ onMounted(async () => {
   }
 
 =======
+=======
+>>>>>>> parent of a2482d4 ([corrected] Update Study Session Details from hardcode to actual data pulled from profiles table in database)
   // let template render
 >>>>>>> parent of a2482d4 ([corrected] Update Study Session Details from hardcode to actual data pulled from profiles table in database)
   store.stage = 'chat'
