@@ -78,6 +78,9 @@ import { supabase } from '@/lib/supabase'
 const router = useRouter()
 const store = useMatchStore()
 
+// 🔁 Change this if your route name/path differs
+const CHAT_ROUTE = { name: 'matchchat' }
+
 const timeSlots = [
   { id: 'slot_morning',   label: 'Morning',   window: '8:30am – 11:30am' },
   { id: 'slot_midday',    label: 'Midday',    window: '12:00pm – 3:00pm' },
@@ -92,9 +95,62 @@ function callGetIdleOthers(myId: string) {
 }
 
 /**
+ * If the user already has an active chat, send them there.
+ * Cache-first (store), then DB lookup for match_room with non-null session_id.
+ */
+async function redirectIfActiveChat() {
+  // hydrate cache if present
+  await store.hydrateFromCache()
+
+  // If store already knows we’re in chat, go there
+  if (store.stage === 'chat' && (store.currentMatchId || store.sessionId)) {
+    await store.loadPartnerForCurrent()
+    await store.initVerificationForCurrentRoom()
+    router.replace(CHAT_ROUTE)
+    return true
+  }
+
+  // Otherwise, check DB for any established session
+  const { data: auth } = await supabase.auth.getUser()
+  const myId = auth?.user?.id
+  if (!myId) return false
+
+  const { data: rooms, error } = await supabase
+    .from('match_room')
+    .select('id, session_id, created_at')
+    .or(`user1.eq.${myId},user2.eq.${myId}`)
+    .not('session_id', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  if (error) {
+    console.warn('[landing] active chat lookup failed:', error)
+    return false
+  }
+
+  if (rooms && rooms.length) {
+    const rid = rooms[0].id as string
+    store.currentMatchId = rid
+    store.match.id = rid as any
+    store.stage = 'chat'
+    await store.ensureChat()
+    await store.setPartnerFromRoom(rid)
+    await store.initVerificationForCurrentRoom()
+    router.replace(CHAT_ROUTE)
+    return true
+  }
+
+  return false
+}
+
+/**
  * Prefill the user's last chosen timeslots
  */
 onMounted(async () => {
+  // 0) auto-redirect if already in an active chat
+  const jumped = await redirectIfActiveChat()
+  if (jumped) return
+
   // 1) try to restore from store (now store keeps string, so use availabilityList)
   if (store.availabilityList.length > 0) {
     selectedSlots.value = [...store.availabilityList]
