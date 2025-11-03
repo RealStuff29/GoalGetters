@@ -94,19 +94,36 @@ export function useAuth() {
 
         const { data, error } = await supabase
             .from('profiles')
-            .select('has_completed_profile, username')
+            // .select('has_completed_profile, username') //Trying to change keith's query to old query
+            .select('username')
             .eq('user_id', user.id)
             .maybeSingle();
 
+
+        console.log('[COMPLETED PROFILE FUNC] user id is: ', user.id)
+        console.log('[COMPLETED PROFILE FUNC] data is: ', data)
+        console.log('[COMPLETED PROFILE FUNC] name is: ', data.username)
+
+
         if (error) {
             console.error('Error checking profile completion:', error);
+            console.log('[COMPLETED PROFILE FUNC] IF ERROR CHECKING PROFILE IS FIRING');
             return false;
         }
 
         // Fallback: if has_completed_profile is NULL but username exists, treat as complete
+
+
+        // ======================= Check with keith if this code is still required, seems redundant after reverting his commit changes =======================
+        
         if (data?.has_completed_profile === true) return true;
         if (data?.has_completed_profile === null && data?.username) return true;
-        return false;
+        
+        // ==============================================
+
+        console.log('[COMPLETED PROFILE FUNC] REACHING THE END OF FUNC');
+        return !!(data && data.username);
+        // return false; //commented out in replacement for return above
     }
 
     // I am just following documentation for this code chunk, check here if you want to see: https://supabase.com/docs/reference/javascript/auth-onauthstatechange

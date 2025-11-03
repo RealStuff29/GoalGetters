@@ -73,15 +73,16 @@ function handleHomeNav() {
       </div>
 
       <!-- Center navigation -->
-      <div class="center-nav d-flex align-items-center justify-content-center gap-4 position-absolute top-50 start-50 translate-middle">
+      <div
+        class="center-nav d-flex align-items-center justify-content-center gap-4 position-absolute top-50 start-50 translate-middle">
         <!-- Show app features when logged in -->
         <template v-if="userSession">
-          <a @click="handleProtectedNavigation('/crudview')" class="nav-link">Crud Test</a>
-          <a @click="handleProtectedNavigation('/profilesetupview')" class="nav-link">Profile Setup</a>
-          <a @click="handleProtectedNavigation('/profilesettingsview')" class="nav-link">Profile Settings</a>
-          <a @click="handleProtectedNavigation('/matchlandingview')" class="nav-link">Matchmake Now</a>
-          <a @click="handleProtectedNavigation('/feedbackview')" class="nav-link">Feedback</a>
-          <a @click="handleProtectedNavigation('/matchchatview')" class="nav-link">MatchChat</a>
+          <RouterLink to="/crudview" class="nav-link">Crud Test</RouterLink>
+          <RouterLink to="/profilesetupview" class="nav-link">Profile Setup</RouterLink>
+          <RouterLink to="/profilesettingsview" class="nav-link">Profile Settings</RouterLink>
+          <RouterLink to="/matchlandingview" class="nav-link">Matchmake Now</RouterLink>
+          <RouterLink to="/feedbackview" class="nav-link">Feedback</RouterLink>
+          <RouterLink to="/matchchatview" class="nav-link">MatchChat</RouterLink>
         </template>
       </div>
 

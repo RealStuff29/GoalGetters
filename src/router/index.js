@@ -75,9 +75,9 @@ router.beforeEach(async (to) => {
   const sessionResponse = await supabase.auth.getSession(); //Getting session from supabase
   const session = sessionResponse.data.session;
 
-  console.log('to.meta', to.meta)
-  console.log('to.meta.requiresAuth', to.meta.requiresAuth)
-  console.log('session', session)
+  // console.log('to.meta', to.meta)
+  // console.log('to.meta.requiresAuth', to.meta.requiresAuth)
+  // console.log('session', session)
 
   // If user is logged in and tries to access LandingView ('/'), redirect to HomeView
   if (to.name === 'landing' && session) {
@@ -108,6 +108,7 @@ router.beforeEach(async (to) => {
     const { hasCompletedProfile } = useAuth();
     try {
       complete = await hasCompletedProfile();
+      console.log("[ROUTER GUARD TRY] complete is: ", complete);
     } catch (err) {
       console.error('Error checking profile completion:', err);
     }
