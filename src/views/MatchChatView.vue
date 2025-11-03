@@ -116,6 +116,11 @@
                    :value="store.partnerVerified ? 'Partner: Verified' : 'Partner: Pending'"/>
               <Tag v-if="store.sessionId" severity="success" :value="`Session: ${store.sessionId.slice(0,8)}…`"/>
             </div>
+
+            <small v-if="store.verifyMessage" class="block"
+                   :class="store.myVerified && store.partnerVerified ? 'text-green-700' : 'opacity-70'">
+              {{ store.verifyMessage }}
+            </small>
           </div>
         </template>
       </Card>
@@ -263,7 +268,7 @@ import { degrees } from '@/constants/degrees'
 import { supabase } from '@/lib/supabase'
 import StudySpotMap from './StudySpotMap.vue'
 
-// ---- study details helpers ----
+// ---- study details helpers (unchanged) ----
 const myProfile = ref<any | null>(null)
 const partnerProfile = ref<any | null>(null)
 
@@ -431,14 +436,11 @@ onMounted(async () => {
     router.replace({ name: 'matchlanding' })
     return
   }
-  // making sure we have chat id
+
   await store.ensureChat(route.params.chatId as string | undefined)
 
   // init verification (reads flags & subscribes)
   await store.initVerificationForCurrentRoom()
-
-  // optional extra refresh later
-  setTimeout(() => { store.refreshVerificationNow() }, 3000)
 
   // load the dynamic study details here
   await loadStudyDetailsFromDB()
@@ -485,6 +487,7 @@ onMounted(async () => {
 async function onVerify() {
   const res = await store.submitVerification()
   if (!res.ok) {
+    // plug in your toast if available
     console.warn(res.msg)
   }
 }
@@ -507,8 +510,6 @@ watch(() => store.currentMatchId, async (rid) => {
 onUnmounted(() => {
   if (rejectPoll) clearInterval(rejectPoll)
   rejectPoll = null
-  // stop realtime + short-lived verification polling if still running
-  store.teardownVerification()
 })
 </script>
 
