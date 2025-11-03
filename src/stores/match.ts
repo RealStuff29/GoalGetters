@@ -2,9 +2,16 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { supabase } from '@/lib/supabase'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 
 type Stage = 'landing' | 'searching' | 'match' | 'result' | 'chat' | 'notfound'
-type Message = { id: number; from: 'me' | 'them'; text: string }
+type Message = { 
+  id: string
+  from: 'me' | 'them'
+  text: string
+  created_at: string
+  sender_id: string
+}
 type Spot = { name: string; desc: string }
 
 type Partner = {
@@ -391,18 +398,10 @@ export const useMatchStore = defineStore('match', () => {
     return `${mm}:${ss}`
   })
 
-  // ---------- Chat ----------
-  let idSeq = 0
+  // ---------- Chat (UPDATED FOR REAL-TIME) ----------
   const draft = ref('')
-  const messages = ref<Message[]>(seedMessages())
-
-  function seedMessages(): Message[] {
-    idSeq = 0
-    return [
-      { id: ++idSeq, from: 'them', text: 'Hey! Ready to go over the WAD2 homework?' },
-      { id: ++idSeq, from: 'me', text: 'Yup! I got stuck at the Axios part though.' },
-    ]
-  }
+  const messages = ref<Message[]>([])
+  let realtimeChannel: RealtimeChannel | null = null
 
   const locationSuggestions = ref<Spot[]>([
     { name: 'Library L2 - Study Room 3', desc: 'Quiet room • Whiteboard • Fits 4' },
@@ -459,6 +458,174 @@ export const useMatchStore = defineStore('match', () => {
   }
 
   watch([stage, resultAccepted, currentMatchId, chatId, match, availability], persist, { deep: true })
+
+  // ---------- REAL-TIME CHAT FUNCTIONS ----------
+  
+  /**
+   * Load existing messages from the database
+   */
+  async function loadMessages(roomId: string) {
+    try {
+      const { data: auth } = await supabase.auth.getUser()
+      const myId = auth?.user?.id
+      if (!myId) {
+        console.warn('[chat] Cannot load messages - not authenticated')
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('id, room_id, sender_id, message_text, created_at')
+        .eq('room_id', roomId)
+        .order('created_at', { ascending: true })
+
+      if (error) {
+        console.error('[chat] Error loading messages:', error)
+        return
+      }
+
+      messages.value = (data || []).map(msg => ({
+        id: msg.id,
+        from: msg.sender_id === myId ? 'me' : 'them',
+        text: msg.message_text,
+        created_at: msg.created_at,
+        sender_id: msg.sender_id
+      }))
+
+      console.log(`📨 Loaded ${messages.value.length} messages for room ${roomId}`)
+    } catch (err) {
+      console.error('[chat] loadMessages failed:', err)
+    }
+  }
+
+  /**
+   * Subscribe to real-time message updates
+   */
+  async function subscribeToMessages(roomId: string) {
+    try {
+      const { data: auth } = await supabase.auth.getUser()
+      const myId = auth?.user?.id
+      if (!myId) {
+        console.warn('[chat] Cannot subscribe - not authenticated')
+        return
+      }
+
+      // Unsubscribe from previous channel if exists
+      if (realtimeChannel) {
+        await supabase.removeChannel(realtimeChannel)
+        realtimeChannel = null
+      }
+
+      // Create new channel for this room
+      realtimeChannel = supabase
+        .channel(`room:${roomId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: `room_id=eq.${roomId}`
+          },
+          (payload) => {
+            console.log('💬 New message received:', payload)
+            
+            const newMsg = payload.new as any
+            
+            // Add to messages array
+            messages.value.push({
+              id: newMsg.id,
+              from: newMsg.sender_id === myId ? 'me' : 'them',
+              text: newMsg.message_text,
+              created_at: newMsg.created_at,
+              sender_id: newMsg.sender_id
+            })
+          }
+        )
+        .subscribe((status) => {
+          console.log(`🔌 Realtime subscription status: ${status}`)
+        })
+
+      console.log(`📡 Subscribed to room: ${roomId}`)
+    } catch (err) {
+      console.error('[chat] subscribeToMessages failed:', err)
+    }
+  }
+
+  /**
+   * Unsubscribe from real-time updates
+   */
+  async function unsubscribeFromMessages() {
+    if (realtimeChannel) {
+      await supabase.removeChannel(realtimeChannel)
+      realtimeChannel = null
+      console.log('🔌 Unsubscribed from realtime messages')
+    }
+  }
+
+  /**
+   * Send a message (persists to database, triggers realtime update)
+   */
+  async function sendMessage(text: string) {
+    const t = text.trim()
+    if (!t) return
+
+    try {
+      const { data: auth } = await supabase.auth.getUser()
+      const myId = auth?.user?.id
+      if (!myId) {
+        console.warn('[chat] Cannot send message - not authenticated')
+        return
+      }
+
+      const roomId = currentMatchId.value || match.value.id
+      if (!roomId) {
+        console.warn('[chat] Cannot send message - no room ID')
+        return
+      }
+
+      // Insert message into database (this will trigger realtime update)
+      const { error } = await supabase
+        .from('chat_messages')
+        .insert({
+          room_id: roomId,
+          sender_id: myId,
+          message_text: t,
+        })
+
+      if (error) {
+        console.error('[chat] Error sending message:', error)
+        return
+      }
+
+      console.log('✉️ Message sent successfully')
+    } catch (err) {
+      console.error('[chat] sendMessage failed:', err)
+    }
+  }
+
+  /**
+   * Initialize chat when entering chat view
+   */
+  async function initializeChat(roomId: string) {
+    try {
+      messages.value = [] // Clear existing messages
+      await loadMessages(roomId) // Load history
+      await subscribeToMessages(roomId) // Subscribe to new messages
+      console.log('💬 Chat initialized for room:', roomId)
+    } catch (err) {
+      console.error('[chat] initializeChat failed:', err)
+    }
+  }
+
+  /**
+   * Cleanup chat when leaving
+   */
+  async function cleanupChat() {
+    await unsubscribeFromMessages()
+    messages.value = []
+    console.log('🧹 Chat cleaned up')
+  }
 
   // ---------- Countdown helpers ----------
   function startCountdown(onExpired?: () => void) {
@@ -556,7 +723,7 @@ export const useMatchStore = defineStore('match', () => {
     currentMatchId.value = null
     chatId.value = null
     match.value.partner = { name: '', photo: null, description: null }
-    messages.value = seedMessages()
+    messages.value = []
     persist()
     // also teardown verification channel/poll
     await teardownVerification()
@@ -605,8 +772,8 @@ export const useMatchStore = defineStore('match', () => {
 
   function startOver() {
     stopCountdown()
+    cleanupChat() // Clean up chat subscriptions
     stage.value = 'landing'
-    messages.value = seedMessages()
     draft.value = ''
     currentMatchId.value = null
     chatId.value = null
@@ -620,18 +787,9 @@ export const useMatchStore = defineStore('match', () => {
     persist()
   }
 
-  function sendMessage(text: string) {
-    const t = text.trim()
-    if (!t) return
-    messages.value.push({ id: ++idSeq, from: 'me', text: t })
-    setTimeout(() => {
-      messages.value.push({ id: ++idSeq, from: 'them', text: "Nice, let's compare approaches." })
-    }, 700)
-  }
-
   function chooseSpot(spot: Spot) {
     match.value.location = spot.name
-    messages.value.push({ id: ++idSeq, from: 'me', text: `Let's meet at ${spot.name}.` })
+    sendMessage(`Let's meet at ${spot.name}.`)
     persist()
   }
 
@@ -939,7 +1097,6 @@ export const useMatchStore = defineStore('match', () => {
     return ''
   }
 
-  // ---------- partner loading ----------
   async function loadPartnerProfile(roomId: string, myId: string) {
     const { data: room } = await supabase.from('match_room').select('user1, user2').eq('id', roomId).single()
     if (!room) return null
@@ -1012,7 +1169,6 @@ export const useMatchStore = defineStore('match', () => {
     availability,
     availabilityList,
     landingNotice,
-
     // computed
     partnerInitials,
     countdownText,
@@ -1055,5 +1211,12 @@ export const useMatchStore = defineStore('match', () => {
     forceLeaveChat,
     setLandingNotice,
     clearLandingNotice,
+    
+    // NEW: Chat functions
+    initializeChat,
+    cleanupChat,
+    loadMessages,
+    subscribeToMessages,
+    unsubscribeFromMessages,
   }
 })
