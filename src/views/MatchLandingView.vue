@@ -1,7 +1,8 @@
 <!-- src/views/MatchLandingView.vue -->
 <template>
-  <div v-if="showUI" class="match-landing-container">
-    <!--NOTICE BANNER-->
+  <!-- Hide everything while resuming to avoid any UI flash -->
+  <div v-if="!isResuming" class="match-landing-container">
+    <!-- NOTICE BANNER -->
     <div v-if="store.landingNotice" class="notice-banner">
       <span>{{ store.landingNotice }}</span>
       <button class="notice-close" @click="store.clearLandingNotice()">×</button>
@@ -56,8 +57,8 @@
       <Button class="mt-4" label="Try Again" @click="backToLanding" />
     </div>
 
-    <!-- SEARCHING STATE -->
-    <div v-else class="match-searching">
+    <!-- SEARCHING STATE (only shown when the user actually starts matching) -->
+    <div v-else-if="store.stage === 'searching'" class="match-searching">
       <ProgressSpinner style="width:4rem;height:4rem" strokeWidth="4" />
       <h2 class="match-title-sm">Finding Your Perfect Study Match</h2>
       <p class="match-subtitle">Searching for classmates with similar study goals...</p>
@@ -79,6 +80,9 @@ import { supabase } from '@/lib/supabase'
 const router = useRouter()
 const store = useMatchStore()
 
+// while this is true, nothing renders (prevents the brief "searching" flash)
+const isResuming = ref(true)
+
 const timeSlots = [
   { id: 'slot_morning',   label: 'Morning',   window: '8:30am – 11:30am' },
   { id: 'slot_midday',    label: 'Midday',    window: '12:00pm – 3:00pm' },
@@ -88,12 +92,14 @@ const timeSlots = [
 
 const selectedSlots = ref<string[]>([])
 
+// (optional debug helper you had)
 function callGetIdleOthers(myId: string) {
   store.getIdleOthers(myId)
 }
 
 /**
- * Prefill the user's last chosen timeslots
+ * Mount: prefill timeslots, then silently resume.
+ * We keep the whole page hidden until we decide where to go.
  */
 /**
  * If the user already has an active chat, send them there.
@@ -173,12 +179,44 @@ onMounted(async () => {
     console.warn('[matchlanding] Could not load previous timeslot_avail:', error)
     return
   }
+  try {
+    // Prefill previously chosen timeslots
+    if (store.availabilityList.length > 0) {
+      selectedSlots.value = [...store.availabilityList]
+    } else {
+      const { data: auth } = await supabase.auth.getUser()
+      const userId = auth?.user?.id
+      if (userId) {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('timeslot_avail')
+          .eq('user_id', userId)
+          .maybeSingle()
+        const val = prof?.timeslot_avail
+        if (typeof val === 'string' && val.trim() !== '') {
+          selectedSlots.value = val.split(',').map(v => v.trim())
+        } else if (Array.isArray(val)) {
+          selectedSlots.value = val
+        }
+      }
+    }
 
-  const val = prof?.timeslot_avail
-  if (typeof val === 'string' && val.trim() !== '') {
-    selectedSlots.value = val.split(',').map(v => v.trim())
-  } else if (Array.isArray(val)) {
-    selectedSlots.value = val
+    // 🔇 Silent resume: if there's an active session/room, route immediately
+    const where = await store.resumeSilently()
+    if (where === 'chat') {
+      router.replace({ name: 'matchchat', params: { id: store.currentMatchId! } })
+      return
+    }
+    if (where === 'decision') {
+      router.replace({ name: 'matchdecision', params: { id: store.currentMatchId! } })
+      return
+    }
+  } catch (e) {
+    console.warn('[landing] resume check failed', e)
+    // fall through to landing
+  } finally {
+    // Only now allow the page to render (prevents any interim state flash)
+    isResuming.value = false
   }
 })
 
@@ -197,34 +235,24 @@ function backToLanding() {
 async function onStart() {
   if (selectedSlots.value.length === 0) return
 
-  // 1️ save selected slots
+  // save selected slots
   await store.setAvailability(selectedSlots.value)
-  // 2️ clear my old rejections so I can be matched with them again
+  // clear old rejections so they can be matched again
   await store.clearMyRejections()
 
-  // 3 show searching UI
+  // user explicitly started → show searching UI now
   store.stage = 'searching'
 
   try {
-    // 4 try to match
     const roomId = await store.queueAndPoll()
+    if (!roomId) return // notfound handled by store.stage
 
-    // if store couldn't find ≥200, it will set stage='notfound' and return ''
-    if (!roomId) {
-      // we let the template show the notfound state
-      return
-    }
-
-    // 5 go to decision page
     router.push({ name: 'matchdecision', params: { id: roomId } })
   } catch (err: any) {
     console.error('[matchlanding] matchmaking failed', err)
-
-    // if no profile / not logged in
     if (err?.message === 'Not authenticated or profile missing') {
       router.push({ name: 'profilesetup' })
     } else {
-      // generic failure → go back to landing
       store.stage = 'landing'
     }
   }
@@ -246,9 +274,7 @@ async function onStart() {
   max-width: 650px;
 }
 
-.match-header {
-  margin-bottom: 1.5rem;
-}
+.match-header { margin-bottom: 1.5rem; }
 
 .match-title {
   font-size: 2.25rem;
@@ -257,11 +283,7 @@ async function onStart() {
   margin-bottom: 0.5rem;
 }
 
-.match-subtitle {
-  font-size: 1rem;
-  color: var(--color-text);
-  opacity: 0.8;
-}
+.match-subtitle { font-size: 1rem; color: var(--color-text); opacity: 0.8; }
 
 /* slots */
 .slots-grid {
@@ -280,16 +302,10 @@ async function onStart() {
   padding: 0.75rem 1rem;
   text-align: left;
   cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    transform 0.1s ease;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
 }
 
-.slot-btn:hover {
-  border-color: var(--color-border-hover);
-  background: var(--color-background-mute);
-}
+.slot-btn:hover { border-color: var(--color-border-hover); background: var(--color-background-mute); }
 
 .slot-btn--active {
   background-color: #22c55e !important;
@@ -299,111 +315,52 @@ async function onStart() {
   transform: translateY(-1px);
 }
 
-.slot-btn:active {
-  transform: scale(0.97);
-  background-color: var(--color-border-hover);
-}
-.slot-btn--active:active {
-  background-color: #16a34a !important;
-  border-color: #16a34a !important;
-}
+.slot-btn:active { transform: scale(0.97); background-color: var(--color-border-hover); }
+.slot-btn--active:active { background-color: #16a34a !important; border-color: #16a34a !important; }
 
 /* start button */
-.match-start {
-  margin-top: 1rem;
-}
+.match-start { margin-top: 1rem; }
 .start-btn {
   background: #22c55e !important;
   border-color: #22c55e !important;
   color: #fff !important;
   font-weight: 600;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 .start-btn:hover {
-  background: #16a34a !important;
-  border-color: #16a34a !important;
+  background: #16a34a !important; border-color: #16a34a !important;
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(34, 197, 94, 0.25);
 }
-.start-btn:active {
-  transform: scale(0.97);
-}
+.start-btn:active { transform: scale(0.97); }
 .start-btn:disabled {
   background: rgba(34, 197, 94, 0.4) !important;
   border-color: rgba(34, 197, 94, 0.4) !important;
-  color: #fff !important;
-  opacity: 1 !important;
-  cursor: not-allowed;
+  color: #fff !important; opacity: 1 !important; cursor: not-allowed;
 }
 
-.error-hint {
-  font-size: 0.8rem;
-  color: #f43f5e;
-  margin-top: 0.5rem;
-}
+.error-hint { font-size: 0.8rem; color: #f43f5e; margin-top: 0.5rem; }
 
 /* searching */
-.match-searching {
-  text-align: center;
-  color: var(--color-text);
-}
-.match-title-sm {
-  font-size: 1.6rem;
-  font-weight: 600;
-  margin-top: 1rem;
-}
-.dots {
-  display: flex;
-  justify-content: center;
-  gap: 0.4rem;
-  margin-top: 0.75rem;
-}
-.dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 9999px;
-  background: #22c55e;
-  animation: pulse 1.5s cubic-bezier(0.4,0,0.6,1) infinite;
-}
+.match-searching { text-align: center; color: var(--color-text); }
+.match-title-sm { font-size: 1.6rem; font-weight: 600; margin-top: 1rem; }
+.dots { display: flex; justify-content: center; gap: 0.4rem; margin-top: 0.75rem; }
+.dot { width: 0.5rem; height: 0.5rem; border-radius: 9999px; background: #22c55e; animation: pulse 1.5s cubic-bezier(0.4,0,0.6,1) infinite; }
 .delay-150 { animation-delay: 150ms; }
 .delay-300 { animation-delay: 300ms; }
-@keyframes pulse {
-  50% { opacity: 0.4; }
-}
+@keyframes pulse { 50% { opacity: 0.4; } }
 
 /* notfound */
-.match-notfound {
-  text-align: center;
-  max-width: 480px;
-  margin: 0 auto;
-}
-.match-notfound .match-title-sm {
-  font-size: 1.6rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
+.match-notfound { text-align: center; max-width: 480px; margin: 0 auto; }
+.match-notfound .match-title-sm { font-size: 1.6rem; font-weight: 600; margin-bottom: 0.5rem; }
 
+/* notice */
 .notice-banner {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  background: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fca5a5;
-  border-radius: 0.75rem;
-  padding: 0.75rem 1rem 0.75rem 1rem;
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  z-index: 9999;
+  position: fixed; top: 1rem; right: 1rem;
+  background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5;
+  border-radius: 0.75rem; padding: 0.75rem 1rem;
+  display: flex; gap: 0.75rem; align-items: center; z-index: 9999;
   box-shadow: 0 8px 20px rgba(0,0,0,0.08);
 }
-
-.notice-close {
-  background: transparent;
-  border: none;
-  font-size: 1.1rem;
-  cursor: pointer;
-  color: inherit;
-}
+.notice-close { background: transparent; border: none; font-size: 1.1rem; cursor: pointer; color: inherit; }
 </style>

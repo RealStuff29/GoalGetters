@@ -128,6 +128,8 @@ export const useMatchStore = defineStore('match', () => {
   const chatId = ref<string | null>(null)
   const availability = ref<string>('')
   const landingNotice = ref<string | null>(null)
+  const booting = ref<boolean>(false)                 // NEW: suppress UI while resuming
+
   const match = ref<Match>({
     subject: 'WAD2',
     description: 'Homework discussion and review',
@@ -849,7 +851,7 @@ export const useMatchStore = defineStore('match', () => {
       .select(
         'user_id, username, email, profile_photo, personality, gender, avg_rating, rating_count, created_at, modules, study_hours, degree, timeslot_avail'
       )
-    .eq('user_id', userId)
+      .eq('user_id', userId)
       .maybeSingle()
     if (error) {
       console.warn('[match] getMyProfile error', error)
@@ -950,6 +952,7 @@ export const useMatchStore = defineStore('match', () => {
   }
 
   async function queueAndPoll(): Promise<string> {
+    // NOTE: leave showing/hiding UI to the view; this function just does work.
     stage.value = 'searching'
     const mine = await getMyProfile()
     if (!mine) {
@@ -994,7 +997,7 @@ export const useMatchStore = defineStore('match', () => {
           user1: myId,
           user2: partnerId,
           created_at: now,
-          expires_at: expires,
+          expires_at: expires, // adjust if your column is 'expire_at'
           verify_code: verifyWord,
           verified_a: false,
           verified_b: false,
@@ -1154,6 +1157,82 @@ export const useMatchStore = defineStore('match', () => {
     }
   }
 
+  // --- resume helpers ---
+  async function findActiveSessionForMe(): Promise<{ roomId: string; sessionId: string } | null> {
+    const { data: auth } = await supabase.auth.getUser()
+    const myId = auth?.user?.id
+    if (!myId) return null
+
+    const { data, error } = await supabase
+      .from('match_room')
+      .select('id, session_id, created_at')
+      .or(`user1.eq.${myId},user2.eq.${myId}`)
+      .not('session_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (error || !data?.length) return null
+    return { roomId: data[0].id as string, sessionId: data[0].session_id as string }
+  }
+
+  async function findOpenRoomForMe(): Promise<string | null> {
+    const { data: auth } = await supabase.auth.getUser()
+    const myId = auth?.user?.id
+    if (!myId) return null
+    return await findRoomForMe(myId)
+  }
+
+  async function prepareChatFromRoom(roomId: string) {
+    currentMatchId.value = roomId
+    match.value.id = roomId
+
+    const { data: row } = await supabase
+      .from('match_room')
+      .select('session_id, verified_a, verified_b')
+      .eq('id', roomId)
+      .maybeSingle()
+
+    if (row?.session_id) sessionId.value = row.session_id
+
+    await setPartnerFromRoom(roomId)
+
+    stage.value = 'chat'
+    resultAccepted.value = true
+    if (!chatId.value) chatId.value = crypto.randomUUID?.() ?? `chat-${Date.now()}`
+    persist()
+
+    await initVerificationForCurrentRoom()
+  }
+
+  // NEW: no-flicker auto-resume
+  async function resumeSilently(): Promise<'chat' | 'decision' | 'landing'> {
+    booting.value = true
+    try {
+      const active = await findActiveSessionForMe()
+      if (active) {
+        await prepareChatFromRoom(active.roomId) // sets stage='chat'
+        return 'chat'
+      }
+
+      const openRoomId = await findOpenRoomForMe()
+      if (openRoomId) {
+        // go straight to decision state without showing landing/searching
+        await ensureMatch(openRoomId)
+        await setPartnerFromRoom(openRoomId)
+        stage.value = 'match'
+        startCountdown(() => declineMatch())
+        persist()
+        return 'decision'
+      }
+
+      // nothing to resume — stay at landing
+      stage.value = 'landing'
+      return 'landing'
+    } finally {
+      booting.value = false
+    }
+  }
+
   return {
     // state
     stage,
@@ -1169,6 +1248,8 @@ export const useMatchStore = defineStore('match', () => {
     availability,
     availabilityList,
     landingNotice,
+    booting, // NEW
+
     // computed
     partnerInitials,
     countdownText,
@@ -1202,7 +1283,7 @@ export const useMatchStore = defineStore('match', () => {
     submitVerification,
     initVerificationForCurrentRoom,
     refreshVerificationNow,
-    teardownVerification,      // 👈 new
+    teardownVerification,
     startVerifyDriftFix,
     stopVerifyDriftFix,
 
@@ -1218,5 +1299,11 @@ export const useMatchStore = defineStore('match', () => {
     loadMessages,
     subscribeToMessages,
     unsubscribeFromMessages,
+
+    // resume helpers
+    findActiveSessionForMe,
+    findOpenRoomForMe,
+    prepareChatFromRoom,
+    resumeSilently, // NEW
   }
 })
