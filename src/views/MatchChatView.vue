@@ -6,7 +6,10 @@
   >
     <!-- Left column -->
     <div class="space-y-4">
+<<<<<<< HEAD
       <!-- Header -->
+=======
+>>>>>>> parent of a2482d4 ([corrected] Update Study Session Details from hardcode to actual data pulled from profiles table in database)
       <Card>
         <template #content>
           <div class="flex items-center justify-between gap-3">
@@ -104,15 +107,18 @@
         </template>
       </Card>
 
+<<<<<<< HEAD
       <!-- Study Session Details -->
+=======
+>>>>>>> parent of a2482d4 ([corrected] Update Study Session Details from hardcode to actual data pulled from profiles table in database)
       <Card>
         <template #title>
           <span class="text-base font-medium">Study Session Details</span>
         </template>
         <template #content>
-          <div class="space-y-4">
-            <!-- Common time slots -->
+          <div class="space-y-3">
             <div class="flex items-start gap-3">
+<<<<<<< HEAD
               <i :class="pi('clock')" class="opacity-70 mt-1" />
               <div>
                 <div class="font-medium mb-1">Common Time Slots</div>
@@ -126,11 +132,16 @@
                   />
                 </div>
                 <small v-else class="opacity-70">No overlapping availability yet.</small>
+=======
+              <i :class="pi('book')" class="opacity-70 mt-1" />
+              <div>
+                <Tag severity="secondary" :value="store.match.subject" />
+                <p class="text-sm opacity-80 mt-1">{{ store.match.description }}</p>
+>>>>>>> parent of a2482d4 ([corrected] Update Study Session Details from hardcode to actual data pulled from profiles table in database)
               </div>
             </div>
-
-            <!-- Common modules -->
             <div class="flex items-start gap-3">
+<<<<<<< HEAD
               <i :class="pi('book')" class="opacity-70 mt-1" />
               <div>
                 <div class="font-medium mb-1">Common Modules</div>
@@ -144,11 +155,16 @@
                   />
                 </div>
                 <small v-else class="opacity-70">They have no common modules.</small>
+=======
+              <i :class="pi('clock')" class="opacity-70 mt-1" />
+              <div>
+                <p class="text-sm">{{ store.match.time }}</p>
+                <small class="opacity-70">Duration: <b>{{ store.match.duration }}</b></small>
+>>>>>>> parent of a2482d4 ([corrected] Update Study Session Details from hardcode to actual data pulled from profiles table in database)
               </div>
             </div>
-
-            <!-- Degrees / Schools -->
             <div class="flex items-start gap-3">
+<<<<<<< HEAD
               <i :class="pi('university')" class="opacity-70 mt-1" />
               <div>
                 <div class="font-medium mb-1">School / Degree</div>
@@ -157,6 +173,10 @@
                   <div><b>Partner:</b> {{ partnerDegreeLabel || '-' }}</div>
                 </div>
               </div>
+=======
+              <i :class="pi('map-marker')" class="opacity-70 mt-1" />
+              <p class="text-sm">{{ store.match.location }}</p>
+>>>>>>> parent of a2482d4 ([corrected] Update Study Session Details from hardcode to actual data pulled from profiles table in database)
             </div>
           </div>
         </template>
@@ -316,6 +336,7 @@
 import { onMounted, onUnmounted, ref, nextTick, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMatchStore } from '@/stores/match'
+<<<<<<< HEAD
 import { degrees } from '@/constants/degrees'
 import { supabase } from '@/lib/supabase'
 import StudySpotMap from './StudySpotMap.vue'
@@ -493,6 +514,13 @@ function deriveVerifyCode(roomId: string, userId: string): string {
   return `${word}-${num}`
 }
 
+=======
+import { supabase } from '@/lib/supabase'   // 👈 you were missing this
+import Card from 'primevue/card'
+import Button from 'primevue/button'
+import StudySpotMap from './StudySpotMap.vue'
+
+>>>>>>> parent of a2482d4 ([corrected] Update Study Session Details from hardcode to actual data pulled from profiles table in database)
 function pi(name: string) {
   return `pi pi-${name}`
 }
@@ -763,6 +791,7 @@ onMounted(async () => {
 
   await store.ensureChat(route.params.chatId as string | undefined)
 
+<<<<<<< HEAD
   await loadStudyDetailsFromDB()
 
   const roomId = store.currentMatchId || store.match.id
@@ -789,6 +818,9 @@ onMounted(async () => {
     }
   }
 
+=======
+  // let template render
+>>>>>>> parent of a2482d4 ([corrected] Update Study Session Details from hardcode to actual data pulled from profiles table in database)
   store.stage = 'chat'
   nextTick(scrollToBottom)
   setTimeout(() => nextTick(scrollToBottom), 500)
