@@ -124,6 +124,7 @@
       <Card v-if="store.myVerified && store.partnerVerified && store.sessionSecondsLeft > 0">
         <template #title>
           <span class="text-base font-medium">Time Remaining</span>
+          <div><Button outlined icon="pi pi-flag" label="End Session & Review" @click="endAndReview" /></div>
         </template>
 
         <template #content>
@@ -596,6 +597,14 @@ async function copyCode() {
     await navigator.clipboard.writeText(store.roomVerifyCode)
   } catch {}
 }
+
+// ======= ADDED CODE =========
+async function endAndReview() {
+  const rid = await store.endCurrentSession('Session ended by you.')
+  if (rid) router.replace({ name: 'matchreview', params: { id: rid } })
+  else router.replace({ name: 'matchreview' })
+}
+// ======= END OF CODE =========
 
 // if room changes (rare), re-init verification quickly
 watch(() => store.currentMatchId, async (rid) => {

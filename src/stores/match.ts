@@ -69,7 +69,7 @@ const SESSION_SLOT_WINDOWS = {
   slot_morning:   { start: [8, 30],  end: [11, 30] },
   slot_midday:    { start: [12, 0],  end: [15, 0]  },
   slot_afternoon: { start: [15, 30], end: [18, 30] },
-  slot_evening:   { start: [19, 0],  end: [3, 10]  }, // overnight to next day
+  slot_evening:   { start: [19, 0],  end: [4, 48]  }, // overnight to next day
 } as const
 type SessionSlotId = keyof typeof SESSION_SLOT_WINDOWS
 
@@ -389,6 +389,7 @@ export const useMatchStore = defineStore('match', () => {
         .eq('id', rid)
       if (!sessErr) sessionId.value = newSess
     }
+
 
     // update local flags
     myVerified.value = Boolean(after[myVerifyField.value])
@@ -1342,39 +1343,25 @@ export const useMatchStore = defineStore('match', () => {
     try {
       const { data: room, error } = await supabase
         .from('match_room')
-        .select('id, session_id, user1, user2, created_at')
+        .select('session_id')
         .eq('id', roomId)
         .maybeSingle()
-      if (error || !room) return
+      if (error || !room?.session_id) return
 
-      if (!room.session_id) {
-        console.warn('[session] No session_id on match_room; skipping session insert.')
-        return
-      }
+      // Only need to mark ended_at; row is auto-created by the DB trigger
+      const { error: updErr } = await supabase
+        .from('sessions')
+        .update({ ended_at: new Date().toISOString() })
+        .eq('sessid', room.session_id)
 
-      const payload = {
-        session_id: room.session_id,
-        room_id: room.id,
-        user1: room.user1,
-        user2: room.user2,
-        started_at: room.created_at,
-        ended_at: new Date().toISOString(),
-      }
-
-      // Upsert to avoid duplicates if called twice
-      const { error: insErr } = await supabase
-        .from('sessions') // ensure this table exists with columns above
-        .upsert(payload, { onConflict: 'session_id' })
-
-      if (insErr) {
-        console.warn('[session] upsert to sessions failed:', insErr)
-      } else {
-        console.log('[session] session row upserted for', room.session_id)
+      if (updErr) {
+        console.warn('[session] end-of-session update failed:', updErr)
       }
     } catch (e) {
       console.warn('[session] unexpected error:', e)
     }
   }
+
 
   /** Public API: cleanly end current chat/session (e.g., on timer expiry) */
   async function endCurrentSession(message?: string) {

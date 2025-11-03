@@ -80,8 +80,9 @@ import Textarea from 'primevue/textarea'
 import Rating from 'primevue/rating'
 import Checkbox from 'primevue/checkbox'
 
-
-
+import Skeleton from 'primevue/skeleton'
+import Toast from 'primevue/toast'
+import ToastService from 'primevue/toastservice'
 
 
 
@@ -121,6 +122,11 @@ app.component('Dropdown', Dropdown);
 app.component('Textarea', Textarea);
 app.component('Rating', Rating);
 app.component('Checkbox', Checkbox);
+
+app.use(ToastService)
+app.component('Skeleton', Skeleton)
+app.component('Toast', Toast)
+
 
 app.mount('#app');
 
