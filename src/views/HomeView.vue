@@ -6,19 +6,16 @@
         <div class="row align-items-center">
           <div class="col-lg-7">
             <div class="welcome-content">
-              <div v-if="isLoggedIn" class="welcome-badge">
-                <i class="pi pi-check-circle"></i>
-                <span>You're logged in</span>
-              </div>
               <transition name="fade">
-                <h1 class="welcome-heading" key="welcome-heading">
-                  <template v-if="isLoggedIn">
+                <div>
+                  <div class="welcome-badge">
+                    <i class="pi pi-check-circle"></i>
+                    <span>You're logged in</span>
+                  </div>
+                  <h1 class="welcome-heading" key="welcome-heading">
                     Welcome back, <span class="user-name">{{ userName }}</span>!
-                  </template>
-                  <template v-else>
-                    Welcome!
-                  </template>
-                </h1>
+                  </h1>
+                </div>
               </transition>
               <p class="welcome-subtitle">
                 Ready to achieve your goals today? Let's find you the perfect study partner.
@@ -54,7 +51,7 @@
 
     <!-- Quick Stats Section -->
     <transition name="fade">
-      <section v-if="isLoggedIn" class="stats-section">
+      <section class="stats-section">
         <div class="container">
           <div class="stats-grid">
             <div class="stat-card stat-card--large">
@@ -201,7 +198,6 @@ import Card from 'primevue/card';
 import logo from '@/assets/images/Logo.png';
 import { supabase } from '@/lib/supabase'
 
-const isLoggedIn = ref(false);
 const router = useRouter();
 
 // User data (replace with actual user data from your store/API)
@@ -280,66 +276,34 @@ const navigateTo = (path) => {
 };
 
 onMounted(async () => {
-  // Get current session
   const { data: { session } } = await supabase.auth.getSession();
-  isLoggedIn.value = !!session;
-
-  // Watch for auth changes
-  supabase.auth.onAuthStateChange((_event, session) => {
-    isLoggedIn.value = !!session;
-
-    if (!session) {
-      userName.value = '';
-      major.value = '';
-      userRating.value = 0;
-      studyHours.value = 0;
-      studyPartners.value = 0;
-    }
-  });
-
-  // If no user logged in, skip fetching profile
-  if (!session) {
-    console.warn('No user logged in');
-    return;
-  }
+  if (!session) return; // Just a safety fallback
 
   const user = session.user;
-  //Fetch user data
   const { data, error } = await supabase
     .from('profiles')
     .select('username, degree, avg_rating, study_hours, review_count')
     .eq('user_id', user.id)
-    .single()
+    .single();
 
   if (error) {
-    console.error('Error fetching user profile:', error)
-    return
+    console.error('Error fetching user profile:', error);
+    return;
   }
 
   function formatDegree(degree) {
-    if (!degree) return ''
-    const lower = degree.toLowerCase()
-
-    if (lower.includes('information-systems')) {
-      return 'Information Systems'
-    }
-
-    if (lower.includes('business-management')) {
-      return 'Business Management'
-    }
-
-    // Default: just capitalize first letter
-    return degree.charAt(0).toUpperCase() + degree.slice(1)
+    if (!degree) return '';
+    const lower = degree.toLowerCase();
+    if (lower.includes('information-systems')) return 'Information Systems';
+    if (lower.includes('business-management')) return 'Business Management';
+    return degree.charAt(0).toUpperCase() + degree.slice(1);
   }
 
-  // Assign the data to refs
-  userName.value = data.username
-  major.value = formatDegree(data.degree)
-  // console.log(major.value)
-  userRating.value = data.avg_rating
-  studyHours.value = data.study_hours
-  studyPartners.value = data.review_count
-
+  userName.value = data.username;
+  major.value = formatDegree(data.degree);
+  userRating.value = data.avg_rating;
+  studyHours.value = data.study_hours;
+  studyPartners.value = data.review_count;
 });
 </script>
 

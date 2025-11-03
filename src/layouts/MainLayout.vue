@@ -23,7 +23,7 @@ async function handleLogout() {
   const logoutOK = await logoutUser();
   if (logoutOK) {
     userSession.value = null;
-    router.push({ name: 'home' });
+    router.push({ name: 'landing' });
   }
 }
 
@@ -43,6 +43,15 @@ function handleProtectedNavigation(path) {
     router.push(path);
   }
 }
+
+function handleHomeNav() {
+  if (userSession.value) {
+    router.push({ name: 'home' });      // goes to /home when logged in
+  } else {
+    router.push({ name: 'landing' });   // goes to / when logged out
+  }
+}
+
 </script>
 
 <template>
@@ -50,7 +59,7 @@ function handleProtectedNavigation(path) {
     <nav class="navbar bg-light px-3 d-flex justify-content-between align-items-center">
       <!-- Left navigation links -->
       <div class="d-flex align-items-center">
-        <a @click="router.push('/')" class="nav-link mx-3" style="cursor: pointer;">Home</a>
+        <a @click="handleHomeNav" class="nav-link mx-3" style="cursor: pointer;">Home</a>
         <a @click="handleProtectedNavigation('/crudview')" class="nav-link mx-3" style="cursor: pointer;">Crud Test</a>
         <a @click="handleProtectedNavigation('/profilesetupview')" class="nav-link mx-3"
           style="cursor: pointer;">Profile Setup</a>

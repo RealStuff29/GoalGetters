@@ -6,6 +6,7 @@ import { useAuth } from '@/composables/useAuth'
 const { hasCompletedProfile } = useAuth();
 
 // Eager-loaded views
+import LandingView from '../views/LandingView.vue'
 import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
 import CrudView from '../views/CrudView.vue'
@@ -30,8 +31,12 @@ const router = createRouter({
       path: '/',
       component: MainLayout,
       children: [
-        // Home is now public
-        { path: '', name: 'home', component: HomeView },
+        // Public landing page (default)
+        { path: '', name: 'landing', component: LandingView },
+
+        // Home is now protected and lives at /home
+        { path: 'home', name: 'home', component: HomeView, meta: { requiresAuth: true } },
+
         { path: 'crudview', name: 'crud', component: CrudView, meta: { requiresAuth: true } },
         { path: 'profilesetupview', name: 'profilesetup', component: ProfileSetupView, meta: { requiresAuth: true } },
         { path: 'profilesettingsview', name: 'profilesettings', component: ProfileSettingsView, meta: { requiresAuth: true } },
@@ -40,6 +45,7 @@ const router = createRouter({
         { path: 'matchdecisionview/:id?', name: 'matchdecision', component: MatchDecision, meta: { requiresAuth: true } },
         { path: 'matchchatview/:chatId?', name: 'matchchat', component: MatchChat, meta: { requiresAuth: true } },
       ],
+
     },
     {
       path: '/auth',
