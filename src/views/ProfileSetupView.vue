@@ -2,13 +2,12 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
-import { updateProfile } from '@/services/profileService'
+import { usernameClash, saveAccountAcademicBundle, updateProfile } from '@/services/profileService'
 import { useProfileSetup } from '@/composables/useProfileSetup'
 import { degrees } from '@/constants/degrees'
-import { modulesWithLabel, moduleIndex } from '@/constants/modules'
+import { useModulesPicker } from '@/composables/useModulesPicker'
 import { mbtiQuestions } from '@/constants/mbti'
 import { useComputeMBTI } from '@/composables/useComputeMBTI'
-
 
 
 const router = useRouter()
@@ -35,54 +34,18 @@ watch(gender, () => {
 
 // Step 2 Academic Info
 const degree = ref('')
-const modules = ref([])
 const studyHours = ref(4)
 
-const moduleObjects = ref([])       // [{code,title,label}]
-const moduleQuery = ref('')
-const moduleSuggestions = ref([])
-
-// keep modules (codes) in sync with chips (objects)
-watch(moduleObjects, (objs) => {
-  const uniqueCodes = Array.from(new Set((objs || []).map(o => o.code))).filter(Boolean)
-  modules.value = uniqueCodes
-}, { deep: true })
-
-// type-ahead search over code + title (case-insensitive)
-function searchModules(event) {
-  const q = String(event.query || '').trim().toLowerCase()
-  if (!q) {
-    moduleSuggestions.value = modulesWithLabel
-    return
-  }
-  moduleSuggestions.value = modulesWithLabel.filter(m =>
-    m.code.toLowerCase().includes(q) || m.title.toLowerCase().includes(q)
-  )
-}
-
-// add selected suggestion as a chip; prevent duplicates
-function addModuleOption(opt) {
-  if (!opt?.code) return
-  const exists = moduleObjects.value.some(o => o.code === opt.code)
-  if (!exists) moduleObjects.value = [...moduleObjects.value, opt]
-  moduleQuery.value = ''
-}
-
-// allow free typing of a code and press Enter to add
-function addFreeTypedCode() {
-  const raw = String(moduleQuery.value || '').trim().toUpperCase()
-  if (!raw) return
-  const opt = moduleIndex[raw] ? { ...moduleIndex[raw], label: `${raw} ${moduleIndex[raw].title}` }
-                                : { code: raw, title: '', label: raw } // unknown code fallback
-  addModuleOption(opt)
-}
-
-// remove chip by index
-function removeModuleAt(idx) {
-  const next = [...moduleObjects.value]
-  next.splice(idx, 1)
-  moduleObjects.value = next
-}
+const {
+  moduleObjects,     // [{ code,title,label }]
+  modules,           // ['IS113','IS216', ...] stays in sync with moduleObjects
+  moduleQuery,
+  moduleSuggestions,
+  searchModules,
+  addModuleOption,
+  addFreeTypedCourseCode,
+  removeModuleAt
+} = useModulesPicker()
 
 
 // Check if the required fields are filled in step 2
@@ -94,35 +57,30 @@ const isStep2Valid = computed(() => {
 })
 
 const saving = ref(false)
+
 // Save Steps 1 + 2 before moving to Step 3
 async function handleAcademicNext(activateCallback) {
-  if (!isStep2Valid.value) return;
+  if (!isStep2Valid.value) return
   try {
-    saving.value = true;
+    saving.value = true
     const { data: { user }, error: userErr } = await supabase.auth.getUser()
     if (userErr || !user) throw new Error('You are not signed in')
 
-    // check if there is duplicate username 
-    const { data: existing } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('username', username.value)
-      .single()
-    if (existing && existing.id !== user.id) {
+    // Check duplicate username (excluding the current user)
+    const clash = await usernameClash(username.value, user.id)
+    if (clash) {
       alert('Username already taken! Please randomise again.')
-      saving.value = false
       return
     }
 
-    await updateProfile(user.id, {
+    await saveAccountAcademicBundle(user.id, {
       username: username.value,
       gender: gender.value,
       profile_photo: avatarUrl.value,
       degree: degree.value,
-      modules: modules.value.join(','),   // 👈 CSV to DB
+      modules: modules.value,      
       study_hours: studyHours.value
     })
-
 
     activateCallback('3');
   } catch (e) {
@@ -142,7 +100,7 @@ const isStep3Answered = computed(() => mbtiAnswers.value.every(a => a !== null))
 
 function handleComputeMbti() {
   mbtiResult.value = computeMbtiType(mbtiAnswers.value,   mbtiQuestions)
-  console.log("Result stored:", mbtiResult.value) // debug
+  console.log("Result stored:", mbtiResult.value) 
 }
 
 // Final save including personality
@@ -283,35 +241,24 @@ async function handleSavePersonality() {
                 v-model="moduleQuery"
                 :suggestions="moduleSuggestions"
                 optionLabel="label"
-                placeholder="Type code or name, e.g. 'IS216' or 'Web Application...'"
+                placeholder="Type in course code or name (e.g. IS216 or Web Application...)"
                 class="w-100"
                 fluid
                 @complete="searchModules"
                 @item-select="(e) => addModuleOption(e.value)"
-                @keyup.enter="addFreeTypedCode"
+                @keyup.enter="addFreeTypedCourseCode"
               />
 
               <!-- Chips display -->
               <div class="d-flex flex-wrap gap-2 mt-2">
-                <span
-                  v-for="(m, idx) in moduleObjects"
-                  :key="m.code"
-                  class="badge rounded-pill text-bg-light border d-inline-flex align-items-center px-3 py-2"
-                >
+                <span v-for="(m, idx) in moduleObjects" :key="m.code" class="badge rounded-pill text-bg-light border d-inline-flex align-items-center px-3 py-2">
                   <span class="me-2">{{ m.label || m.code }}</span>
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-outline-secondary py-0 px-2"
-                    aria-label="Remove"
-                    @click="removeModuleAt(idx)"
-                  >
-                    ×
-                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" aria-label="Remove" @click="removeModuleAt(idx)"> x </button>
                 </span>
               </div>
 
               <small class="text-muted d-block mt-2">
-                Selected codes: {{ modules.join(', ') || '—' }}
+                Selected course codes: {{ modules.join(', ') || '—' }}
               </small>
             </div>
 

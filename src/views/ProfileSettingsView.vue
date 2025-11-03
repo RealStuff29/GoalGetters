@@ -2,8 +2,10 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
+import { useAvatar } from '@/composables/useAvatar'
 import { degrees } from '@/constants/degrees'
-import { modulesWithLabel, moduleIndex } from '@/constants/modules'
+import { useModulesPicker } from '@/composables/useModulesPicker'
+import { moduleIndex } from '@/constants/modules'
 import {  mbtiQuestions } from '@/constants/mbti'
 import { useComputeMBTI } from '@/composables/useComputeMBTI'
 import { updateProfile } from '@/services/profileService'  
@@ -18,17 +20,16 @@ const saving  = ref(false)
 const email = ref('')
 const emailVerified = ref(false)
 const username = ref('')
-const avatarUrl = ref('')
 
 /* -------- Personality   profile fields ---- */
 const mbti = ref('')
 const { computeMbtiType } = useComputeMBTI()
 const degree = ref('')
-const modules = ref([])      // keep as array; convert only if your DB uses TEXT CSV
 const studyHours = ref(4)
-const moduleObjects = ref([])       // [{code,title,label}]
-const moduleQuery = ref('')
-const moduleSuggestions = ref([])
+const {
+  moduleObjects, modules, moduleQuery, moduleSuggestions,
+  searchModules, addModuleOption, addFreeTypedCourseCode, removeModuleAt
+} = useModulesPicker()
 
 /* ----------------- Ratings ---------------- */
 const reviews = ref([])
@@ -47,22 +48,18 @@ const newPassword = ref('')
 const activeUserId = ref(null)
 
 /* --------------- Avatar shuffle ------------ */
-const avatarLoaded = ref(true)
-function shuffleAvatar () {
-  try {
-    const base = avatarUrl.value || 'https://api.dicebear.com/8.x/bottts/svg'
-    const u = new URL(base)
-    // cache-bust with a new seed param
-    u.searchParams.set('seed', Math.random().toString(36).slice(2))
-    avatarUrl.value = u.toString()
-  } catch {
-    // if base wasn't a full URL, just append a query param
-    avatarUrl.value = `${avatarUrl.value || ''}?v=${Date.now()}`
-  } finally {
-    avatarLoaded.value = false
-    setTimeout(() => (avatarLoaded.value = true), 0)
-  }
-}
+
+const {
+  avatarUrl,
+  avatarLoaded,
+  gender,
+  setGender,
+  setAvatar,
+  ensureDefaultAvatar,
+  shuffleAvatar
+} = useAvatar()
+
+
 
 /* ----------------- Mounted ----------------- */
 onMounted(async () => {
@@ -102,9 +99,12 @@ onMounted(async () => {
     }
 
     username.value   = profile?.username ?? ''
-    avatarUrl.value  = profile?.profile_photo ?? ''
     degree.value     = profile?.degree ?? ''
     mbti.value       = String(profile?.personality || '').trim().toUpperCase()
+
+    setAvatar(profile?.profile_photo)
+    setGender(profile?.gender)
+    ensureDefaultAvatar()
 
     
     const rawModules = profile?.modules
@@ -116,11 +116,12 @@ onMounted(async () => {
           ? rawModules.items
           : []
 
-    // hydrate chip objects from codes we just normalized
     moduleObjects.value = (modules.value || []).map(code => {
       const m = moduleIndex[code]
       return m ? { ...m, label: `${m.code} ${m.title}` } : { code, title: '', label: code }
     })
+
+
 
     studyHours.value  = Number(profile?.study_hours ?? 4)
     ratingValue.value = Number(profile?.avg_rating ?? 0)
@@ -174,11 +175,6 @@ onMounted(async () => {
   }
 })
 
-/* --- Keep `modules` (codes) in sync with chip objects --- */
-watch(moduleObjects, (objs) => {
-  const uniqueCodes = Array.from(new Set((objs || []).map(o => o.code))).filter(Boolean)
-  modules.value = uniqueCodes}, { deep: true })
-
 /* ---------------- Actions ------------------ */
 async function changePassword() {
   if (!newPassword.value) return
@@ -191,38 +187,6 @@ async function changePassword() {
   }
 }
 
-function searchModules(event) {
-  const q = String(event.query || '').trim().toLowerCase()
-  if (!q) {
-    moduleSuggestions.value = modulesWithLabel
-    return
-  }
-  moduleSuggestions.value = modulesWithLabel.filter(m =>
-    m.code.toLowerCase().includes(q) || m.title.toLowerCase().includes(q)
-  )
-}
-
-function addModuleOption(opt) {
-  if (!opt?.code) return
-  const exists = moduleObjects.value.some(o => o.code === opt.code)
-  if (!exists) moduleObjects.value = [...moduleObjects.value, opt]
-  moduleQuery.value = ''
-}
-
-function addFreeTypedCode() {
-  const raw = String(moduleQuery.value || '').trim().toUpperCase()
-  if (!raw) return
-  const opt = moduleIndex[raw]
-    ? { ...moduleIndex[raw], label: `${raw} ${moduleIndex[raw].title}` }
-    : { code: raw, title: '', label: raw } // unknown code fallback
-  addModuleOption(opt)
-}
-
-function removeModuleAt(idx) {
-  const next = [...moduleObjects.value]
-  next.splice(idx, 1)
-  moduleObjects.value = next
-}
 
 async function saveAll() {
   if (!activeUserId.value) return
@@ -277,12 +241,13 @@ function formatSessionStartWeekday(startedAt) {
   const d = toDate(startedAt)
   return d ? fmtSGWeekday.format(d) : '-'
 }
+
 /** "DD/MM/YYYY (Mon) - HH:mm" */
 function formatSessionStartLabel(startedAt) {
   const date = formatSessionStartDate(startedAt)
   const weekday = formatSessionStartWeekday(startedAt)
   const time = formatSessionStartTime(startedAt)
-  return `${date} (${weekday}) - ${time}`
+  return `You had a session on ${weekday}, ${date} at ${time}`
 }
 
 const showMatchHistory = ref(false)
@@ -489,12 +454,12 @@ async function saveMbtiToProfile() {
               v-model="moduleQuery"
               :suggestions="moduleSuggestions"
               optionLabel="label"
-              placeholder="Type code or name, e.g. 'IS216' or 'Web Application...'"
+              placeholder="Type in course code or name (e.g. IS216 or Web Application...)"
               class="w-100"
               fluid
               @complete="searchModules"
               @item-select="(e) => addModuleOption(e.value)"
-              @keyup.enter="addFreeTypedCode"
+              @keyup.enter="addFreeTypedCourseCode"
             />
         
             <div class="d-flex flex-wrap gap-2 mt-2">
@@ -516,7 +481,7 @@ async function saveMbtiToProfile() {
             </div>
         
             <small class="text-muted d-block mt-2">
-              Selected codes: {{ modules.join(', ') || '—' }}
+              Selected courses codes: {{ modules.join(', ') || '—' }}
             </small>
           </div>
 
