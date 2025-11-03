@@ -6,20 +6,18 @@
   >
     <!-- Left column: Header + Details + Chat -->
     <div class="space-y-4">
-      
       <Card>
         <template #content>
           <div class="flex items-center gap-3">
             <Avatar :label="store.partnerInitials" shape="circle" />
             <div>
-              <div class="font-medium">{{ store.match.partner.name }}</div>
+              <div class="font-medium">{{ store.match.partner.name || 'Study partner' }}</div>
               <small class="opacity-70">Online now</small>
             </div>
           </div>
         </template>
       </Card>
 
-      <!-- !!! Code ADDED !!! -->
       <!-- Study Session Details -->
       <Card>
         <template #title>
@@ -29,7 +27,7 @@
           <div class="space-y-4">
             <!-- Common time slots -->
             <div class="flex items-start gap-3">
-              <i :class="pi('clock')" class="opacity-70 mt-1"/>
+              <i :class="pi('clock')" class="opacity-70 mt-1" />
               <div>
                 <div class="font-medium mb-1">Common Time Slots</div>
                 <div v-if="commonSlotsLabels.length">
@@ -41,7 +39,7 @@
 
             <!-- Common modules -->
             <div class="flex items-start gap-3">
-              <i :class="pi('book')" class="opacity-70 mt-1"/>
+              <i :class="pi('book')" class="opacity-70 mt-1" />
               <div>
                 <div class="font-medium mb-1">Common Modules</div>
                 <div v-if="commonModules.length">
@@ -53,7 +51,7 @@
 
             <!-- Degrees / Schools -->
             <div class="flex items-start gap-3">
-              <i :class="pi('university')" class="opacity-70 mt-1"/>
+              <i :class="pi('university')" class="opacity-70 mt-1" />
               <div>
                 <div class="font-medium mb-1">School / Degree</div>
                 <div class="text-sm">
@@ -65,8 +63,69 @@
           </div>
         </template>
       </Card>
-      <!-- !!! END of Code !!! -->
 
+      <!-- Verification -->
+      <Card>
+        <template #title>
+          <span class="text-base font-medium">Verify Your Partner</span>
+        </template>
+        <template #content>
+          <div class="space-y-3">
+            <div class="text-sm">
+              <div class="opacity-70 mb-1">Share this word with your partner:</div>
+
+              <div class="flex items-center gap-2">
+                <div class="px-3 py-2 rounded bg-surface-200 font-mono text-sm select-all flex-1">
+                  {{ store.roomVerifyCode || '—' }}
+                </div>
+                <Button
+                  :disabled="!store.roomVerifyCode"
+                  :icon="pi('copy')"
+                  text
+                  aria-label="Copy"
+                  @click="copyCode"
+                />
+              </div>
+
+              <small class="opacity-70">
+                Both of you should enter the <i>same</i> word below to confirm you’re talking to the right person.
+              </small>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <InputText
+                v-model="store.verifyWordInput"
+                placeholder="Enter the shared verification word"
+                class="flex-1"
+                :disabled="store.myVerified"
+                @keyup.enter="onVerify"
+              />
+              <Button
+                size="small"
+                :icon="pi('check')"
+                label="Verify"
+                :disabled="store.myVerified || !store.verifyWordInput"
+                @click="onVerify"
+              />
+            </div>
+
+            <div class="flex items-center gap-2">
+              <Tag :severity="store.myVerified ? 'success' : 'danger'"
+                   :value="store.myVerified ? 'You: Verified' : 'You: Not verified'"/>
+              <Tag :severity="store.partnerVerified ? 'success' : 'warn'"
+                   :value="store.partnerVerified ? 'Partner: Verified' : 'Partner: Pending'"/>
+              <Tag v-if="store.sessionId" severity="success" :value="`Session: ${store.sessionId.slice(0,8)}…`"/>
+            </div>
+
+            <small v-if="store.verifyMessage" class="block"
+                   :class="store.myVerified && store.partnerVerified ? 'text-green-700' : 'opacity-70'">
+              {{ store.verifyMessage }}
+            </small>
+          </div>
+        </template>
+      </Card>
+
+      <!-- Chat -->
       <Card class="h-96 flex flex-col">
         <template #title>
           <span class="text-base font-medium">Chat</span>
@@ -202,18 +261,17 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, nextTick, computed } from 'vue'
+import { onMounted, onUnmounted, ref, nextTick, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMatchStore } from '@/stores/match'
 import { degrees } from '@/constants/degrees'
-import { supabase } from '@/lib/supabase'   
+import { supabase } from '@/lib/supabase'
 import StudySpotMap from './StudySpotMap.vue'
 
-// ---- CODE ADDED ----
+// ---- study details helpers (unchanged) ----
 const myProfile = ref<any | null>(null)
 const partnerProfile = ref<any | null>(null)
 
-// Label for display
 const SLOT_LABELS = {
   slot_morning:  'Morning (8:30am - 11:30am)',
   slot_midday:   'Midday (12:00pm - 3:00pm)',
@@ -221,64 +279,49 @@ const SLOT_LABELS = {
   slot_evening:  'Evening (7:00pm - 10:00pm)',
 } as const
 type SlotKey = keyof typeof SLOT_LABELS
-
 const SLOT_ALIASES: Record<string, SlotKey> = {
   morning: 'slot_morning',
   midday: 'slot_midday',
   afternoon: 'slot_afternoon',
   evening: 'slot_evening',
 }
-
-// Format of the display order for timeslot
-const SLOT_ORDER: SlotKey[] = [
-  'slot_morning','slot_midday','slot_afternoon','slot_evening'
-]
+const SLOT_ORDER: SlotKey[] = ['slot_morning','slot_midday','slot_afternoon','slot_evening']
 
 function toArray(val: unknown): string[] {
   if (!val) return []
-  return Array.isArray(val)
-    ? val.map(v => String(v).trim()).filter(Boolean)
-    : String(val).split(',').map(s => s.trim()).filter(Boolean)
+  return Array.isArray(val) ? val.map(v => String(v).trim()).filter(Boolean)
+                            : String(val).split(',').map(s => s.trim()).filter(Boolean)
 }
-
 function normalize(raw: string): SlotKey | null {
   const k = raw.trim()
   if ((k as SlotKey) in SLOT_LABELS) return k as SlotKey
   const a = SLOT_ALIASES[k.toLowerCase()]
   return a ?? null
 }
-
 function isSlotKey(x: unknown): x is SlotKey {
   return typeof x === 'string' && x in SLOT_LABELS
 }
-
-// compute: intersection + fixing order
 const commonSlotsLabels = computed<string[]>(() => {
   const a = toArray(myProfile.value?.timeslot_avail).map(normalize).filter(isSlotKey)
   const b = toArray(partnerProfile.value?.timeslot_avail).map(normalize).filter(isSlotKey)
   if (!a.length || !b.length) return []
-
   const setB = new Set<SlotKey>(b)
-  const common = Array.from(new Set(a.filter(x => setB.has(x)))) // unique intersect
-
+  const common = Array.from(new Set(a.filter(x => setB.has(x))))
   return SLOT_ORDER.filter(x => common.includes(x)).map(x => SLOT_LABELS[x])
 })
 
-// -------- modules + degree helpers --------
 function toModules (val: unknown): string[] {
   if (Array.isArray(val)) return val.map(v => String(v).trim()).filter(Boolean)
   if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean)
-  // @ts-ignore handle { items: [...] }
+  // @ts-ignore
   if (val?.items && Array.isArray(val.items)) return val.items.map((x: any) => String(x).trim()).filter(Boolean)
   return []
 }
-
 function degreeLabel (value?: string|null) {
   if (!value) return null
   const found = degrees.find(d => d.value === value)
   return found ? found.label : null
 }
-
 const commonModules = computed<string[]>(() => {
   const a = toModules(myProfile.value?.modules).map(x => x.toUpperCase())
   const b = toModules(partnerProfile.value?.modules).map(x => x.toUpperCase())
@@ -286,24 +329,16 @@ const commonModules = computed<string[]>(() => {
   const setB = new Set(b)
   return a.filter(x => setB.has(x))
 })
-
 const myDegreeLabel = computed(() => degreeLabel(myProfile.value?.degree))
 const partnerDegreeLabel = computed(() => degreeLabel(partnerProfile.value?.degree))
 
-// -------- data loader --------
 async function loadStudyDetailsFromDB () {
   try {
     const roomId = String(store.currentMatchId || store.match?.id || '')
-    if (!roomId) {
-      console.warn('[details] no roomId on store')
-      return
-    }
+    if (!roomId) return
 
     const { data: auth, error: authErr } = await supabase.auth.getUser()
-    if (authErr || !auth?.user?.id) {
-      console.warn('[details] auth error', authErr)
-      return
-    }
+    if (authErr || !auth?.user?.id) return
     const myId = auth.user.id
 
     const { data: room, error: roomErr } = await supabase
@@ -311,15 +346,7 @@ async function loadStudyDetailsFromDB () {
       .select('id, user1, user2')
       .eq('id', roomId)
       .maybeSingle()
-
-    if (roomErr) {
-      console.warn('[details] match_room error', roomErr)
-      return
-    }
-    if (!room) {
-      console.warn('[details] no match_room for id', roomId)
-      return
-    }
+    if (roomErr || !room) return
 
     const partnerId = room.user1 === myId ? room.user2 : room.user1
 
@@ -327,28 +354,17 @@ async function loadStudyDetailsFromDB () {
       .from('profiles')
       .select('user_id, degree, modules, timeslot_avail')
       .in('user_id', [myId, partnerId])
-
-    if (profErr) {
-      console.warn('[details] profiles error', profErr)
-      return
-    }
+    if (profErr) return
 
     myProfile.value = profs?.find(p => p.user_id === myId) || null
     partnerProfile.value = profs?.find(p => p.user_id === partnerId) || null
-
-    console.log('[details] myProfile', myProfile.value)
-    console.log('[details] partnerProfile', partnerProfile.value)
   } catch (e) {
     console.error('[details] loadStudyDetailsFromDB failed', e)
   }
 }
-// ---- End of Edits ----
 
-
-function pi(name: string) {
-  return `pi pi-${name}`
-}
-
+// ---- utilities ----
+function pi(name: string) { return `pi pi-${name}` }
 // @ts-ignore
 const YOUR_GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 
@@ -391,7 +407,7 @@ const suggestSpot = (spot: any) => {
   setTimeout(() => nextTick(scrollToBottom), 750)
 }
 
-// for "did the other person reject me"
+// reject detection
 const partnerId = ref<string | null>(null)
 const myId = ref<string | null>(null)
 let rejectPoll: number | null = null
@@ -400,37 +416,34 @@ function scrollToBottom() {
   const el = chatScroller.value
   if (el) el.scrollTop = el.scrollHeight
 }
-
 function send() {
   store.sendMessage(store.draft)
   store.draft = ''
   nextTick(scrollToBottom)
   setTimeout(() => nextTick(scrollToBottom), 750)
 }
-
 function restart() {
   store.startOver()
   router.push({ name: 'matchlanding' })
 }
 
+// init
 onMounted(async () => {
-  // restore from session
   await store.hydrateFromCache()
 
-  // make sure we actually have a match
   const hasMatch = await store.ensureMatch(store.currentMatchId || undefined)
   if (!hasMatch) {
     router.replace({ name: 'matchlanding' })
     return
   }
 
-  // make sure we have chat id
   await store.ensureChat(route.params.chatId as string | undefined)
 
-  // ---- !!!! CODE ADDED !!! ----
+  // init verification (reads flags & subscribes)
+  await store.initVerificationForCurrentRoom()
+
   // load the dynamic study details here
   await loadStudyDetailsFromDB()
-  // ---- !!!! END OF EDIT !!! ----
 
   // let template render
   store.stage = 'chat'
@@ -449,7 +462,6 @@ onMounted(async () => {
       .select('user1, user2')
       .eq('id', roomId)
       .maybeSingle()
-
     if (room) {
       partnerId.value = room.user1 === myId.value ? room.user2 : room.user1
     }
@@ -464,55 +476,55 @@ onMounted(async () => {
           clearInterval(rejectPoll)
           rejectPoll = null
         }
-        await store.forceLeaveChat('Your partner left the match.')   // 👈 add message
+        await store.forceLeaveChat('Your partner left the match.')
         router.replace({ name: 'matchlanding' })
       }
     }, 2000) as unknown as number
   }
 })
 
-onUnmounted(() => {
-  if (rejectPoll) {
-    clearInterval(rejectPoll)
+// verify submit
+async function onVerify() {
+  const res = await store.submitVerification()
+  if (!res.ok) {
+    // plug in your toast if available
+    console.warn(res.msg)
   }
+}
+
+// copy helper
+async function copyCode() {
+  try {
+    if (!store.roomVerifyCode) return
+    await navigator.clipboard.writeText(store.roomVerifyCode)
+  } catch {}
+}
+
+// if room changes (rare), re-init verification quickly
+watch(() => store.currentMatchId, async (rid) => {
+  if (rid) {
+    await store.initVerificationForCurrentRoom()
+  }
+})
+
+onUnmounted(() => {
+  if (rejectPoll) clearInterval(rejectPoll)
   rejectPoll = null
 })
 </script>
 
 <style scoped>
-.min-h-screen {
-  min-height: 100vh;
-}
-.grid {
-  display: grid;
-}
-.lg\:grid-cols-2 {
-  grid-template-columns: 1fr;
-}
+.min-h-screen { min-height: 100vh; }
+.grid { display: grid; }
+.lg\:grid-cols-2 { grid-template-columns: 1fr; }
 @media (min-width: 1024px) {
-  .lg\:grid-cols-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  .lg\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-.gap-6 {
-  gap: 1.5rem;
-}
-.space-y-4 > * + * {
-  margin-top: 1rem;
-}
-.h-96 {
-  height: 24rem;
-}
-.h-72 {
-  height: 18rem;
-}
-.bg-primary-500 {
-  background: var(--p-primary-color);
-}
-.bg-surface-200 {
-  background: var(--p-content-border-color);
-}
-.text-white {
-  color: #fff;
-}
+.gap-6 { gap: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.h-96 { height: 24rem; }
+.h-72 { height: 18rem; }
+.bg-primary-500 { background: var(--p-primary-color); }
+.bg-surface-200 { background: var(--p-content-border-color); }
+.text-white { color: #fff; }
 </style>

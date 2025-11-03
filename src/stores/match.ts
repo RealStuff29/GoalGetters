@@ -25,19 +25,29 @@ type Match = {
 
 const STORAGE_KEY = 'match-store-v1'
 
+// ---------------- helpers ----------------
 function strToArray(val: string | string[] | null | undefined): string[] {
   if (!val) return []
   if (Array.isArray(val)) return val.filter(Boolean).map(v => v.trim())
-  return val
-    .split(',')
-    .map(v => v.trim())
-    .filter(Boolean)
+  return val.split(',').map(v => v.trim()).filter(Boolean)
 }
 
 function overlapCount(a: string[], b: string[]): number {
   if (!a.length || !b.length) return 0
   const setB = new Set(b)
   return a.reduce((cnt, it) => (setB.has(it) ? cnt + 1 : cnt), 0)
+}
+
+// Human-friendly verify word (two short words + 3 digits)
+function generateVerifyCode(): string {
+  const words = [
+    'lime','mango','panda','pixel','sun','mint','nova','aqua','dawn','orb',
+    'kite','nori','pebble','quartz','sonic','terra','ultra','vapor','willow','zen'
+  ]
+  const w1 = words[Math.floor(Math.random() * words.length)]
+  const w2 = words[Math.floor(Math.random() * words.length)]
+  const n = Math.floor(100 + Math.random() * 900) // 100-999
+  return `${w1}-${w2}-${n}` // e.g., "mint-kite-472"
 }
 
 // ============ scoring rules (IDs only) ============
@@ -52,7 +62,6 @@ async function computeMatchScore(meId: string, otherId: string): Promise<number>
       .select('user_id, gender, modules, study_hours, degree, timeslot_avail')
       .eq('user_id', meId)
       .maybeSingle()
-
     if (errMe) throw errMe
     if (!me) throw new Error('Profile not found for user: ' + meId)
 
@@ -61,7 +70,6 @@ async function computeMatchScore(meId: string, otherId: string): Promise<number>
       .select('user_id, gender, modules, study_hours, degree, timeslot_avail')
       .eq('user_id', otherId)
       .maybeSingle()
-
     if (errOther) throw errOther
     if (!other) throw new Error('Profile not found for user: ' + otherId)
 
@@ -112,7 +120,7 @@ export const useMatchStore = defineStore('match', () => {
   const currentMatchId = ref<string | null>(null)
   const chatId = ref<string | null>(null)
   const availability = ref<string>('')
-  const landingNotice = ref<string | null>(null) 
+  const landingNotice = ref<string | null>(null)
   const match = ref<Match>({
     subject: 'WAD2',
     description: 'Homework discussion and review',
@@ -130,6 +138,165 @@ export const useMatchStore = defineStore('match', () => {
       .slice(0, 2)
       .toUpperCase()
   )
+
+  // --- Verification state ---
+  const verifyWordInput = ref<string>('')      // what I type to verify
+  const verifyMessage = ref<string>('')        // UI feedback line
+  const myVerified = ref<boolean>(false)
+  const partnerVerified = ref<boolean>(false)
+  const myVerifyField = ref<'verified_a' | 'verified_b'>('verified_a')
+  const partnerVerifyField = ref<'verified_a' | 'verified_b'>('verified_b')
+  const roomVerifyCode = ref<string>('')       // the passphrase stored in DB
+  const sessionId = ref<string | null>(null)
+
+  // live subscription handle
+  let roomSub: ReturnType<typeof supabase.channel> | null = null
+
+  // figure out which side I am (A or B) for this room
+  async function resolveSides(roomId: string) {
+    const { data: auth } = await supabase.auth.getUser()
+    const myId = auth?.user?.id
+    if (!myId) throw new Error('Not authenticated')
+
+    const { data: room, error } = await supabase
+      .from('match_room')
+      .select('user1, user2')
+      .eq('id', roomId)
+      .maybeSingle()
+
+    if (error || !room) throw new Error('match_room not found')
+
+    const amA = room.user1 === myId
+    myVerifyField.value = amA ? 'verified_a' : 'verified_b'
+    partnerVerifyField.value = amA ? 'verified_b' : 'verified_a'
+  }
+
+  // pull the latest verification fields for the room
+  async function loadVerification(roomId: string) {
+    await resolveSides(roomId)
+
+    const { data: row, error } = await supabase
+      .from('match_room')
+      .select('verify_code, verified_a, verified_b, session_id')
+      .eq('id', roomId)
+      .maybeSingle()
+
+    if (error || !row) {
+      console.warn('[verify] loadVerification error', error)
+      return
+    }
+    roomVerifyCode.value = row.verify_code || ''
+    myVerified.value = Boolean(row[myVerifyField.value])
+    partnerVerified.value = Boolean(row[partnerVerifyField.value])
+    sessionId.value = row.session_id ?? null
+  }
+
+  // attempt verification with the word I typed
+  async function submitVerification(): Promise<{ ok: boolean; msg: string }> {
+    verifyMessage.value = ''
+    const rid = currentMatchId.value || match.value.id
+    if (!rid) return { ok: false, msg: 'No room id' }
+
+    // ensure sides & latest row
+    await loadVerification(rid)
+
+    // check word
+    const word = (verifyWordInput.value || '').trim()
+    if (!word) {
+      verifyMessage.value = 'Enter the verification word.'
+      return { ok: false, msg: verifyMessage.value }
+    }
+
+    if (word.toLowerCase() !== (roomVerifyCode.value || '').toLowerCase()) {
+      verifyMessage.value = 'Incorrect word. Try again.'
+      return { ok: false, msg: verifyMessage.value }
+    }
+
+    // set my side = true
+    const myField = myVerifyField.value
+
+    // SCHEMA NOTE: if your DB uses 'verifiedb' (no underscore), map here:
+    // const patch: Record<string, any> = {}
+    // patch[myField === 'verified_b' ? 'verifiedb' : 'verified_a'] = true
+    // await supabase.from('match_room').update(patch).eq('id', rid)
+
+    const { error: updErr } = await supabase
+      .from('match_room')
+      .update({ [myField]: true })
+      .eq('id', rid)
+
+    if (updErr) {
+      console.warn('[verify] update my verified flag failed', updErr)
+      verifyMessage.value = 'Could not save verification.'
+      return { ok: false, msg: verifyMessage.value }
+    }
+
+    // re-read to see if partner is verified too
+    const { data: after, error: afterErr } = await supabase
+      .from('match_room')
+      .select('verified_a, verified_b, session_id')
+      .eq('id', rid)
+      .maybeSingle()
+
+    if (afterErr || !after) {
+      verifyMessage.value = 'Verified on your side. Waiting for partner.'
+      return { ok: true, msg: verifyMessage.value }
+    }
+
+    const both = Boolean(after.verified_a) && Boolean(after.verified_b)
+
+    // if both verified and no session_id, create one
+    if (both && !after.session_id) {
+      const newSess = crypto.randomUUID?.() ?? `sess-${Date.now()}`
+      const { error: sessErr } = await supabase
+        .from('match_room')
+        .update({ session_id: newSess })
+        .eq('id', rid)
+      if (!sessErr) sessionId.value = newSess
+    }
+
+    // update local flags
+    myVerified.value = Boolean(after[myVerifyField.value])
+    partnerVerified.value = Boolean(after[partnerVerifyField.value])
+
+    verifyMessage.value = both
+      ? 'Both verified. Session ready!'
+      : 'Verified on your side. Waiting for partner.'
+
+    return { ok: true, msg: verifyMessage.value }
+  }
+
+  // realtime subscription so the tags flip without refresh
+  async function subscribeVerification(roomId: string) {
+    if (roomSub) {
+      try { await roomSub.unsubscribe() } catch {}
+      roomSub = null
+    }
+
+    roomSub = supabase
+      .channel(`match_room:${roomId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'match_room', filter: `id=eq.${roomId}` },
+        payload => {
+          const row: any = payload.new
+          if (!row) return
+          roomVerifyCode.value = row.verify_code ?? roomVerifyCode.value
+          myVerified.value = Boolean(row[myVerifyField.value])
+          partnerVerified.value = Boolean(row[partnerVerifyField.value])
+          sessionId.value = row.session_id ?? sessionId.value
+        }
+      )
+      .subscribe()
+  }
+
+  // helper to init the whole verification panel when you enter chat
+  async function initVerificationForCurrentRoom() {
+    const rid = currentMatchId.value || match.value.id
+    if (!rid) return
+    await loadVerification(rid)
+    await subscribeVerification(rid)
+  }
 
   // ---------- Timer ----------
   const totalSeconds = 60
@@ -165,49 +332,50 @@ export const useMatchStore = defineStore('match', () => {
 
   // ---------- Persistence ----------
   function persist() {
-  const payload = {
-    stage: stage.value,
-    resultAccepted: resultAccepted.value,
-    currentMatchId: currentMatchId.value,
-    chatId: chatId.value,
-    availability: availability.value,
-    match: { ...match.value },
-    landingNotice: landingNotice.value,            // 👈 add
-  }
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
-}
- function restore() {
-  const raw = sessionStorage.getItem(STORAGE_KEY)
-  if (!raw) return false
-  try {
-    const data = JSON.parse(raw)
-    if (data.stage) stage.value = data.stage as Stage
-    if ('resultAccepted' in data) resultAccepted.value = !!data.resultAccepted
-    currentMatchId.value = data.currentMatchId ?? null
-    chatId.value = data.chatId ?? null
-    if (typeof data.availability === 'string') availability.value = data.availability
-    if (data.match) {
-      match.value = {
-        subject: data.match.subject ?? match.value.subject,
-        description: data.match.description ?? match.value.description,
-        time: data.match.time ?? match.value.time,
-        duration: data.match.duration ?? match.value.duration,
-        location: data.match.location ?? match.value.location,
-        partner: {
-          name: data.match.partner?.name ?? match.value.partner.name,
-          photo: data.match.partner?.photo ?? null,
-          description: data.match.partner?.description ?? null,
-        },
-        id: data.match.id ?? currentMatchId.value ?? undefined,
-      }
+    const payload = {
+      stage: stage.value,
+      resultAccepted: resultAccepted.value,
+      currentMatchId: currentMatchId.value,
+      chatId: chatId.value,
+      availability: availability.value,
+      match: { ...match.value },
+      landingNotice: landingNotice.value,
     }
-    landingNotice.value = data.landingNotice ?? null     // 👈 restore
-    return true
-  } catch {
-    sessionStorage.removeItem(STORAGE_KEY)
-    return false
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
   }
-}
+
+  function restore() {
+    const raw = sessionStorage.getItem(STORAGE_KEY)
+    if (!raw) return false
+    try {
+      const data = JSON.parse(raw)
+      if (data.stage) stage.value = data.stage as Stage
+      if ('resultAccepted' in data) resultAccepted.value = !!data.resultAccepted
+      currentMatchId.value = data.currentMatchId ?? null
+      chatId.value = data.chatId ?? null
+      if (typeof data.availability === 'string') availability.value = data.availability
+      if (data.match) {
+        match.value = {
+          subject: data.match.subject ?? match.value.subject,
+          description: data.match.description ?? match.value.description,
+          time: data.match.time ?? match.value.time,
+          duration: data.match.duration ?? match.value.duration,
+          location: data.match.location ?? match.value.location,
+          partner: {
+            name: data.match.partner?.name ?? match.value.partner.name,
+            photo: data.match.partner?.photo ?? null,
+            description: data.match.partner?.description ?? null,
+          },
+          id: data.match.id ?? currentMatchId.value ?? undefined,
+        }
+      }
+      landingNotice.value = data.landingNotice ?? null
+      return true
+    } catch {
+      sessionStorage.removeItem(STORAGE_KEY)
+      return false
+    }
+  }
 
   watch([stage, resultAccepted, currentMatchId, chatId, match, availability], persist, { deep: true })
 
@@ -230,7 +398,8 @@ export const useMatchStore = defineStore('match', () => {
       tick = null
     }
   }
-    function setLandingNotice(msg: string) {
+
+  function setLandingNotice(msg: string) {
     landingNotice.value = msg
     persist()
   }
@@ -286,7 +455,7 @@ export const useMatchStore = defineStore('match', () => {
     }
   }
 
-  // 👇 NEW: view calls this to check if the other side rejected me
+  // view calls this to check if the other side rejected me
   async function checkIfPartnerRejected(partnerId?: string | null): Promise<boolean> {
     const { data: auth } = await supabase.auth.getUser()
     const myId = auth?.user?.id
@@ -306,68 +475,58 @@ export const useMatchStore = defineStore('match', () => {
     return !!data
   }
 
-  // 👇 NEW: cleanly kick user out of chat if partner leaves
+  // cleanly kick user out of chat if partner leaves
   async function forceLeaveChat(msg?: string) {
-  stopCountdown()
+    stopCountdown()
+    if (msg) landingNotice.value = msg
 
-  if (msg) {
-    landingNotice.value = msg
+    stage.value = 'landing'
+    resultAccepted.value = false
+    currentMatchId.value = null
+    chatId.value = null
+    match.value.partner = { name: '', photo: null, description: null }
+    messages.value = seedMessages()
+    persist()
   }
 
-  stage.value = 'landing'
-  resultAccepted.value = false
-  currentMatchId.value = null
-  chatId.value = null
-  match.value.partner = { name: '', photo: null, description: null }
-  messages.value = seedMessages()
-  persist()
-}
   async function acceptMatch() {
     stopCountdown()
     resultAccepted.value = true
-    if (!chatId.value) {
-      chatId.value = crypto.randomUUID?.() ?? `chat-${Date.now()}`
-    }
+    if (!chatId.value) chatId.value = crypto.randomUUID?.() ?? `chat-${Date.now()}`
     stage.value = 'chat'
     persist()
   }
 
- async function declineMatch(partnerId?: string | null, autoRematch = false) {
-  stopCountdown()
-  resultAccepted.value = false
+  async function declineMatch(partnerId?: string | null, autoRematch = false) {
+    stopCountdown()
+    resultAccepted.value = false
 
-  const { data: auth } = await supabase.auth.getUser()
-  const myId = auth?.user?.id ?? null
+    const { data: auth } = await supabase.auth.getUser()
+    const myId = auth?.user?.id ?? null
 
-    // 1) remove the room if I was in one
+    // remove the room if I was in one
     if (currentMatchId.value) {
       await supabase.from('match_room').delete().eq('id', currentMatchId.value)
     }
 
-    // 2) record the rejection pair so the other side can detect it
+    // record the rejection pair so the other side can detect it
     if (myId && partnerId) {
       await recordRejection(myId, partnerId)
     }
 
-    // 3) ✅ decliner ALWAYS goes back to queue
+    // decliner ALWAYS goes back to queue
     if (myId) {
       await putUserBackToQueue(myId)
     }
 
-    // 4) ❌ DO NOT put partner into queue here
-    //    because the partner might already be in chat; they'll detect the
-    //    rejection (via polling) and go back to landing without requeue.
-
-    // 5) reset local ui state
+    // reset local ui state
     match.value.partner = { name: '', photo: null, description: null }
     currentMatchId.value = null
 
     if (autoRematch) {
-      // only if we explicitly asked for it
       stage.value = 'searching'
       queueAndPoll().catch(err => console.error('[match] auto-rematch failed', err))
     } else {
-      // 👇 what you asked for: show main screen
       stage.value = 'landing'
       persist()
     }
@@ -494,11 +653,13 @@ export const useMatchStore = defineStore('match', () => {
     return (data ?? []).map(row => row.user_id)
   }
 
+  // Prefer only un-finalized rooms; if you want that filter, add .is('session_id', null)
   async function findRoomForMe(myId: string): Promise<string | null> {
     const { data, error } = await supabase
       .from('match_room')
-      .select('id, user1, user2, created_at')
+      .select('id, user1, user2, created_at, session_id')
       .or(`user1.eq.${myId},user2.eq.${myId}`)
+      .is('session_id', null)
       .order('created_at', { ascending: false })
       .limit(1)
     if (error) {
@@ -507,7 +668,7 @@ export const useMatchStore = defineStore('match', () => {
     }
     if (!data || !data.length) return null
     const room = data[0]
-    console.log(`📦 Found existing room for ${myId}:`, room.id)
+    console.log(`📦 Found existing open room for ${myId}:`, room.id)
     return room.id as string
   }
 
@@ -534,7 +695,6 @@ export const useMatchStore = defineStore('match', () => {
     }
 
     const candidateIds = others.map(o => o.user_id).filter(cid => !blocked.has(cid))
-
     if (!candidateIds.length) {
       console.log('🚫 Everyone in queue is blocked (mutual rejections).')
       return null
@@ -542,9 +702,9 @@ export const useMatchStore = defineStore('match', () => {
 
     const scored = await Promise.all(
       candidateIds.map(async (cid: string) => {
-        console.log(` [START] Going to find score for ${myId} and ${cid}`)
+        console.log(` [START] score for ${myId} vs ${cid}`)
         const score = await computeMatchScore(myId, cid)
-        console.log(` [END] Found score for ${myId} and ${cid}`)
+        console.log(` [END] score for ${myId} vs ${cid}`)
         return { user_id: cid, score }
       })
     )
@@ -580,17 +740,67 @@ export const useMatchStore = defineStore('match', () => {
       { onConflict: 'user_id' }
     )
 
+    // Backfill helper for legacy rows
+    async function ensureVerifyCodeExists(roomId: string) {
+      const { data: row, error } = await supabase
+        .from('match_room')
+        .select('verify_code')
+        .eq('id', roomId)
+        .maybeSingle()
+      if (error || !row) return
+      if (!row.verify_code) {
+        const { error: fixErr } = await supabase
+          .from('match_room')
+          .update({ verify_code: generateVerifyCode() })
+          .eq('id', roomId)
+        if (fixErr) console.warn('[verify] backfill verify_code failed', fixErr)
+      }
+    }
+
+    // Create a room (robust to race) and RETURN THE FINAL ROOM ID
     const markMatched = async (partnerId: string): Promise<string | null> => {
-      const roomId = globalThis.crypto?.randomUUID?.() ?? String(Date.now())
+      const proposedId = globalThis.crypto?.randomUUID?.() ?? String(Date.now())
       const now = new Date().toISOString()
-      await supabase.from('match_room').insert({
-        id: roomId,
-        user1: myId,
-        user2: partnerId,
-        created_at: now,
-      })
+      const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+      const verifyWord = generateVerifyCode()
+
+      // Try insert once; if duplicate pair exists (race), we'll select it below.
+      try {
+        const { error: insErr } = await supabase.from('match_room').insert({
+          id: proposedId,
+          user1: myId,
+          user2: partnerId,
+          created_at: now,
+          expires_at: expires,
+          verify_code: verifyWord,   // set word at creation
+          verified_a: false,         // if your schema is 'verifiedb', adapt when you update flags, not here
+          verified_b: false,
+          session_id: null,
+        })
+        if (insErr && (insErr as any).code !== '23505') {
+          console.error('[match] insert match_room failed', insErr)
+          return null
+        }
+      } catch (e) {
+        // swallow; we'll pick the existing row
+      }
+
+      // Whether our insert won or not, fetch the SINGLE open room for this pair
+      const { data: existing, error: selErr } = await supabase
+        .from('match_room')
+        .select('id, verify_code')
+        .or(`and(user1.eq.${myId},user2.eq.${partnerId}),and(user1.eq.${partnerId},user2.eq.${myId})`)
+        .is('session_id', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (selErr || !existing?.length) return null
+      const finalId = existing[0].id as string
+
+      // clear both from queue
       await supabase.from('match_queue').delete().in('user_id', [myId, partnerId])
 
+      // set partner card, start timer, etc.
       const { data: prof } = await supabase
         .from('profiles')
         .select('username, profile_photo, personality')
@@ -606,9 +816,11 @@ export const useMatchStore = defineStore('match', () => {
       stage.value = 'match'
       startCountdown(() => declineMatch(partnerId))
       persist()
-      return roomId
+
+      return finalId
     }
 
+    // Try instantaneous match first
     const best = await findBestCandidateForMe(myId, myProfile)
     if (best?.user_id) {
       console.log(`💞 Immediate match found: ${myId} ↔ ${best.user_id}`)
@@ -622,15 +834,15 @@ export const useMatchStore = defineStore('match', () => {
       console.log('⏳ No immediate candidate, will poll...')
     }
 
+    // Poll for 15s
     const deadline = Date.now() + 15_000
     while (Date.now() < deadline) {
       const existingRoomId = await findRoomForMe(myId)
       if (existingRoomId) {
         console.log(`📦 Someone matched me → room ${existingRoomId}`)
-
         currentMatchId.value = existingRoomId
         match.value.id = existingRoomId
-
+        await ensureVerifyCodeExists(existingRoomId) // ensure word present
         await setPartnerFromRoom(existingRoomId)
         stage.value = 'match'
         startCountdown(() => declineMatch())
@@ -652,6 +864,7 @@ export const useMatchStore = defineStore('match', () => {
       await new Promise(r => setTimeout(r, 2000))
     }
 
+    // time out → back to queue idle and show notfound
     await supabase.from('match_queue').upsert(
       {
         user_id: myId,
@@ -671,17 +884,14 @@ export const useMatchStore = defineStore('match', () => {
   // ---------- partner loading ----------
   async function loadPartnerProfile(roomId: string, myId: string) {
     const { data: room } = await supabase.from('match_room').select('user1, user2').eq('id', roomId).single()
-
     if (!room) return null
 
     const partnerId = room.user1 === myId ? room.user2 : room.user1
-
     const { data: partner } = await supabase
       .from('profiles')
       .select('username, profile_photo, personality')
       .eq('user_id', partnerId)
       .single()
-
     return partner
   }
 
@@ -711,7 +921,6 @@ export const useMatchStore = defineStore('match', () => {
     if (!myId) return
 
     const { data: room } = await supabase.from('match_room').select('user1, user2').eq('id', roomId).single()
-
     if (!room) return
     const partnerId = room.user1 === myId ? room.user2 : room.user1
 
@@ -745,10 +954,10 @@ export const useMatchStore = defineStore('match', () => {
     availability,
     availabilityList,
     landingNotice,
+
     // computed
     partnerInitials,
     countdownText,
-    
 
     // actions
     acceptMatch,
@@ -769,10 +978,20 @@ export const useMatchStore = defineStore('match', () => {
     getIdleOthers,
     clearMyRejections,
 
-    // NEW
+    // verification API
+    verifyWordInput,
+    verifyMessage,
+    myVerified,
+    partnerVerified,
+    roomVerifyCode,
+    sessionId,
+    submitVerification,
+    initVerificationForCurrentRoom,
+
+    // misc
     checkIfPartnerRejected,
     forceLeaveChat,
     setLandingNotice,
-    clearLandingNotice
+    clearLandingNotice,
   }
 })
