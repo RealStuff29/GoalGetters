@@ -1,306 +1,330 @@
 <!-- src/views/MatchChatView.vue -->
 <template>
   <div
-    class="min-h-screen p-4 w-full max-w-6xl mx-auto grid lg:grid-cols-2 gap-6"
+    class="min-h-screen p-4 w-full max-w-6xl mx-auto"
     v-if="store.stage === 'chat'"
   >
-    <!-- Left column: Header + Details + Chat -->
-    <div class="space-y-4">
-      <Card>
-        <template #content>
-          <div class="flex items-center gap-3">
-            <Avatar :label="store.partnerInitials" shape="circle" />
-            <div>
-              <div class="font-medium">{{ store.match.partner.name || 'Study partner' }}</div>
-              <small class="opacity-70">Online now</small>
-            </div>
-          </div>
-        </template>
-      </Card>
+    <Tabs value="0">
+      <TabList>
+        <Tab value="0">Session Details</Tab>
+        <Tab value="1">Chat & Map</Tab>
+      </TabList>
 
-      <!-- Study Session Details -->
-      <Card>
-        <template #title>
-          <span class="text-base font-medium">Study Session Details</span>
-        </template>
-        <template #content>
-          <div class="space-y-4">
-            <!-- Common time slots -->
-            <div class="flex items-start gap-3">
-              <i :class="pi('clock')" class="opacity-70 mt-1" />
-              <div>
-                <div class="font-medium mb-1">Common Time Slots</div>
-                <div v-if="commonSlotsLabels.length">
-                  <Tag v-for="s in commonSlotsLabels" :key="s" severity="secondary" :value="s" class="mr-2 mb-2" />
+      <TabPanels>
+        <!-- Tab 0: Session Details -->
+        <TabPanel value="0">
+          <div class="space-y-4 max-w-6xl mx-auto">
+            <Card>
+              <template #content>
+                <div class="flex items-center gap-3">
+                  <Avatar :label="store.partnerInitials" shape="circle" />
+                  <div>
+                    <div class="font-medium">{{ store.match.partner.name || 'Study partner' }}</div>
+                    <small class="opacity-70">Online now</small>
+                  </div>
                 </div>
-                <small v-else class="opacity-70">No overlapping availability yet.</small>
-              </div>
-            </div>
+              </template>
+            </Card>
 
-            <!-- Common modules -->
-            <div class="flex items-start gap-3">
-              <i :class="pi('book')" class="opacity-70 mt-1" />
-              <div>
-                <div class="font-medium mb-1">Common Modules</div>
-                <div v-if="commonModules.length">
-                  <Tag v-for="m in commonModules" :key="m" severity="secondary" :value="m" class="mr-2 mb-2" />
-                </div>
-                <small v-else class="opacity-70">They have no common modules.</small>
-              </div>
-            </div>
-
-            <!-- Degrees / Schools -->
-            <div class="flex items-start gap-3">
-              <i :class="pi('university')" class="opacity-70 mt-1" />
-              <div>
-                <div class="font-medium mb-1">School / Degree</div>
-                <div class="text-sm">
-                  <div><b>You:</b> {{ myDegreeLabel || '-' }}</div>
-                  <div><b>Partner:</b> {{ partnerDegreeLabel || '-' }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </template>
-      </Card>
-
-      <!-- Verification -->
-      <Card>
-        <template #title>
-          <span class="text-base font-medium">Verify Your Partner</span>
-        </template>
-        <template #content>
-          <div class="space-y-3">
-            <div class="text-sm">
-              <div class="opacity-70 mb-1">Share this word with your partner:</div>
-
-              <div class="flex items-center gap-2">
-                <div class="px-3 py-2 rounded bg-surface-200 font-mono text-sm select-all flex-1">
-                  {{ store.roomVerifyCode || '—' }}
-                </div>
-                <Button
-                  :disabled="!store.roomVerifyCode"
-                  :icon="pi('copy')"
-                  text
-                  aria-label="Copy"
-                  @click="copyCode"
-                />
-              </div>
-
-              <small class="opacity-70">
-                Both of you should enter the <i>same</i> word below to confirm you’re talking to the right person.
-              </small>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <InputText
-                v-model="store.verifyWordInput"
-                placeholder="Enter the shared verification word"
-                class="flex-1"
-                :disabled="store.myVerified"
-                @keyup.enter="onVerify"
-              />
-              <Button
-                size="small"
-                :icon="pi('check')"
-                label="Verify"
-                :disabled="store.myVerified || !store.verifyWordInput"
-                @click="onVerify"
-              />
-            </div>
-
-            <div class="flex items-center gap-2">
-              <Tag :severity="store.myVerified ? 'success' : 'danger'"
-                   :value="store.myVerified ? 'You: Verified' : 'You: Not verified'"/>
-              <Tag :severity="store.partnerVerified ? 'success' : 'warn'"
-                   :value="store.partnerVerified ? 'Partner: Verified' : 'Partner: Pending'"/>
-              <Tag v-if="store.sessionId" severity="success" :value="`Session: ${store.sessionId.slice(0,8)}…`"/>
-            </div>
-          </div>
-        </template>
-      </Card>
-
-      <!-- Time Remaining -->
-      <Card v-if="store.myVerified && store.partnerVerified && store.sessionSecondsLeft > 0">
-        <template #title>
-          <span class="text-base font-medium">Time Remaining</span>
-          <div><Button outlined icon="pi pi-flag" label="End Session & Review" @click="endAndReview" /></div>
-        </template>
-
-        <template #content>
-          <div class="flex items-center">
-            <Tag severity="danger" :value="store.sessionCountdownText" />
-          </div>
-
-          <small class="block opacity-70 mt-2">
-            Counts down to the end of the current time slot -
-            <b>{{ store.sessionActiveSlotLabel || 'Current slot' }}</b>.
-          </small>
-        </template>
-      </Card>
-
-      <!-- Chat - FIXED SECTION -->
-      <Card class="chat-card">
-        <template #title>
-          <span class="text-base font-medium">Chat</span>
-        </template>
-        <template #content>
-          <div class="chat-wrapper">
-            <!-- Messages Area - THIS IS THE SCROLLABLE SECTION -->
-            <div class="messages-container" ref="chatScroller">
-              <!-- Loading State -->
-              <div v-if="isLoadingMessages" class="flex items-center justify-center h-full opacity-70">
-                <i class="pi pi-spin pi-spinner mr-2"></i>
-                Loading messages...
-              </div>
-              
-              <!-- No Messages -->
-              <div v-else-if="store.messages.length === 0" class="flex items-center justify-center h-full opacity-70">
-                No messages yet. Say hi! 👋
-              </div>
-              
-              <!-- Messages -->
-              <div v-else class="space-y-3">
-                <div v-for="m in store.messages" :key="m.id" class="message-item">
-                  <div :class="m.from === 'me' ? 'message-right' : 'message-left'">
-                    <div :class="m.from === 'me' ? 'message-content-right' : 'message-content-left'">
-                      <div
-                        :class="[
-                          'message-bubble',
-                          m.from === 'me' ? 'bg-primary-500 text-white' : 'bg-surface-200'
-                        ]"
-                      >
-                        {{ m.text }}
+            <!-- Study Session Details and Verification side by side -->
+            <div class="grid lg:grid-cols-2 gap-4">
+              <!-- Study Session Details -->
+              <Card>
+                <template #title>
+                  <span class="text-base font-medium">Study Session Details</span>
+                </template>
+                <template #content>
+                  <div class="space-y-4">
+                    <!-- Common time slots -->
+                    <div class="flex items-start gap-3">
+                      <i :class="pi('clock')" class="opacity-70 mt-1" />
+                      <div>
+                        <div class="font-medium mb-1">Common Time Slots</div>
+                        <div v-if="commonSlotsLabels.length">
+                          <Tag v-for="s in commonSlotsLabels" :key="s" severity="secondary" :value="s" class="mr-2 mb-2" />
+                        </div>
+                        <small v-else class="opacity-70">No overlapping availability yet.</small>
                       </div>
-                      <div class="text-xs opacity-50 mt-1">
-                        {{ formatTime(m.created_at) }}
+                    </div>
+
+                    <!-- Common modules -->
+                    <div class="flex items-start gap-3">
+                      <i :class="pi('book')" class="opacity-70 mt-1" />
+                      <div>
+                        <div class="font-medium mb-1">Common Modules</div>
+                        <div v-if="commonModules.length">
+                          <Tag v-for="m in commonModules" :key="m" severity="secondary" :value="m" class="mr-2 mb-2" />
+                        </div>
+                        <small v-else class="opacity-70">They have no common modules.</small>
+                      </div>
+                    </div>
+
+                    <!-- Degrees / Schools -->
+                    <div class="flex items-start gap-3">
+                      <i :class="pi('university')" class="opacity-70 mt-1" />
+                      <div>
+                        <div class="font-medium mb-1">School / Degree</div>
+                        <div class="text-sm">
+                          <div><b>You:</b> {{ myDegreeLabel || '-' }}</div>
+                          <div><b>Partner:</b> {{ partnerDegreeLabel || '-' }}</div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-            <Divider class="my-3" />
-            
-            <!-- Input Area - FIXED AT BOTTOM -->
-            <div class="input-area">
-              <InputText
-                v-model="store.draft"
-                placeholder="Type a message..."
-                class="flex-1"
-                @keyup.enter="send"
-                :disabled="isSending"
-              />
-              <Button 
-                size="small" 
-                @click="send" 
-                icon="pi pi-send" 
-                label="Send"
-                :disabled="!store.draft.trim() || isSending"
-                :loading="isSending"
-              />
-            </div>
-          </div>
-        </template>
-      </Card>
-    </div>
+                </template>
+              </Card>
 
-    <!-- Right column: Map + Suggestions -->
-    <div class="space-y-4">
-      <Card>
-        <template #title>
-          <span class="text-base font-medium">
-            <i :class="pi('direction')" class="mr-2" /> Nearby Study Locations
-          </span>
-        </template>
-        <template #content>
-          <StudySpotMap
-            ref="mapRef"
-            :api-key="YOUR_GOOGLE_MAPS_API_KEY"
-            height="400px"
-            @places-updated="handlePlacesUpdate"
-          />
-        </template>
-      </Card>
+              <Card>
+                <template #title>
+                  <span class="text-base font-medium">Verify Your Partner</span>
+                </template>
+                <template #content>
+                  <div class="space-y-3">
+                    <div class="text-sm">
+                      <div class="opacity-70 mb-1">Share this word with your partner:</div>
 
-      <Card :key="studySpots.length">
-        <template #title>
-          <div>
-            <div class="text-base font-medium">Suggested Study Spots</div>
-            <small class="opacity-70">{{ studySpots.length }} spots found</small>
-          </div>
-        </template>
-        <template #content>
-          <div v-if="studySpots.length === 0" class="text-center p-4 opacity-70">
-            Search for a location to find study spots
-          </div>
-          <div v-else>
-            <div class="space-y-4 mb-3">
-              <div
-                v-for="spot in paginatedSpots"
-                :key="spot.place_id"
-                class="flex items-start justify-between p-3 rounded border surface-border hover:bg-gray-50 transition-colors"
-              >
-                <div class="flex-1">
-                  <div class="font-medium">{{ spot.name }}</div>
-                  <small class="opacity-70 block">{{ spot.vicinity || spot.formatted_address }}</small>
-                  <small v-if="spot.rating" class="text-yellow-600">
-                    ★ {{ spot.rating }}
-                    {{ spot.user_ratings_total ? `(${spot.user_ratings_total} reviews)` : '' }}
-                  </small>
+                      <div class="flex items-center gap-2">
+                        <div class="px-3 py-2 rounded bg-surface-200 font-mono text-sm select-all flex-1" style="max-width: 200px;">
+                          {{ store.roomVerifyCode || '—' }}
+                        </div>
+                        <div>
+                          <Button
+                            :disabled="!store.roomVerifyCode"
+                            :icon="pi('copy')"
+                            text
+                            aria-label="Copy"
+                            @click="copyCode"
+                          />
+                        </div>
+                      </div>
+
+                      <small class="opacity-70">
+                        Both of you should enter the <i>same</i> word below to confirm you're talking to the right person.
+                      </small>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                      <InputText
+                        v-model="store.verifyWordInput"
+                        placeholder="Enter the shared verification word"
+                        class="flex-1"
+                        :disabled="store.myVerified"
+                        @keyup.enter="onVerify"
+                        style="width: 300px;"
+                      />
+                      <Button
+                        size="small"
+                        :icon="pi('check')"
+                        label="Verify"
+                        :disabled="store.myVerified || !store.verifyWordInput"
+                        @click="onVerify"
+                        style="margin-left: 10px;"
+                      />
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                      <Tag :severity="store.myVerified ? 'success' : 'danger'"
+                           :value="store.myVerified ? 'You: Verified' : 'You: Not verified'"/>
+                      <Tag :severity="store.partnerVerified ? 'success' : 'warn'"
+                           :value="store.partnerVerified ? 'Partner: Verified' : 'Partner: Pending'"/>
+                      <Tag v-if="store.sessionId" severity="success" :value="`Session: ${store.sessionId.slice(0,8)}…`"/>
+                    </div>
+                  </div>
+                </template>
+              </Card>
+            </div>
+
+            <!-- Time Remaining -->
+            <Card v-if="store.myVerified && store.partnerVerified && store.sessionSecondsLeft > 0">
+              <template #title>
+                <span class="text-base font-medium">Time Remaining</span>
+                <div><Button outlined icon="pi pi-flag" label="End Session & Review" @click="endAndReview" /></div>
+              </template>
+
+              <template #content>
+                <div class="flex items-center">
+                  <Tag severity="danger" :value="store.sessionCountdownText" />
                 </div>
-                <div class="flex gap-3 space-y-4">
-                  <Button
-                    outlined
-                    size="small"
-                    icon="pi pi-map-marker"
-                    label="View"
-                    @click="focusOnSpot(spot)"
+
+                <small class="block opacity-70 mt-2">
+                  Counts down to the end of the current time slot -
+                  <b>{{ store.sessionActiveSlotLabel || 'Current slot' }}</b>.
+                </small>
+              </template>
+            </Card>
+
+            <Button outlined class="w-full" :icon="pi('refresh')" label="Find Another Match" @click="endForBoth" />
+          </div>
+        </TabPanel>
+
+        <!-- Tab 1: Chat & Map -->
+        <TabPanel value="1">
+          <div class="grid lg:grid-cols-2 gap-6">
+            <!-- Left: Chat -->
+            <Card class="chat-card">
+              <template #title>
+                <span class="text-base font-medium">Chat</span>
+              </template>
+              <template #content>
+                <div class="chat-wrapper">
+                  <!-- Messages Area - THIS IS THE SCROLLABLE SECTION -->
+                  <div class="messages-container" ref="chatScroller">
+                    <!-- Loading State -->
+                    <div v-if="isLoadingMessages" class="flex items-center justify-center h-full opacity-70">
+                      <i class="pi pi-spin pi-spinner mr-2"></i>
+                      Loading messages...
+                    </div>
+                    
+                    <!-- No Messages -->
+                    <div v-else-if="store.messages.length === 0" class="flex items-center justify-center h-full opacity-70">
+                      No messages yet. Say hi! 👋
+                    </div>
+                    
+                    <!-- Messages -->
+                    <div v-else class="space-y-3">
+                      <div v-for="m in store.messages" :key="m.id" class="message-item">
+                        <div :class="m.from === 'me' ? 'message-right' : 'message-left'">
+                          <div :class="m.from === 'me' ? 'message-content-right' : 'message-content-left'">
+                            <div
+                              :class="[
+                                'message-bubble',
+                                m.from === 'me' ? 'bg-primary-500 text-white' : 'bg-surface-200'
+                              ]"
+                            >
+                              {{ m.text }}
+                            </div>
+                            <div class="text-xs opacity-50 mt-1">
+                              {{ formatTime(m.created_at) }}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <Divider class="my-3" />
+                  
+                  <!-- Input Area - FIXED AT BOTTOM -->
+                  <div class="input-area">
+                    <InputText
+                      v-model="store.draft"
+                      placeholder="Type a message..."
+                      class="flex-1"
+                      @keyup.enter="send"
+                      :disabled="isSending"
+                    />
+                    <Button 
+                      size="small" 
+                      @click="send" 
+                      icon="pi pi-send" 
+                      label="Send"
+                      :disabled="!store.draft.trim() || isSending"
+                      :loading="isSending"
+                    />
+                  </div>
+                </div>
+              </template>
+            </Card>
+
+            <!-- Right: Map and Suggestions -->
+            <div class="space-y-4">
+              <Card>
+                <template #title>
+                  <span class="text-base font-medium">
+                    <i :class="pi('direction')" class="mr-2" /> Nearby Study Locations
+                  </span>
+                </template>
+                <template #content>
+                  <StudySpotMap
+                    ref="mapRef"
+                    :api-key="YOUR_GOOGLE_MAPS_API_KEY"
+                    height="400px"
+                    @places-updated="handlePlacesUpdate"
                   />
-                  <Button
-                    outlined
-                    size="small"
-                    icon="pi pi-plus"
-                    label="Suggest"
-                    @click="suggestSpot(spot)"
-                  />
-                </div>
-              </div>
+                </template>
+              </Card>
+
+              <Card :key="studySpots.length">
+                <template #title>
+                  <div>
+                    <div class="text-base font-medium">Suggested Study Spots</div>
+                    <small class="opacity-70">{{ studySpots.length }} spots found</small>
+                  </div>
+                </template>
+                <template #content>
+                  <div v-if="studySpots.length === 0" class="text-center p-4 opacity-70">
+                    Search for a location to find study spots
+                  </div>
+                  <div v-else>
+                    <div class="space-y-4 mb-3">
+                      <div
+                        v-for="spot in paginatedSpots"
+                        :key="spot.place_id"
+                        class="flex items-start justify-between p-3 rounded border surface-border hover:bg-gray-50 transition-colors"
+                      >
+                        <div class="flex-1">
+                          <div class="font-medium">{{ spot.name }}</div>
+                          <small class="opacity-70 block">{{ spot.vicinity || spot.formatted_address }}</small>
+                          <small v-if="spot.rating" class="text-yellow-600">
+                            ★ {{ spot.rating }}
+                            {{ spot.user_ratings_total ? `(${spot.user_ratings_total} reviews)` : '' }}
+                          </small>
+                        </div>
+                        <div class="flex gap-3 space-y-4">
+                          <Button
+                            outlined
+                            size="small"
+                            icon="pi pi-map-marker"
+                            label="View"
+                            @click="focusOnSpot(spot)"
+                          />
+                          <Button
+                            outlined
+                            size="small"
+                            icon="pi pi-plus"
+                            label="Suggest"
+                            @click="suggestSpot(spot)"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Pagination Controls -->
+                  <div class="flex justify-between items-center pt-2 border-t">
+                    <Button
+                      :disabled="currentPage === 1"
+                      @click="currentPage--"
+                      icon="pi pi-chevron-left"
+                      text
+                      size="small"
+                      label="Previous"
+                    />
+                    <small class="opacity-70">
+                      Page {{ currentPage }} of {{ totalPages }}
+                    </small>
+                    <Button
+                      :disabled="currentPage === totalPages"
+                      @click="currentPage++"
+                      icon="pi pi-chevron-right"
+                      iconPos="right"
+                      text
+                      size="small"
+                      label="Next"
+                    />
+                  </div>
+                </template>
+              </Card>
+
+              <Button outlined class="w-full" :icon="pi('refresh')" label="Find Another Match" @click="endForBoth" />
             </div>
           </div>
-
-          <!-- Pagination Controls -->
-          <div class="flex justify-between items-center pt-2 border-t">
-            <Button
-              :disabled="currentPage === 1"
-              @click="currentPage--"
-              icon="pi pi-chevron-left"
-              text
-              size="small"
-              label="Previous"
-            />
-            <small class="opacity-70">
-              Page {{ currentPage }} of {{ totalPages }}
-            </small>
-            <Button
-              :disabled="currentPage === totalPages"
-              @click="currentPage++"
-              icon="pi pi-chevron-right"
-              iconPos="right"
-              text
-              size="small"
-              label="Next"
-            />
-          </div>
-        </template>
-      </Card>
-
-      <Button outlined class="w-full" :icon="pi('refresh')" label="Find Another Match" @click="endForBoth" />
-    </div>
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
   </div>
 
   <div v-else class="min-h-screen p-4 flex items-center justify-center opacity-70">
-    You haven’t accepted a match yet. Go back to the landing page.
+    You haven't accepted a match yet. Go back to the landing page.
   </div>
 </template>
 
@@ -311,6 +335,12 @@ import { useMatchStore } from '@/stores/match'
 import { degrees } from '@/constants/degrees'
 import { supabase } from '@/lib/supabase'
 import StudySpotMap from './StudySpotMap.vue'
+
+import Tabs from 'primevue/tabs';
+import TabList from 'primevue/tablist';
+import Tab from 'primevue/tab';
+import TabPanels from 'primevue/tabpanels';
+import TabPanel from 'primevue/tabpanel';
 
 // ---- study details helpers ----
 const myProfile = ref<any | null>(null)
