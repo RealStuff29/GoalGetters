@@ -148,7 +148,12 @@ async function handleSavePersonality() {
   <Toast position="top-center" group="setup" />
   <section class="container mt-3 position-relative">
     <div class="d-flex align-items-center justify-content-between mb-3">
-      <h1 class="h2 mb-0">Profile Setup</h1>
+      <!-- Header -->
+      <header class="page-header">
+        <h1 class="title">
+          <span class="title-accent">Profile</span> Setup
+        </h1>
+      </header>
     </div>
 
     <Stepper v-model:value="activeStep" linear>
@@ -360,57 +365,25 @@ async function handleSavePersonality() {
   color: #6b7280;
 }
 
-/* .p-button{
-    background: linear-gradient(135deg, #ff9800, #f57c00) !important;
-    border: none !important;
-    color: white !important;
-    font-weight: 600 !important;
-    padding: 0.75rem !important;
-    border-radius: 10px !important;
-    transition: all 0.25s ease !important;
+/* ===== Header ===== */
+.page-header {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 16px 8px;
+  text-align: center;
 }
-
-:deep(.p-step-title),
-:deep(.p-step-active .p-step-title),
-:deep(.p-step-activated .p-step-title) {
-  color: #ff9800 !important;
-  font-weight: 600;
+.title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  margin: 0;
+  background: linear-gradient(135deg,#333,#777);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
-
-
-:deep(.p-step-number),
-:deep(.p-step-number::after) {
-  background: linear-gradient(135deg, #ff9800, #f57c00) !important;
-  border: none !important;
-  color: #fff !important; /* number text */
-/* } */
-
-/* :deep(.p-step-separator),
-:deep(.p-stepper-separator) {
-  border-top-color: #f57c00 !important;
+.title-accent {
+  background: linear-gradient(135deg,#ff9800,#f45b00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
-
-
-
-
-
-
-
-:deep(.p-slider .p-slider-range) {
-  background: linear-gradient(135deg, #ff9800, #f57c00) !important;
-}
-
-:deep(.p-slider .p-slider-handle) {
-  border: 2px solid #f57c00 !important;
-  background: #fff !important;
-  transition: transform 0.2s ease;
-}
-
-:deep(.p-slider .p-slider-handle:hover) {
-  transform: scale(1.1);
-  background: #ff9800 !important;
-  border-color: #f57c00 !important;
-} */
-
-
 </style>
