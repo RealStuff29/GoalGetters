@@ -244,43 +244,48 @@ function spawnConfetti(pieces: number, dir: 'up' | 'down', centerX?: number, cen
     const el = document.createElement('span')
     el.className = `confetti-piece ${dir}`
 
-    const spread = dir === 'up' ? 70 : 35
+    const inner = document.createElement('span')
+    inner.className = 'confetti-inner'
+    el.appendChild(inner)
+
+    // widened upward "boom" + longer throw
+    const spread = dir === 'up' ? 95 : 28
     const angle = Math.random() * (spread * 2) - spread
-    const dist = (dir === 'up' ? 110 : 70) + Math.random() * (dir === 'up' ? 180 : 60)
-    const time = (dir === 'up' ? 950 : 800) + Math.random() * (dir === 'up' ? 800 : 500)
-    const delay = Math.random() * 140
-    const sizeW = 6 + Math.random() * 7
-    const sizeH = 8 + Math.random() * 12
-    const hue = Math.floor(200 + Math.random() * 140)
+    const dist = (dir === 'up' ? 200 : 60) + Math.random() * (dir === 'up' ? 260 : 40)
+    const time = (dir === 'up' ? 1100 : 800) + Math.random() * (dir === 'up' ? 900 : 400)
+    const delay = Math.random() * (dir === 'up' ? 100 : 140)
+    const hue = Math.floor(Math.random() * 60) // 0–59
+    const size = 14 + Math.random() * (dir === 'up' ? 12 : 8)
 
     const rad = (angle * Math.PI) / 180
     const tx = Math.cos(rad) * dist
     const ty =
       (dir === 'up' ? -1 : 1) *
-      (Math.sin(((90 - angle) * Math.PI) / 180) * (dist * 0.6) + (dir === 'up' ? 160 : 120))
+      (Math.sin(((90 - angle) * Math.PI) / 180) * (dist * 0.58) + (dir === 'up' ? 190 : 110))
 
+    // position & motion vars on OUTER (translate carrier)
     el.style.setProperty('--x', `${baseX}px`)
     el.style.setProperty('--y', `${baseY}px`)
     el.style.setProperty('--tx', `${tx}px`)
     el.style.setProperty('--ty', `${ty}px`)
-    el.style.setProperty('--rot', `${Math.random() * 720 - 360}deg`)
     el.style.setProperty('--time', `${time}ms`)
     el.style.setProperty('--delay', `${delay}ms`)
-    el.style.width = `${sizeW}px`
-    el.style.height = `${sizeH}px`
-    el.style.background = `hsl(${hue} 90% 60%)`
+
+    // visuals on INNER (rotates)
+    inner.style.setProperty('--size', `${size}px`)
+    inner.style.setProperty('--color', `hsl(${hue} 95% 55%)`)
+    inner.style.setProperty('--rot', `${Math.random() * 960 - 480}deg`)
 
     layer.appendChild(el)
-    window.setTimeout(() => {
-      el.remove()
-    }, time + delay + 160)
+    window.setTimeout(() => el.remove(), time + delay + 220)
   }
 }
 
 /* Fire on rating increase: 1–2 => small down; 3–5 => big up. */
-watch(myRating, (val, oldVal) => {
+watch(myRating, (rawVal, rawOld) => {
   if (alreadySubmitted.value) return
-  if (typeof oldVal !== 'number') oldVal = 0
+  const val = Number(rawVal ?? 0)
+  let oldVal = Number(rawOld ?? 0)
   if (val <= oldVal) return
 
   // retrigger star "pop"
@@ -290,13 +295,15 @@ watch(myRating, (val, oldVal) => {
     setTimeout(() => (pulseStars.value = false), 260)
   })
 
-  const starRect = ratingEl.value?.getBoundingClientRect()
-  const cx = starRect ? starRect.left + starRect.width / 2 : undefined
-  const cy = starRect ? starRect.top + 10 : undefined
+  const rect = ratingEl.value?.getBoundingClientRect()
+  const cx = rect ? rect.left + rect.width / 2 : undefined
+  const cy = rect ? rect.top + rect.height / 2 : undefined
 
   if (val >= 3) {
-    spawnConfetti(56, 'up', cx, cy)
+    // big upward burst
+    spawnConfetti(50, 'up', cx, cy)
   } else {
+    // light downward sprinkle
     spawnConfetti(10, 'down', cx, cy)
   }
 })
@@ -592,32 +599,60 @@ onMounted(async () => {
 /* Optional belt-and-suspenders for very old browsers */
 html, body { overflow-x: hidden; }
 
+/* OUTER: translates across the screen */
 .confetti-piece {
   position: absolute;
   left: var(--x);
   top: var(--y);
-  transform: translate(-50%, -50%) translate3d(0,0,0);
-  border-radius: 2px;
+  transform: translate(-50%, -50%);
   opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* UP/DOWN set ONLY the path animation (translate/opacity) */
+.confetti-piece.up {
+  animation: confetti-rise var(--time) cubic-bezier(.3,.8,.5,1) var(--delay) forwards;
+}
+.confetti-piece.down {
   animation: confetti-fall var(--time) cubic-bezier(.3,.8,.5,1) var(--delay) forwards;
 }
 
-/* Directional variants */
-.confetti-piece.up   { animation-name: confetti-rise; }
-.confetti-piece.down { animation-name: confetti-fall; }
-
-/* Upward burst */
-@keyframes confetti-rise {
-  0%   { opacity: 0; transform: translate(50%, 50%) translate3d(0, 24px, 0) rotate(0deg) scale(1); }
-  10%  { opacity: 1; }
-  55%  { opacity: 1; }
-  100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) rotate(var(--rot)) scale(1); }
+/* INNER: star visual + spin */
+.confetti-inner {
+  display: block;
+  width: var(--size, 10px);
+  height: var(--size, 10px);
+  background: var(--color, gold);
+  filter: drop-shadow(0 0 3px rgba(255, 200, 0, 0.6));
+  clip-path: polygon(
+    50% 0%, 61% 35%, 98% 35%,
+    68% 57%, 79% 91%, 50% 70%,
+    21% 91%, 32% 57%, 2% 35%,
+    39% 35%
+  );
+  animation: star-spin var(--time) linear var(--delay) forwards;
+  transform: rotate(0deg);
+  will-change: transform;
 }
 
-/* Downward sprinkle */
-@keyframes confetti-fall {
-  0%   { opacity: 0; transform: translate(50%, 50%) translate3d(9,60px,9) rotate(45deg) scale(1); }
+/* paths now only change translate + opacity */
+@keyframes confetti-rise {
+  0%   { opacity: 0; transform: translate(-50%, -50%); }
   10%  { opacity: 1; }
-  100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) rotate(var(--rot)) scale(1); }
+  55%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))); }
+}
+@keyframes confetti-fall {
+  0%   { opacity: 0; transform: translate(-50%, -50%); }
+  10%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))); }
+}
+
+/* spin lives on the INNER so it doesn't overwrite translate */
+@keyframes star-spin {
+  0%   { transform: rotate(0deg)    scale(1);    }
+  30%  { transform: rotate(120deg)  scale(1.05); }
+  60%  { transform: rotate(240deg)  scale(0.96); }
+  100% { transform: rotate(360deg)  scale(1);    }
 }
 </style>
