@@ -103,6 +103,13 @@ function callGetIdleOthers(myId: string) {
  */
 onMounted(async () => {
   try {
+    // If we were sent here from Decline and we're already searching,
+    // skip resume logic so the "searching" UI shows immediately.
+    if (store.stage === 'searching') {
+      isResuming.value = false
+      return
+    }
+
     // Prefill previously chosen timeslots
     if (store.availabilityList.length > 0) {
       selectedSlots.value = [...store.availabilityList]

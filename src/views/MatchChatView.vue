@@ -631,7 +631,7 @@ onMounted(async () => {
           clearInterval(rejectPoll)
           rejectPoll = null
         }
-        await store.forceLeaveChat('Your partner left the match.')
+        await store.forceLeaveChat('Match Declined, Sorry about that!')
         router.replace({ name: 'matchlanding' })
       }
     }, 2000) as unknown as number
