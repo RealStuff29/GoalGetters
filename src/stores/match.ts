@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { supabase } from '@/lib/supabase'
 import type { RealtimeChannel } from '@supabase/supabase-js'
+import { getTopCompatibleMBTI } from '@/composables/useComputeMBTICompatibility';
 
 type Stage = 'landing' | 'searching' | 'match' | 'result' | 'chat' | 'notfound'
 type Message = { 
@@ -168,10 +169,15 @@ function strToArray(val: string | string[] | null | undefined): string[] {
 }
 
 function overlapCount(a: string[], b: string[]): number {
-  if (!a.length || !b.length) return 0
-  const setB = new Set(b)
-  return a.reduce((cnt, it) => (setB.has(it) ? cnt + 1 : cnt), 0)
+  if (!a.length || !b.length) return 0;
+  const setB = new Set(b.map(x => x.toLowerCase()));
+  let count = 0;
+  for (const x of a) {
+    if (setB.has(x.toLowerCase())) count++;
+  }
+  return count;
 }
+
 
 // Human-friendly verify word (two short words + 3 digits)
 function generateVerifyCode(): string {
@@ -184,66 +190,88 @@ function generateVerifyCode(): string {
   const n = Math.floor(100 + Math.random() * 900) // 100-999
   return `${w1}-${w2}-${n}`
 }
+function isMbtiTopCompatible(a?: string | null, b?: string | null): boolean {
+  const A = a?.toUpperCase?.();
+  const B = b?.toUpperCase?.();
+  if (!A || !B) return false;
+  const topA = getTopCompatibleMBTI(A);
+  const topB = getTopCompatibleMBTI(B);
+  // One-way or mutual "top" compatibility counts as a match bonus
+  return (topA && topA === B) || (topB && topB === A);
+}
+
 
 // ============ scoring rules (IDs only) ============
-async function computeMatchScore(meId: string, otherId: string): Promise<number> {
+export async function computeMatchScore(meId: string, otherId: string): Promise<number> {
   try {
-    if (!meId || !otherId) throw new Error('Both IDs are required')
-    if (meId === otherId) return -1
-    console.log(`🧮 Computing match score between ${meId} and ${otherId}...`)
+    if (!meId || !otherId) throw new Error('Both IDs are required');
+    if (meId === otherId) return -1;
+    console.log(`🧮 Computing match score between ${meId} and ${otherId}...`);
 
     const { data: me, error: errMe } = await supabase
       .from('profiles')
-      .select('user_id, gender, modules, study_hours, degree, timeslot_avail')
+      .select('user_id, gender, modules, study_hours, degree, timeslot_avail, personality')
       .eq('user_id', meId)
-      .maybeSingle()
-    if (errMe) throw errMe
-    if (!me) throw new Error('Profile not found for user: ' + meId)
+      .maybeSingle();
+    if (errMe) throw errMe;
+    if (!me) throw new Error('Profile not found for user: ' + meId);
 
     const { data: other, error: errOther } = await supabase
       .from('profiles')
-      .select('user_id, gender, modules, study_hours, degree, timeslot_avail')
+      .select('user_id, gender, modules, study_hours, degree, timeslot_avail, personality')
       .eq('user_id', otherId)
-      .maybeSingle()
-    if (errOther) throw errOther
-    if (!other) throw new Error('Profile not found for user: ' + otherId)
+      .maybeSingle();
+    if (errOther) throw errOther;
+    if (!other) throw new Error('Profile not found for user: ' + otherId);
 
-    let score = 0
+    // ========== A L G O R I T H M ========== (to explain how our matchmake aglor works)
+    let score = 0;
 
-    // +100 same gender
+    // +1000 same gender (Same gender is mandatory)
     if (me.gender && other.gender && me.gender === other.gender) {
-      score += 100
+      score += 1000;
     }
 
-    // +50 per timeslot overlap
-    const mySlots = strToArray(me.timeslot_avail)
-    const otherSlots = strToArray(other.timeslot_avail)
-    const overlap = overlapCount(mySlots, otherSlots)
-    if (overlap > 0) {
-    score += overlap * 100
+    // +100 per timeslot overlap
+    const mySlots = strToArray(me.timeslot_avail);
+    const otherSlots = strToArray(other.timeslot_avail);
+    const slotOverlap = overlapCount(mySlots, otherSlots);
+    if (slotOverlap > 0) {
+      score += slotOverlap * 100;
     }
-    // +1 per common mod
-    const myMods = strToArray(me.modules)
-    const otherMods = strToArray(other.modules)
-    score += overlapCount(myMods, otherMods)
 
-    // +1 same degree
+    // +10 MBTI "top-compatible" (either direction)
+    if (isMbtiTopCompatible(me.personality, other.personality)) {
+      score += 10;
+    }
+
+    // +10 per common module
+    const myMods = strToArray(me.modules);
+    const otherMods = strToArray(other.modules);
+    const modOverlap = overlapCount(myMods, otherMods);
+    if (modOverlap > 0) {
+      score += modOverlap * 10;
+    }
+
+    // +5 same degree
     if (me.degree && other.degree && me.degree === other.degree) {
-      score += 1
+      score += 5;
     }
 
-    // +1 similar study hours
-    const myStudy = Number(me.study_hours ?? 0)
-    const otherStudy = Number(other.study_hours ?? 0)
-    if (Math.abs(myStudy - otherStudy) <= 2) {
-      score += 1
+    // +10 similar study hours (within 2 hours)
+    const myStudy = Number(me.study_hours ?? 0);
+    const otherStudy = Number(other.study_hours ?? 0);
+    if (!Number.isNaN(myStudy) && !Number.isNaN(otherStudy)) {
+      if (Math.abs(myStudy - otherStudy) <= 2) {
+        score += 10;
+      }
     }
 
-    console.log(`✅ [${meId}] vs [${otherId}] → Final score: ${score}`)
-    return score
+    console.log(`✅ [${meId}] vs [${otherId}] → Final score: ${score}`);
+    return score;
   } catch (err) {
-    console.error('Error computing match score:', err)
-    return -1
+    console.error('Error computing match score:', err);
+    return -1;
   }
 }
 
@@ -1090,7 +1118,7 @@ export const useMatchStore = defineStore('match', () => {
       })
     )
 
-    const eligible = scored.filter(s => s.score >= 200)
+    const eligible = scored.filter(s => s.score >= 1100) //algor at least SAME GENDER and 1 timeslot
     if (!eligible.length) {
       console.log('🚫 No candidate reached score ≥ 200. Will not match.')
       return null
