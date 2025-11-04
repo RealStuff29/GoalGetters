@@ -215,13 +215,13 @@ async function computeMatchScore(meId: string, otherId: string): Promise<number>
       score += 100
     }
 
-    // +100 timeslot overlap
+    // +50 per timeslot overlap
     const mySlots = strToArray(me.timeslot_avail)
     const otherSlots = strToArray(other.timeslot_avail)
-    if (overlapCount(mySlots, otherSlots) > 0) {
-      score += 100
+    const overlap = overlapCount(mySlots, otherSlots)
+    if (overlap > 0) {
+    score += overlap * 100
     }
-
     // +1 per common mod
     const myMods = strToArray(me.modules)
     const otherMods = strToArray(other.modules)
