@@ -31,6 +31,7 @@ type Match = {
   partner: Partner
 }
 
+
 const STORAGE_KEY = 'match-store-v1'
 
 // ============= DEV CLOCK (for testing) =============
@@ -279,13 +280,21 @@ export const useMatchStore = defineStore('match', () => {
   // ---------- State ----------
   const stage = ref<Stage>('landing')
   const resultAccepted = ref(false)
+  
 
   const currentMatchId = ref<string | null>(null)
   const chatId = ref<string | null>(null)
   const availability = ref<string>('')
   const landingNotice = ref<string | null>(null)
   const booting = ref<boolean>(false)                 // NEW: suppress UI while resuming
-
+  const canShowMatchChat = computed(() => {
+  // show MatchChat if:
+  // - there’s a room (currentMatchId), or
+  // - the decision was accepted, or
+  // - you’re already in chat
+  return Boolean(currentMatchId.value) || resultAccepted.value || stage.value === 'chat'
+  })
+  
   const match = ref<Match>({
     subject: 'WAD2',
     description: 'Homework discussion and review',
@@ -1474,6 +1483,7 @@ export const useMatchStore = defineStore('match', () => {
     availabilityList,
     landingNotice,
     booting,
+    canShowMatchChat,
 
     // computed
     partnerInitials,

@@ -1,67 +1,67 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/composables/useAuth';
-import Button from 'primevue/button';
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/composables/useAuth'
+import Button from 'primevue/button'
+import { useMatchStore } from '@/stores/match'
 
-const router = useRouter();
-const { logoutUser } = useAuth();
-const userSession = ref(null);
-const checkedSession = ref(false);
+const router = useRouter()
+const { logoutUser } = useAuth()
+const userSession = ref(null)
+const checkedSession = ref(false)
+const store = useMatchStore()
 
 // Watch authentication state
 onMounted(async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  userSession.value = session;
-  checkedSession.value = true; // ✅ mark session as checked
+  const { data: { session } } = await supabase.auth.getSession()
+  userSession.value = session
+  checkedSession.value = true
 
-  // Keep session reactive on login/logout
+  // try to hydrate/auto-resume so the nav reflects reality after refresh
+  await store.hydrateFromCache()
+  // fire-and-forget; if nothing to resume, it’s a no-op
+  store.resumeSilently().catch(() => {})
+
   supabase.auth.onAuthStateChange((_event, session) => {
-    userSession.value = session;
-    checkedSession.value = true; // ensure state is settled
-  });
-});
+    userSession.value = session
+    checkedSession.value = true
+  })
+})
 
 async function handleLogout() {
-  const logoutOK = await logoutUser();
+  const logoutOK = await logoutUser()
   if (logoutOK) {
-    userSession.value = null;
-    router.push({ name: 'landing' });
+    userSession.value = null
+    router.push({ name: 'landing' })
   }
 }
+function handleLogin() { router.push({ name: 'login' }) }
+function handleRegister() { router.push({ name: 'register' }) }
 
-function handleLogin() {
-  router.push({ name: 'login' });
-}
-
-function handleRegister() {
-  router.push({ name: 'register' });
-}
-
-// Redirect to login if user not logged in
 function handleProtectedNavigation(path) {
-  if (!userSession.value) {
-    router.push({ name: 'login' });
-  } else {
-    router.push(path);
-  }
+  if (!userSession.value) router.push({ name: 'login' })
+  else router.push(path)
 }
 
 function handleHomeNav() {
   if (userSession.value) {
-    router.push({ name: 'home' });      // goes to /home when logged in
+    router.push({ name: 'home' })      // goes to /home when logged in
   } else {
-    router.push({ name: 'landing' });   // goes to / when logged out
+    router.push({ name: 'landing' })   // goes to / when logged out
   }
 }
 
+// Only show MatchChat when there’s a room / accepted decision / already in chat
+const showMatchChat = computed(() => {
+  return Boolean(store.currentMatchId) || store.resultAccepted || store.stage === 'chat'
+})
 </script>
 
 <template>
   <div>
     <nav class="navbar bg-light px-4 d-flex align-items-center shadow-sm position-relative" style="height: 64px;">
-      <!-- Left side: Brand with tagline -->
+      <!-- Left -->
       <div class="d-flex align-items-center gap-2">
         <h3 class="brand-title mb-0" :class="{ 'brand-clickable': userSession }" @click="userSession && handleHomeNav()"
           title="Go to Home">
@@ -72,34 +72,35 @@ function handleHomeNav() {
       <!-- Center navigation -->
       <div
         class="center-nav d-flex align-items-center justify-content-center gap-4 position-absolute top-50 start-50 translate-middle">
-        <!-- Show app features when logged in -->
         <template v-if="userSession">
           <RouterLink to="/profilesettingsview" class="nav-link">Profile Settings</RouterLink>
           <RouterLink to="/matchlandingview" class="nav-link">Matchmake Now</RouterLink>
           <RouterLink to="/feedbackview" class="nav-link">Feedback</RouterLink>
-          <RouterLink to="/matchchatview" class="nav-link">MatchChat</RouterLink>
+
+          <!-- ⬇️ Only show when there’s a match / chat -->
+          <RouterLink
+            v-if="showMatchChat"
+            to="/matchchatview"
+            class="nav-link"
+          >
+            MatchChat
+          </RouterLink>
         </template>
       </div>
 
-      <!-- Right side buttons -->
+      <!-- Right side buttons (unchanged) -->
       <div v-if="checkedSession">
-        <!-- Logged in -->
         <Button v-if="userSession" label="Log Out" class="btn-gradient" @click="handleLogout" />
-
-        <!-- Logged out -->
         <div v-else class="d-flex gap-2">
           <Button severity="secondary" label="Log In" @click="handleLogin" class="btn-glass" />
           <Button severity="warn" label="Sign Up" @click="handleRegister" class="btn-gradient" />
         </div>
       </div>
-
-      <!-- Optional: simple loader while checking session -->
       <div v-else>
         <i class="pi pi-spin pi-spinner text-muted"></i>
       </div>
     </nav>
 
-    <!-- Page Content -->
     <div class="mx-0 p-0">
       <router-view />
     </div>
