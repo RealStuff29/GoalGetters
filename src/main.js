@@ -28,6 +28,28 @@ import Lara from '@primeuix/themes/lara'; //https://primevue.org/theming/styled
 import ToastService from 'primevue/toastservice';
 import Toast from 'primevue/toast';
 
+// import Lara from '@primevue/themes/lara';
+import { definePreset } from '@primevue/themes';
+
+// Define custom orange theme
+const OrangePreset = definePreset(Lara, {
+  semantic: {
+    primary: {
+      50: '{orange.50}',
+      100: '{orange.100}',
+      200: '{orange.200}',
+      300: '{orange.300}',
+      400: '{orange.400}',
+      500: '{orange.500}',
+      600: '{orange.600}',
+      700: '{orange.700}',
+      800: '{orange.800}',
+      900: '{orange.900}',
+      950: '{orange.950}'
+    }
+  }
+});
+
 
 
 
@@ -35,12 +57,17 @@ import Toast from 'primevue/toast';
 
 const app = createApp(App);
 app.use(router);
+
 app.use(PrimeVue, {
-    theme: {
-        // preset:Aura
-        preset:Lara
+  theme: {
+    preset: OrangePreset,
+    options: {
+      prefix: 'p',
+      darkModeSelector: 'system',
+      cssLayer: false
     }
-})
+  }
+});
 app.use(ToastService)
 
 

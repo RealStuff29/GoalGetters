@@ -359,4 +359,58 @@ async function handleSavePersonality() {
 .text-muted {
   color: #6b7280;
 }
+
+/* .p-button{
+    background: linear-gradient(135deg, #ff9800, #f57c00) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 600 !important;
+    padding: 0.75rem !important;
+    border-radius: 10px !important;
+    transition: all 0.25s ease !important;
+}
+
+:deep(.p-step-title),
+:deep(.p-step-active .p-step-title),
+:deep(.p-step-activated .p-step-title) {
+  color: #ff9800 !important;
+  font-weight: 600;
+}
+
+
+:deep(.p-step-number),
+:deep(.p-step-number::after) {
+  background: linear-gradient(135deg, #ff9800, #f57c00) !important;
+  border: none !important;
+  color: #fff !important; /* number text */
+/* } */
+
+/* :deep(.p-step-separator),
+:deep(.p-stepper-separator) {
+  border-top-color: #f57c00 !important;
+}
+
+
+
+
+
+
+
+:deep(.p-slider .p-slider-range) {
+  background: linear-gradient(135deg, #ff9800, #f57c00) !important;
+}
+
+:deep(.p-slider .p-slider-handle) {
+  border: 2px solid #f57c00 !important;
+  background: #fff !important;
+  transition: transform 0.2s ease;
+}
+
+:deep(.p-slider .p-slider-handle:hover) {
+  transform: scale(1.1);
+  background: #ff9800 !important;
+  border-color: #f57c00 !important;
+} */
+
+
 </style>
