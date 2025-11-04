@@ -52,7 +52,12 @@
           <div class="section-head">Your rating</div>
           <div class="rating-row">
             <div class="rating-anim">
-              <div class="rating-enhanced" :class="{ 'is-readonly': alreadySubmitted }" ref="ratingEl">
+              <!-- toggle 'pulse' to re-trigger star animations -->
+              <div
+                class="rating-enhanced"
+                :class="{ 'is-readonly': alreadySubmitted, pulse: pulseStars }"
+                ref="ratingEl"
+              >
                 <Rating v-model="myRating" :cancel="false" :readonly="alreadySubmitted" />
               </div>
             </div>
@@ -86,7 +91,7 @@
             <span v-if="remainingChars < 50" class="dim">{{ remainingChars }} left</span>
           </div>
 
-          <!-- Progress with soft shimmer -->
+          <!-- Progress -->
           <div class="prog-wrap">
             <ProgressBar
               :value="Math.min(Math.round((myComment.length / 500) * 100), 100)"
@@ -128,8 +133,8 @@
         </Transition>
       </div>
 
-      <!-- Confetti canvas -->
-      <div class="confetti-layer" ref="confettiLayer"></div>
+      <!-- kept for structure; drawing now uses global root -->
+      <div class="confetti-layer" ref="cardConfettiLayer"></div>
     </div>
 
     <Toast position="top-center" />
@@ -146,6 +151,7 @@ const router = useRouter()
 const route = useRoute()
 const toast = useToast()
 
+/* ---------- State ---------- */
 const loading = ref(true)
 const submitting = ref(false)
 const errorMsg = ref<string>('')
@@ -156,18 +162,27 @@ const iAmA = ref<boolean | null>(null)
 
 const myRating = ref<number>(0)
 const myComment = ref<string>('')
+
 const partnerRated = ref<boolean>(false)
 const alreadySubmitted = ref<boolean>(false)
 const sessionEnded = ref<boolean | null>(null)
 
+/* ---------- Derived ---------- */
 const mySideLabel = computed(() => (iAmA.value === null ? '…' : iAmA.value ? 'Side A' : 'Side B'))
-const sessionShort = computed(() => (sessid.value ? `Session ${sessid.value.substring(0, 8)}…` : 'Session —'))
-const partnerStatusLabel = computed(() => (partnerRated.value ? 'Partner reviewed' : 'Partner pending'))
+const sessionShort = computed(() =>
+  sessid.value ? `Session ${sessid.value.substring(0, 8)}…` : 'Session —'
+)
+const partnerStatusLabel = computed(() =>
+  partnerRated.value ? 'Partner reviewed' : 'Partner pending'
+)
 const remainingChars = computed(() => 500 - myComment.value.length)
 
+/* ---------- Comment validation ---------- */
 const bannedWords = ['fuck', 'shit', 'bitch']
 const trimmedComment = computed(() => (myComment.value || '').trim())
-const commentHasOnlyWhitespace = computed(() => myComment.value.length > 0 && trimmedComment.value.length === 0)
+const commentHasOnlyWhitespace = computed(
+  () => myComment.value.length > 0 && trimmedComment.value.length === 0
+)
 const commentHasBanned = computed(() => {
   if (!trimmedComment.value) return false
   const lower = trimmedComment.value.toLowerCase()
@@ -180,47 +195,69 @@ const commentError = computed(() => {
   return ''
 })
 
+/* ---------- Form guards ---------- */
 const canSubmitEnhanced = computed(
-  () => !!myRating.value && !alreadySubmitted.value && !submitting.value && !commentHasOnlyWhitespace.value && !commentHasBanned.value
+  () =>
+    !!myRating.value &&
+    !alreadySubmitted.value &&
+    !submitting.value &&
+    !commentHasOnlyWhitespace.value &&
+    !commentHasBanned.value
 )
 const canGoBackToChat = computed(() => sessionEnded.value === false && !!roomId.value)
 
-function trySubmit() { if (canSubmitEnhanced.value) submit() }
-function goChat() { router.replace({ name: 'matchchat', params: { chatId: roomId.value } }) }
+function trySubmit() {
+  if (canSubmitEnhanced.value) submit()
+}
+function goChat() {
+  router.replace({ name: 'matchchat', params: { chatId: roomId.value } })
+}
 
-/* ---------- Confetti (directional) ---------- */
+/* ---------- Confetti (global layer) + star pulse retrigger ---------- */
 const cardEl = ref<HTMLElement | null>(null)
-const confettiLayer = ref<HTMLElement | null>(null)
+const cardConfettiLayer = ref<HTMLElement | null>(null) // kept for structure
+const confettiLayer = ref<HTMLElement | null>(null) // viewport-wide layer
 const ratingEl = ref<HTMLElement | null>(null)
+const pulseStars = ref(false) // toggled to retrigger CSS animations
+
+function ensureConfettiRoot() {
+  let root = document.getElementById('confetti-root')
+  if (!root) {
+    root = document.createElement('div')
+    root.id = 'confetti-root'
+    root.className = 'confetti-layer-root'
+    root.style.overflow = 'clip'
+    root.style.contain = 'paint'
+    document.body.appendChild(root)
+  }
+  confettiLayer.value = root
+}
 
 function spawnConfetti(pieces: number, dir: 'up' | 'down', centerX?: number, centerY?: number) {
   const layer = confettiLayer.value
-  const card = cardEl.value
-  if (!layer || !card) return
+  if (!layer) return
 
-  const rect = card.getBoundingClientRect()
-  const baseX = (centerX ?? rect.width / 2)
-  const baseY = (centerY ?? 80) // near rating row
+  const baseX = centerX ?? window.innerWidth / 2
+  const baseY = centerY ?? 120
 
   for (let i = 0; i < pieces; i++) {
     const el = document.createElement('span')
     el.className = `confetti-piece ${dir}`
 
     const spread = dir === 'up' ? 70 : 35
-    const angle = (Math.random() * (spread * 2) - spread) // -spread..+spread
+    const angle = Math.random() * (spread * 2) - spread
     const dist = (dir === 'up' ? 110 : 70) + Math.random() * (dir === 'up' ? 180 : 60)
     const time = (dir === 'up' ? 950 : 800) + Math.random() * (dir === 'up' ? 800 : 500)
     const delay = Math.random() * 140
     const sizeW = 6 + Math.random() * 7
     const sizeH = 8 + Math.random() * 12
-    const hue = Math.floor(200 + Math.random() * 140) // 200-340
+    const hue = Math.floor(200 + Math.random() * 140)
 
-    const rad = angle * Math.PI / 180
+    const rad = (angle * Math.PI) / 180
     const tx = Math.cos(rad) * dist
-    // negative ty for 'up', positive for 'down'
     const ty =
       (dir === 'up' ? -1 : 1) *
-      (Math.sin((90 - angle) * Math.PI / 180) * (dist * 0.6) + (dir === 'up' ? 160 : 120))
+      (Math.sin(((90 - angle) * Math.PI) / 180) * (dist * 0.6) + (dir === 'up' ? 160 : 120))
 
     el.style.setProperty('--x', `${baseX}px`)
     el.style.setProperty('--y', `${baseY}px`)
@@ -229,38 +266,42 @@ function spawnConfetti(pieces: number, dir: 'up' | 'down', centerX?: number, cen
     el.style.setProperty('--rot', `${Math.random() * 720 - 360}deg`)
     el.style.setProperty('--time', `${time}ms`)
     el.style.setProperty('--delay', `${delay}ms`)
-    el.style.width = `${sizeW}px`;
-    el.style.height = `${sizeH}px`;
+    el.style.width = `${sizeW}px`
+    el.style.height = `${sizeH}px`
     el.style.background = `hsl(${hue} 90% 60%)`
 
     layer.appendChild(el)
-    window.setTimeout(() => { el.remove() }, time + delay + 120)
+    window.setTimeout(() => {
+      el.remove()
+    }, time + delay + 160)
   }
 }
 
-/* Fire confetti on every increase (clicking a higher star):
-   - 1★ or 2★ => small downward sprinkle
-   - 3★ to 5★ => big upward burst
-   No confetti on decreases. */
+/* Fire on rating increase: 1–2 => small down; 3–5 => big up. */
 watch(myRating, (val, oldVal) => {
   if (alreadySubmitted.value) return
   if (typeof oldVal !== 'number') oldVal = 0
+  if (val <= oldVal) return
 
-  const increased = val > oldVal
-  if (!increased) return
+  // retrigger star "pop"
+  pulseStars.value = false
+  requestAnimationFrame(() => {
+    pulseStars.value = true
+    setTimeout(() => (pulseStars.value = false), 260)
+  })
 
   const starRect = ratingEl.value?.getBoundingClientRect()
-  const cardRect = cardEl.value?.getBoundingClientRect()
-  const cx = starRect ? starRect.width / 2 : undefined
-  const cy = starRect && cardRect ? (starRect.top - cardRect.top) + 10 : undefined
+  const cx = starRect ? starRect.left + starRect.width / 2 : undefined
+  const cy = starRect ? starRect.top + 10 : undefined
 
   if (val >= 3) {
-    spawnConfetti(56, 'up', cx, cy)   // celebrate upwards
+    spawnConfetti(56, 'up', cx, cy)
   } else {
-    spawnConfetti(10, 'down', cx, cy) // subtle sprinkle when moving up to 1 or 2
+    spawnConfetti(10, 'down', cx, cy)
   }
 })
 
+/* ---------- Data flow ---------- */
 async function resolveRoomAndSide() {
   const { data: auth, error: authErr } = await supabase.auth.getUser()
   if (authErr) throw authErr
@@ -299,6 +340,7 @@ async function resolveRoomAndSide() {
 async function tryFinalizeAndDeleteRoom() {
   if (!sessid.value || !roomId.value) return
 
+  // Confirm both sides rated
   const { data: sRow, error: sErr } = await supabase
     .from('sessions')
     .select('rating_by_a, rating_by_b, ended_at')
@@ -309,6 +351,7 @@ async function tryFinalizeAndDeleteRoom() {
   const bothRated = !!sRow.rating_by_a && !!sRow.rating_by_b
   if (!bothRated) return
 
+  // Ensure session is marked ended
   if (!sRow.ended_at) {
     const { error: endErr } = await supabase
       .from('sessions')
@@ -317,6 +360,7 @@ async function tryFinalizeAndDeleteRoom() {
     if (endErr) console.debug('[finalize] could not set ended_at:', endErr.message)
   }
 
+  // Best-effort cleanup (ignore errors)
   const { error: chatDelErr } = await supabase.from('match_chat').delete().eq('room_id', roomId.value)
   if (chatDelErr) console.debug('[finalize] match_chat delete ignored:', chatDelErr.message)
 
@@ -332,7 +376,10 @@ async function loadExistingReviewAndState() {
     .eq('sessid', sessid.value)
     .maybeSingle()
   if (error) throw error
-  if (!sRow) { sessionEnded.value = null; return }
+  if (!sRow) {
+    sessionEnded.value = null
+    return
+  }
 
   sessionEnded.value = !!sRow.ended_at
 
@@ -362,13 +409,23 @@ async function submit() {
     if (error) throw error
 
     alreadySubmitted.value = true
-    toast.add({ severity: 'success', summary: 'Review submitted', detail: 'Thanks for your feedback!', life: 1600 })
+    toast.add({
+      severity: 'success',
+      summary: 'Review submitted',
+      detail: 'Thanks for your feedback!',
+      life: 1600
+    })
 
     await tryFinalizeAndDeleteRoom()
     setTimeout(() => router.replace({ name: 'home' }), 1100)
   } catch (e: any) {
     errorMsg.value = 'Could not submit your review. Please try again.'
-    toast.add({ severity: 'error', summary: 'Submission failed', detail: e?.message || 'Unknown error', life: 2500 })
+    toast.add({
+      severity: 'error',
+      summary: 'Submission failed',
+      detail: e?.message || 'Unknown error',
+      life: 2500
+    })
   } finally {
     submitting.value = false
   }
@@ -376,6 +433,7 @@ async function submit() {
 
 onMounted(async () => {
   try {
+    ensureConfettiRoot()
     await resolveRoomAndSide()
     await loadExistingReviewAndState()
     await tryFinalizeAndDeleteRoom()
@@ -406,14 +464,13 @@ onMounted(async () => {
 
 /* Card */
 .review-card {
-  position: relative; /* needed for confetti positioning */
+  position: relative;
   width: 100%;
   max-width: 920px;
   background: rgba(255,255,255,.9);
   border: 1px solid rgba(15,23,42,.08);
   border-radius: 16px;
   box-shadow: 0 10px 25px rgba(2, 6, 23, .06), 0 2px 6px rgba(2, 6, 23, .04);
-  overflow: hidden;
   backdrop-filter: blur(6px);
 }
 .card-title {
@@ -433,7 +490,7 @@ onMounted(async () => {
 .rating-row { display: flex; align-items: center; gap: 10px; }
 .rating-anim { transform-origin: left center; animation: popIn .35s ease-out both .1s; }
 
-/* Bigger stars + animations */
+/* Bigger stars + interactions */
 .rating-enhanced :deep(.p-rating) { display: inline-flex; gap: 8px; }
 .rating-enhanced :deep(.p-rating-item) { transition: transform .15s ease; }
 .rating-enhanced :deep(.p-rating-icon) {
@@ -441,6 +498,7 @@ onMounted(async () => {
   cursor: pointer;
   transition: transform .18s ease, color .18s ease, filter .25s ease;
 }
+/* hover flair */
 .rating-enhanced :deep(.p-rating-item:hover .p-rating-icon) {
   transform: translateY(-1px) scale(1.18) rotate(-6deg);
   color: #ffb300;
@@ -449,12 +507,16 @@ onMounted(async () => {
 .rating-enhanced :deep(.p-rating-item:active .p-rating-icon) {
   transform: translateY(0) scale(1.05);
 }
-@keyframes starPop { 0%{transform:scale(1)} 40%{transform:scale(1.35)} 100%{transform:scale(1)} }
-.rating-enhanced :deep(.p-rating-icon.pi-star-fill) {
+
+/* ⭐ pop when container gets .pulse */
+.rating-enhanced.pulse :deep(.p-rating-icon.pi.pi-star-fill),
+.rating-enhanced.pulse :deep(.p-rating-item-active .p-rating-icon) {
   color: #ffb300;
   filter: drop-shadow(0 0 4px rgba(255,179,0,.4));
   animation: starPop .22s ease-out;
 }
+@keyframes starPop { 0%{transform:scale(1)} 40%{transform:scale(1.35)} 100%{transform:scale(1)} }
+
 .rating-enhanced.is-readonly :deep(.p-rating-icon) { cursor: default; }
 .rating-enhanced.is-readonly :deep(.p-rating-item:hover .p-rating-icon) { transform: none; filter: none; color: inherit; }
 
@@ -507,15 +569,29 @@ onMounted(async () => {
 :deep(.p-progressbar-value) { transition: width .25s ease; }
 </style>
 
-<!-- 2) Make confetti styles GLOBAL so programmatically-created spans are styled -->
+<!-- Global (unscoped) so dynamically added confetti spans are styled -->
 <style>
+/* Old in-card layer (kept harmless) */
 .confetti-layer {
   position: absolute;
   inset: 0;
   overflow: visible;
   pointer-events: none;
-  z-index: 3; /* ensure on top of card content */
+  z-index: 3;
 }
+
+/* Viewport-wide root appended to <body> */
+.confetti-layer-root {
+  position: fixed;
+  inset: 0;
+  overflow: clip;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Optional belt-and-suspenders for very old browsers */
+html, body { overflow-x: hidden; }
+
 .confetti-piece {
   position: absolute;
   left: var(--x);
