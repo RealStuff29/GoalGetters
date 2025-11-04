@@ -656,7 +656,7 @@ async function copyCode() {
 
 // ======= ADDED CODE =========
 async function endAndReview() {
-  const rid = await store.endCurrentSession('Session ended by you.')
+  const rid = await store.endCurrentSession('Previous Match Session has ended.')
   if (rid) router.replace({ name: 'matchreview', params: { id: rid } })
   else router.replace({ name: 'matchreview' })
 }
