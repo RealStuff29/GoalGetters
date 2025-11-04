@@ -135,6 +135,8 @@ Create a `.env` file in the root directory with the following structure:
 ```bash
 VITE_SUPABASE_URL=<your_supabase_project_url>
 VITE_SUPABASE_ANON_KEY=<your_supabase_anon_key>
+VITE_GOOGLE_MAPS_API_KEY=<your_google_maps_api_key>
+VITE_AVATAR_BASE=<your_avatar_base_url>
 ```
 
 > Never commit the `.env` file to your repository.  
