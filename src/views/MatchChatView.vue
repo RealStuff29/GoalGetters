@@ -601,7 +601,7 @@ async function onRoomClosedByPartner() {
     store.teardownVerification()
     store.stopSessionSlotTimer()
   } finally {
-    await store.forceLeaveChat?.('Your partner ended the session. Returning to matchmaking.')
+    await store.forceLeaveChat?.('Session has ended. Returning to matchmaking.')
     await store.startOver()
     router.replace({ name: 'matchlanding' })
   }
