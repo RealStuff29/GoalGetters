@@ -1,4 +1,3 @@
-// src/composables/useAvatar.js
 import { ref, computed, nextTick } from 'vue'
 import { makeSeed, buildAvatarUrl, extractSeedFromUrl } from '@/lib/avatar'
 
@@ -7,43 +6,36 @@ export function useAvatar() {
   const seed = ref('')                 // holds the current random id
   const avatarLoaded = ref(true)
 
-  // derive the URL from seed + gender
   const avatarUrl = computed(() => {
-    if (!seed.value) return ''         // if there is nothing, it will show spinner
+    if (!seed.value) return ''
     return buildAvatarUrl(seed.value, gender.value)
   })
 
-  // set from profile
   function setGender(g) {
-    gender.value = g || ''
+    gender.value = (g === 'boy' || g === 'girl') ? g : ''
   }
 
-// Use this when loading a stored profile URL to keep the same avatar
+  // Use this when loading a stored profile URL to keep the same avatar
   function setSeedFromUrl(url) {
     const s = extractSeedFromUrl(String(url || ''))
     if (s) seed.value = s
   }
 
-  // create a default avatar if none exists
-  function ensureDefaultAvatar() {
+  // create a default avatar if none exists (allow gender hint)
+  function ensureDefaultAvatar(genderHint) {
+    if (genderHint) setGender(genderHint)
     if (!seed.value) seed.value = makeSeed()
   }
 
-  // shuffle = new variation of avatar
-  function shuffleAvatar() {
+  // shuffle = new variation of avatar (allow gender hint)
+  function shuffleAvatar(genderHint) {
+    if (genderHint) setGender(genderHint)
     avatarLoaded.value = false
-    // Clear the src first so the <img> unmounts/updates and spinner shows
     seed.value = ''
-    // Next DOM update, assign a fresh seed (new URL), image will start loading
-    nextTick(() => {
-      seed.value = makeSeed()
-    })
+    nextTick(() => { seed.value = makeSeed() })
   }
 
-  // hook for <img @load>
-  function onImageLoad() {
-    avatarLoaded.value = true
-  }
+  function onImageLoad() { avatarLoaded.value = true }
 
   return {
     // state
@@ -53,7 +45,7 @@ export function useAvatar() {
     avatarLoaded,
     // actions
     setGender,
-    setSeedFromUrl,          
+    setSeedFromUrl,
     ensureDefaultAvatar,
     shuffleAvatar,
     onImageLoad

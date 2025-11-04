@@ -18,12 +18,10 @@ const { username, gender, avatarUrl, isComplete, errors, shuffleAvatar, randomis
 const { computeMbtiType } = useComputeMBTI()
 
 
-// Step 1 Acccount Infomation
+// Step 1 Account Infomation
 const activeStep = ref('1')
 const avatarLoaded = ref(false)
-
-// Check if the required fields are filled in step 1
-const isStep1Valid = computed(() => !!isComplete.value)
+const isStep1Valid = computed(() => !!isComplete.value)   // Check if the required fields are filled in step 1
 
 function handleShuffle() {
   avatarLoaded.value = false
@@ -40,22 +38,22 @@ const degree = ref('')
 const studyHours = ref(4)
 
 const {
-  moduleObjects,     // [{ code,title,label }]
-  modules,           // ['IS113','IS216', ...] stays in sync with moduleObjects
-  moduleQuery,
-  moduleSuggestions,
-  searchModules,
-  addModuleOption,
-  addFreeTypedCourseCode,
-  removeModuleAt
+  selectedModuleChips,     // [{ code,title,label }]
+  selectedModuleCodes,           // ['IS113','IS216', ...] stays in sync with selectedModuleChips
+  moduleSearchQuery,
+  moduleSuggestionOptions,
+  fetchModuleSuggestions,
+  addModuleFromSuggestion,
+  addModuleFromInput,
+  removeModuleByIndex,
+  normalizeValidModuleCodes
 } = useModulesPicker()
 
 
 // Check if the required fields are filled in step 2
 const isStep2Valid = computed(() => {
   const hasDegree = !!degree.value
-  const hasModules =
-    Array.isArray(modules.value) && modules.value.some(m => String(m ?? '').trim().length > 0)
+  const hasModules = Array.isArray(selectedModuleCodes.value) && selectedModuleCodes.value.some(m => String(m ?? '').trim().length > 0)
   return hasDegree && hasModules
 })
 
@@ -77,12 +75,13 @@ async function handleAcademicNext(activateCallback) {
       return
     }
 
+    const validModules = normalizeValidModuleCodes(selectedModuleCodes.value)
     await saveAccountAcademicBundle(user.id, {
       username: username.value,
       gender: gender.value,
       profile_photo: avatarUrl.value,
       degree: degree.value,
-      modules: modules.value.join(','),  
+      modules: validModules.join(','),
       study_hours: studyHours.value
     })
 
@@ -120,22 +119,19 @@ async function handleSavePersonality() {
     const { data: { user }, error: userErr } = await supabase.auth.getUser();
     if (userErr || !user) throw new Error('You are not signed in');
 
+    const validModules = normalizeValidModuleCodes(selectedModuleCodes.value)
     await updateProfile(user.id, {
-      // resend steps 1+2 safely
       username: username.value,
       gender: gender.value,
       profile_photo: avatarUrl.value,
       degree: degree.value,
-      modules: modules.value.join(','), 
+      modules: validModules.join(','),
       study_hours: studyHours.value,
-      // step 3
-      personality: mbtiResult.value,
-    });
+      personality: mbtiResult.value
+    })
 
-    // alert('Profile successfully created!');
     router.push({ path: '/', query: { flash: 'profile_created' } });
   } catch (e) {
-    // alert(e?.message || 'Failed to save personality info');
     notify.error('Failed to save personality', notify.fromError(e))
   } finally {
     saving.value = false;
@@ -249,29 +245,42 @@ async function handleSavePersonality() {
                 Your Current Modules <span class="text-danger">*</span>
               </label>
 
-              <!-- AutoComplete for searching the list -->
               <AutoComplete
-                v-model="moduleQuery"
-                :suggestions="moduleSuggestions"
+                v-model="moduleSearchQuery"
+                :suggestions="moduleSuggestionOptions"
                 optionLabel="label"
                 placeholder="Type in course code or name (e.g. IS216 or Web Application...)"
                 class="w-100"
                 fluid
-                @complete="searchModules"
-                @item-select="(e) => addModuleOption(e.value)"
-                @keyup.enter="addFreeTypedCourseCode"
+                @complete="fetchModuleSuggestions"
+                @item-select="(e) => { addModuleFromSuggestion(e.value); moduleSearchQuery = '' }"
+                @keyup.enter="() => {
+                  const res = addModuleFromInput()
+                  if (!res?.ok) notify.warn('Unknown module', 'Please pick from the dropdown list')
+                  else moduleSearchQuery = ''
+                }"
               />
 
-              <!-- Chips display -->
               <div class="d-flex flex-wrap gap-2 mt-2">
-                <span v-for="(m, idx) in moduleObjects" :key="m.code" class="badge rounded-pill text-bg-light border d-inline-flex align-items-center px-3 py-2">
+                <span
+                  v-for="(m, idx) in selectedModuleChips"
+                  :key="m.code"
+                  class="badge rounded-pill text-bg-light border d-inline-flex align-items-center px-3 py-2"
+                >
                   <span class="me-2">{{ m.label || m.code }}</span>
-                  <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" aria-label="Remove" @click="removeModuleAt(idx)"> x </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary py-0 px-2"
+                    aria-label="Remove"
+                    @click="removeModuleByIndex(idx)"
+                  >
+                    x
+                  </button>
                 </span>
               </div>
 
               <small class="text-muted d-block mt-2">
-                Selected course codes: {{ modules.join(', ') || '—' }}
+                Selected course codes: {{ selectedModuleCodes.join(', ') || '—' }}
               </small>
             </div>
 

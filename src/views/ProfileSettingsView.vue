@@ -23,6 +23,7 @@ const saving  = ref(false)
 const email = ref('')
 const emailVerified = ref(false)
 const username = ref('')
+const gender   = ref('')   // 'boy' | 'girl' 
 
 /* -------- Personality ---- */
 const mbti = ref('')
@@ -32,8 +33,9 @@ const { computeMbtiType } = useComputeMBTI()
 const degree = ref('')
 const studyHours = ref(4)
 const {
-  moduleObjects, modules, moduleQuery, moduleSuggestions,
-  searchModules, addModuleOption, addFreeTypedCourseCode, removeModuleAt
+  selectedModuleChips, selectedModuleCodes, moduleSearchQuery, moduleSuggestionOptions,
+  fetchModuleSuggestions, addModuleFromSuggestion, addModuleFromInput, removeModuleByIndex,
+  normalizeValidModuleCodes
 } = useModulesPicker()
 
 /* ----------------- Ratings ---------------- */
@@ -61,10 +63,11 @@ const lastSavedAvatarUrl = ref(null)       // URL we just saved
 const {
   avatarUrl,
   avatarLoaded,
-  setSeedFromUrl,
   ensureDefaultAvatar,
   shuffleAvatar,
-  onImageLoad
+  onImageLoad,
+  setGender,
+  setSeedFromUrl
 } = useAvatar()
 
 // Prevent auto-save + toast on the very first avatarUrl change caused by setSeedFromUrl()
@@ -73,7 +76,8 @@ const skipNextAvatarSave = ref(true)
 function handleShuffle() {
   if (savingAvatar.value) return
   avatarLoaded.value = false
-  shuffleAvatar()
+  const g = (gender.value === 'boy' || gender.value === 'girl') ? gender.value : 'boy'
+  shuffleAvatar(g)
 }
 
 // Auto-save avatar when user shuffles, but ignore the initial load
@@ -116,7 +120,7 @@ function handleAvatarError() {
     pendingAvatarToast.value = false
     notify.error('Avatar failed to load', 'Please try shuffling again')
   }
-  // Stop spinner even on error so UI isn’t stuck
+  // Let the <img> fallback show the placeholder; stop spinner so UI isn’t stuck
   avatarLoaded.value = true
 }
 
@@ -128,7 +132,7 @@ const initial = ref({
 })
 
 const hasUnsavedChanges = computed(() => {
-  const nowCsv = (modules.value || []).join(',')
+  const nowCsv = (selectedModuleCodes.value || []).join(',')
   return (
     degree.value !== initial.value.degree ||
     Number(studyHours.value ?? 0) !== Number(initial.value.studyHours ?? 0) ||
@@ -152,7 +156,7 @@ onMounted(async () => {
     // 2) Profile row (create skeleton if missing so future UPDATEs work)
     const { data: prof } = await supabase
       .from('profiles')
-      .select('user_id, username, profile_photo, personality, degree, modules, study_hours, avg_rating, rating_count')
+      .select('user_id, username, gender, profile_photo, personality, degree, modules, study_hours, avg_rating, rating_count')
       .eq('user_id', user.id)
       .maybeSingle()
 
@@ -176,23 +180,28 @@ onMounted(async () => {
 
     username.value   = profile?.username ?? ''
     degree.value     = profile?.degree ?? ''
+    gender.value     = profile?.gender ?? ''
+    setGender(gender.value)
     mbti.value       = String(profile?.personality || '').trim().toUpperCase()
 
-    setSeedFromUrl(profile?.profile_photo)
-    ensureDefaultAvatar()
+    // First avatar change comes from DB load/default seed — don't auto-save it
+    skipNextAvatarSave.value = true
+    avatarLoaded.value = false
+    const g = (gender.value === 'boy' || gender.value === 'girl') ? gender.value : 'boy'
+    if (profile?.profile_photo) {
+      // Keep the exact avatar by extracting seed from the stored URL
+      setSeedFromUrl(profile.profile_photo)
+    } else {
+      // No stored photo: seed a gender-appropriate default
+      ensureDefaultAvatar(g)
+    }
 
     const rawModules = profile?.modules
-    modules.value = Array.isArray(rawModules)
-      ? rawModules
-      : typeof rawModules === 'string'
-        ? rawModules.split(',').map(s => s.trim()).filter(Boolean)
-        : Array.isArray(rawModules?.items)
-          ? rawModules.items
-          : []
-
-    moduleObjects.value = (modules.value || []).map(code => {
-      const m = moduleIndex[code]
-      return m ? { ...m, label: `${m.code} ${m.title}` } : { code, title: '', label: code }
+    const loaded = Array.isArray(rawModules) ? rawModules : typeof rawModules === 'string' ? rawModules.split(',').map(s => s.trim()).filter(Boolean) : Array.isArray(rawModules?.items) ? rawModules.items : []
+    selectedModuleCodes.value = normalizeValidModuleCodes(loaded)
+    selectedModuleChips.value = (selectedModuleCodes.value || []).map(code => {
+      const m = moduleIndex[String(code).toUpperCase()]
+      return { ...m, label: `${m.code} ${m.title}` }
     })
 
     studyHours.value  = Number(profile?.study_hours ?? 4)
@@ -243,7 +252,7 @@ onMounted(async () => {
     // 4) Take initial snapshot for dirty checking
     initial.value = {
       degree: degree.value || '',
-      modulesCsv: (modules.value || []).join(','),
+      modulesCsv: (selectedModuleCodes.value || []).join(','),
       studyHours: Number(studyHours.value ?? 0) || 0,
       avatarUrl: avatarUrl.value || ''
     }
@@ -274,7 +283,7 @@ async function saveAll() {
   if (!activeUserId.value) return
   try {
     saving.value = true
-    const modulesForDb = (modules.value || []).join(',')
+    const modulesForDb = (selectedModuleCodes.value || []).join(',')
 
     const patch = {
       profile_photo: avatarUrl.value || null,
@@ -288,7 +297,7 @@ async function saveAll() {
     // reset snapshot on success
     initial.value = {
       degree: degree.value || '',
-      modulesCsv: (modules.value || []).join(','),
+      modulesCsv: (selectedModuleCodes.value || []).join(','),
       studyHours: Number(studyHours.value ?? 0) || 0,
       avatarUrl: avatarUrl.value || ''
     }
@@ -456,8 +465,8 @@ async function saveMbtiToProfile() {
               <div class="avatar-shell">
                 <div class="avatar-ring" :class="{ 'spin': !avatarLoaded }"></div>
                 <img
-                  :key="avatarUrl"
-                  :src="avatarUrl"
+                  :key="avatarUrl || 'placeholder'"
+                  :src="avatarUrl || '/placeholder-avatar.png'"
                   alt="Avatar"
                   width="112"
                   height="112"
@@ -468,7 +477,7 @@ async function saveMbtiToProfile() {
                 <ProgressSpinner v-if="!avatarLoaded" strokeWidth="4" class="avatar-spinner" />
               </div>
 
-              <Button label="Shuffle" icon="pi pi-refresh" size="small" @click="handleShuffle()" :disabled="!avatarLoaded || savingAvatar" :loading="savingAvatar" class="btn-press" />
+              <Button label="Shuffle" icon="pi pi-refresh" size="small" @click="handleShuffle()" :disabled="!avatarLoaded || savingAvatar || !(gender === 'boy' || gender === 'girl')" :loading="savingAvatar" class="btn-press" />
               <small class="text-muted" v-if="savingAvatar">Saving avatar…</small>
             </div>
             
@@ -575,34 +584,29 @@ async function saveMbtiToProfile() {
             <div class="my-3">
               <label class="form-label fw-semibold">Your Current Modules</label>
               <AutoComplete
-                v-model="moduleQuery"
-                :suggestions="moduleSuggestions"
+                v-model="moduleSearchQuery"
+                :suggestions="moduleSuggestionOptions"
                 optionLabel="label"
                 placeholder="Type course code or name (e.g. IS216)"
                 class="w-100 glow-input"
-                @complete="searchModules"
-                @item-select="(e) => addModuleOption(e.value)"
-                @keyup.enter="addFreeTypedCourseCode"
+                @complete="fetchModuleSuggestions"
+                @item-select="(e) => addModuleFromSuggestion(e.value)"
+                @keyup.enter="() => {
+                  const res = addModuleFromInput()
+                  if (!res?.ok) notify.warn('Unknown module', 'Please pick from the suggestions')
+                  else moduleSearchQuery = '' 
+                }"
               />
 
               <TransitionGroup name="chip-fade" tag="div" class="d-flex flex-wrap gap-2 mt-2">
-                <span
-                  v-for="(m, idx) in moduleObjects"
-                  :key="m.code"
-                  class="chip"
-                >
+                <span v-for="(m, idx) in selectedModuleChips" :key="m.code" class="chip">
                   <span class="me-2">{{ m.label || m.code }}</span>
-                  <button
-                    type="button"
-                    class="chip-x"
-                    aria-label="Remove"
-                    @click="removeModuleAt(idx)"
-                  >×</button>
+                  <button class="chip-x" @click="removeModuleByIndex(idx)">x</button>
                 </span>
               </TransitionGroup>
 
               <small class="text-muted d-block mt-2">
-                Selected course codes: {{ modules.join(', ') || '—' }}
+                Selected course codes: {{ selectedModuleCodes.join(', ') || '—' }}
               </small>
             </div>
 

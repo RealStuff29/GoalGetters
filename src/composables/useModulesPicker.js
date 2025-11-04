@@ -2,67 +2,79 @@ import { ref, watch } from 'vue'
 import { modulesWithLabel, moduleIndex } from '@/constants/modules'
 
 
-// - moduleObjects: the chip objects [{code,title,label}]
+// - selectedModuleChips: the chip objects [{code,title,label}]
 // - modules: normalised array of course codes ['IS113','IS216',...]
 
 export function useModulesPicker() {
 
-  const moduleObjects = ref([])
-  const modules = ref([])
+  const selectedModuleChips = ref([])
+  const selectedModuleCodes = ref([])
+  const moduleSearchQuery = ref('')
+  const moduleSuggestionOptions = ref([])
 
-  const moduleQuery = ref('')
-  const moduleSuggestions = ref([])
+
+  function normalizeValidModuleCodes(codes) {
+     const seen = new Set()
+     return (codes || [])
+       .map(c => String(c || '').trim().toUpperCase())
+       .filter(code => {
+         if (!code || !moduleIndex[code] || seen.has(code)) return false
+         seen.add(code)
+         return true
+       })
+   }
 
   // Keep modules in sync with chips (unique by course code)
   watch(
-    moduleObjects,
+    selectedModuleChips,
     (objs) => {
-      const uniqueCodes = Array.from(new Set((objs || []).map(o => o.code))).filter(Boolean)
-      modules.value = uniqueCodes
+      const uniqueCodes = Array.from(new Set((objs || []).map(o => (o?.code || '').toUpperCase()))).filter(Boolean)
+      selectedModuleCodes.value = normalizeValidModuleCodes(uniqueCodes)
     },
     { deep: true }
   )
 
-  function searchModules(event) {
+  function fetchModuleSuggestions(event) {
     const q = String(event.query || '').trim().toLowerCase()
     if (!q) {
-      moduleSuggestions.value = modulesWithLabel
+      moduleSuggestionOptions.value = modulesWithLabel
       return
     }
-    moduleSuggestions.value = modulesWithLabel.filter(m =>
+    moduleSuggestionOptions.value = modulesWithLabel.filter(m =>
       m.code.toLowerCase().includes(q) || m.title.toLowerCase().includes(q)
     )
   }
 
   // Add a suggestion chip (prevent duplicates)
-  function addModuleOption(opt) {
+  function addModuleFromSuggestion(opt) {
     if (!opt?.code) return
-    const exists = moduleObjects.value.some(o => o.code === opt.code)
-    if (!exists) moduleObjects.value = [...moduleObjects.value, opt]
-    moduleQuery.value = ''
+     const code = String(opt.code).toUpperCase()
+     if (!moduleIndex[code]) return
+    const exists = selectedModuleChips.value.some(o => o.code === code)
+    if (!exists) selectedModuleChips.value = [...selectedModuleChips.value, { ...moduleIndex[code], label: `${code} ${moduleIndex[code].title}` }]
+    moduleSearchQuery.value = ''
   }
 
-  // Add free-typed course code on Enter
-  function addFreeTypedCourseCode() {
-    const raw = String(moduleQuery.value || '').trim().toUpperCase()
-    if (!raw) return
-    const opt = moduleIndex[raw]
-      ? { ...moduleIndex[raw], label: `${raw} ${moduleIndex[raw].title}` }
-      : { code: raw, title: '', label: raw } // fallback for unknown course code
-    addModuleOption(opt)
+  function addModuleFromInput() {
+    const raw = String(moduleSearchQuery.value || '').trim().toUpperCase()
+    if (!raw) return { ok: false }
+     if (!moduleIndex[raw]) {
+       return { ok: false, code: raw }
+     }
+    addModuleFromSuggestion({ code: raw })
+    return { ok: true, code: raw }
   }
 
   // Remove chip by index
-  function removeModuleAt(idx) {
-    const next = [...moduleObjects.value]
+  function removeModuleByIndex(idx) {
+    const next = [...selectedModuleChips.value]
     next.splice(idx, 1)
-    moduleObjects.value = next
+    selectedModuleChips.value = next
   }
 
   return {
-    // state
-    moduleObjects, modules, moduleQuery, moduleSuggestions,
-    // actions
-    searchModules, addModuleOption, addFreeTypedCourseCode, removeModuleAt
+    selectedModuleChips, selectedModuleCodes, moduleSearchQuery, moduleSuggestionOptions,
+    fetchModuleSuggestions, addModuleFromSuggestion, addModuleFromInput, removeModuleByIndex,
+    normalizeValidModuleCodes,
   }
 }
