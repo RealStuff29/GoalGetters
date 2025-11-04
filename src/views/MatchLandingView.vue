@@ -4,12 +4,6 @@
   
   <!-- Hide everything while resuming to avoid any UI flash -->
   <div v-if="!isResuming" class="match-landing-container">
-    <!-- Logo Split Intro (plays once per session) -->
-    <div v-if="showLogoIntro" class="logo-intro" aria-hidden="true">
-      <!-- Use one image, clipped into halves -->
-      <img class="logo-half left"  src="../assets/images/Logo.png" alt="" />
-      <img class="logo-half right" src="../assets/images/Logo.png" alt="" />
-    </div>
 
     <!-- Background aura + floating shapes (pure CSS) -->
     <div class="bg-aura" aria-hidden="true"></div>
@@ -29,6 +23,7 @@
       <div class="frame-glow" aria-hidden="true"></div>
 
       <div class="match-header">
+        
         <h1 class="match-title">
           <span class="sparkle" aria-hidden="true">✨</span>
           Find Your Study Partner
@@ -117,8 +112,6 @@ const store = useMatchStore()
 
 // while this is true, nothing renders (prevents the brief "searching" flash)
 const isResuming = ref(true)
-// logo intro flag
-const showLogoIntro = ref(false)
 
 const timeSlots = [
   { id: 'slot_morning',   label: 'Morning',   window: '8:30am – 11:30am' },
@@ -128,11 +121,6 @@ const timeSlots = [
 ]
 
 const selectedSlots = ref<string[]>([])
-
-// (optional debug helper you had)
-function callGetIdleOthers(myId: string) {
-  store.getIdleOthers(myId)
-}
 
 /**
  * Mount: prefill timeslots, then silently resume.
@@ -179,16 +167,6 @@ onMounted(async () => {
     console.warn('[landing] resume check failed', e)
   } finally {
     isResuming.value = false
-
-    // Play the logo intro once per session
-    const played = sessionStorage.getItem('logoIntroShown')
-    if (!played) {
-      showLogoIntro.value = true
-      setTimeout(() => {
-        showLogoIntro.value = false
-        sessionStorage.setItem('logoIntroShown', '1')
-      }, 1400) // matches CSS timing (join + fade)
-    }
   }
 })
 
@@ -226,7 +204,7 @@ async function onStart() {
 
 <style scoped>
 /* ---------- Warm Sunrise Theme ---------- */
-:root, :host {
+:host {
   /* warm palette */
   --sun-bg-1: #fff7e6;   /* light peach */
   --sun-bg-2: #fff0cc;   /* pale amber */
@@ -254,8 +232,6 @@ async function onStart() {
   padding: 2rem;
   overflow: clip;
   isolation: isolate;
-
-  /* Bright, warm background */
   background:
     radial-gradient(1200px 800px at -10% -10%, rgba(255, 183, 3, 0.25), transparent 60%),
     radial-gradient(900px 600px at 110% 0%, rgba(251, 133, 0, 0.18), transparent 55%),
@@ -360,7 +336,7 @@ async function onStart() {
 .slots-grid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(2, minmax(0, 2fr)) !important; /* always 2x2 */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-bottom: 2.2rem;
 }
 
@@ -399,18 +375,16 @@ async function onStart() {
 .slot-title { font-weight: 900; display: block; }
 .slot-window { opacity: 0.95; font-weight: 600; }
 
-/* Active (selected) slot: stronger color + deeper shadow */
+/* Active (selected) slot */
 .slot-btn--active {
-  background: linear-gradient(180deg, #ff9e2c, #fb8500) !important;
-  border-color: rgba(255, 255, 255, 0.5) !important;
-  color: #fff !important;
+  background: linear-gradient(180deg, #ff9e2c, #fb8500);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #fff;
   box-shadow:
     0 22px 40px rgba(251, 133, 0, 0.45),
     0 2px 0 rgba(255, 255, 255, 0.25) inset;
 }
-.slot-btn--active:hover {
-  transform: translateY(-2px);
-}
+.slot-btn--active:hover { transform: translateY(-2px); }
 
 /* Ripple (pure CSS, warm) */
 .slot-btn .ripple {
@@ -422,48 +396,18 @@ async function onStart() {
   pointer-events: none;
 }
 .slot-btn:hover .ripple { opacity: 1; }
-.slot-btn:hover { --mx: 50%; --my: 50%; }
-.slot-btn:hover::before {
-  content: "";
-  position: absolute; inset: 0;
-  border-radius: inherit;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
-  pointer-events: none;
-}
-.slot-btn::after {
-  /* glossy top highlight for “clickable” affordance */
-  content: "";
-  position: absolute; left: 0; right: 0; top: 0; height: 38%;
-  border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255,255,255,.65), rgba(255,255,255,0));
-  pointer-events: none;
-}
-.slot-btn:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 3px rgba(255, 183, 3, 0.45),
-    0 16px 30px rgba(0, 0, 0, 0.22);
-  border-color: rgba(255, 153, 51, 0.65);
-}
 
-/* ---------- Primary Start Button ---------- */
-.match-start { margin-top: 0.5rem; }
-
-.start-btn :deep(button),
-.start-btn {
-  --btn-bg: linear-gradient(90deg, #22c55e, #16a34a 55%, #0ea5a0);          /* fresh green with a mint tail */
-  --btn-bg-hover: linear-gradient(90deg, #34d399, #22c55e 55%, #10b981);    /* brighter hover */
-  --btn-shadow: 0 16px 34px rgba(34, 197, 94, 0.35), inset 0 -2px 0 rgba(0,0,0,0.06);
-  --btn-shadow-active: 0 10px 22px rgba(34, 197, 94, 0.3), inset 0 -2px 0 rgba(0,0,0,0.12);
-
-  background: var(--btn-bg) !important;
-  border-color: transparent !important;
-  color: #082b12 !important;
-  font-weight: 900 !important;
+/* ---------- Primary Start Button (PrimeVue) ---------- */
+.start-btn :deep(button) {
+  position: relative;
+  background: linear-gradient(90deg, #22c55e, #16a34a 55%, #0ea5a0);
+  border-color: transparent;
+  color: #082b12;
+  font-weight: 900;
   letter-spacing: .2px;
-  border-radius: 0.9rem !important;
-  padding: 0.95rem 1.2rem !important;
-  box-shadow: var(--btn-shadow);
+  border-radius: 0.9rem;
+  padding: 0.95rem 1.2rem;
+  box-shadow: 0 16px 34px rgba(34, 197, 94, 0.35), inset 0 -2px 0 rgba(0,0,0,0.06);
   transform: translateY(0);
   transition: transform .08s ease, box-shadow .12s ease, filter .2s ease, background .25s ease;
 }
@@ -479,22 +423,23 @@ async function onStart() {
   transform: translateX(-120%);
   transition: transform .6s ease;
 }
-.start-btn:hover :deep(button),
-.start-btn:hover {
-  background: var(--btn-bg-hover) !important;
+
+.start-btn:hover :deep(button) {
+  background: linear-gradient(90deg, #34d399, #22c55e 55%, #10b981);
   box-shadow: 0 20px 38px rgba(34, 197, 94, 0.4), inset 0 -2px 0 rgba(0,0,0,0.08);
   transform: translateY(-2px);
   filter: saturate(1.05);
 }
-.start-btn:active :deep(button),
-.start-btn:active {
+
+.start-btn:active :deep(button) {
   transform: translateY(0);
-  box-shadow: var(--btn-shadow-active);
+  box-shadow: 0 10px 22px rgba(34, 197, 94, 0.3), inset 0 -2px 0 rgba(0,0,0,0.12);
 }
-.start-btn:disabled {
-  background: linear-gradient(90deg, rgba(52, 211, 153, 0.55), rgba(34, 197, 94, 0.55)) !important;
-  border-color: rgba(16, 185, 129, 0.35) !important;
-  color: rgba(8, 43, 18, 0.7) !important;
+
+.start-btn :deep(button:disabled) {
+  background: linear-gradient(90deg, rgba(52, 211, 153, 0.55), rgba(34, 197, 94, 0.55));
+  border-color: rgba(16, 185, 129, 0.35);
+  color: rgba(8, 43, 18, 0.7);
   cursor: not-allowed;
   box-shadow: none;
 }
@@ -523,7 +468,7 @@ async function onStart() {
   color: transparent;
 }
 
-/* Orbit loader (warm accents) */
+/* Orbit loader */
 .orbit {
   position: relative;
   width: 140px; height: 140px;
@@ -563,33 +508,16 @@ async function onStart() {
 .delay-300 { animation-delay: .3s; }
 @keyframes pulse { 50% { opacity: .5; transform: scale(0.85); } }
 
-/* Soft ring progress */
-.ring { position: relative; width: 120px; height: 120px; margin: 12px auto 0; }
-.ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-.track {
-  fill: none; stroke: rgba(251, 133, 0, .15); stroke-width: 8; stroke-linecap: round;
-}
-.meter {
-  fill: none; stroke: url(#grad);
-  stroke-width: 8; stroke-linecap: round; stroke-dasharray: 264; stroke-dashoffset: 200;
-  animation: meter 2.6s ease-in-out infinite;
-}
-@keyframes meter {
-  0% { stroke-dashoffset: 260; }
-  50% { stroke-dashoffset: 120; }
-  100% { stroke-dashoffset: 260; }
-}
-
 /* ---------- Not Found ---------- */
 .match-notfound { text-align: center; max-width: 520px; margin: 0 auto; color: var(--sun-brown); }
-.ghost-btn :deep(button), .ghost-btn {
-  background: transparent !important;
-  color: #fb8500 !important;
-  border: 1px dashed rgba(251,133,0,.55) !important;
-  border-radius: 10px !important;
+.ghost-btn :deep(button) {
+  background: transparent;
+  color: #fb8500;
+  border: 1px dashed rgba(251,133,0,.55);
+  border-radius: 10px;
 }
-.ghost-btn:hover :deep(button), .ghost-btn:hover {
-  background: rgba(255, 183, 3, 0.12) !important;
+.ghost-btn:hover :deep(button) {
+  background: rgba(255, 183, 3, 0.12);
 }
 
 /* ---------- Notice ---------- */
@@ -612,66 +540,11 @@ async function onStart() {
 
 /* ---------- Reduced Motion ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .float, .orbit .satellite, .dot, .meter, .fx-rise, .fx-pop, .fx-fade-in {
+  .float, .orbit .satellite, .dot, .fx-rise, .fx-pop, .fx-fade-in {
     animation: none !important;
   }
 }
 
 /* ---------- Utilities ---------- */
 .mt-4 { margin-top: 1rem; }
-
-/* ===== Logo Split & Join Intro ===== */
-.logo-intro {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  z-index: 100;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(255,247,230,0.92), rgba(255,240,204,0.92));
-  backdrop-filter: blur(2px) saturate(110%);
-  animation: intro-fade 350ms ease-out 1s forwards;
-}
-.logo-intro .logo-half {
-  width: min(72vw, 560px);
-  max-width: 90vw;
-  height: auto;
-  filter: drop-shadow(0 18px 38px rgba(0,0,0,0.22));
-  opacity: 0;
-}
-/* Clip one image into two halves */
-.logo-intro .logo-half.left  { clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%); }
-.logo-intro .logo-half.right { clip-path: polygon(50% 0, 100% 0, 100% 100%, 50% 100%); }
-
-/* Entry animations: slide from sides & meet in center, tiny "ta-da" squeeze */
-.logo-intro .logo-half.left {
-  transform: translateX(-42vw) scale(0.96);
-  animation: logo-left-in 700ms cubic-bezier(.2,.7,.15,1) forwards;
-}
-.logo-intro .logo-half.right {
-  transform: translateX(42vw) scale(0.96);
-  animation: logo-right-in 700ms cubic-bezier(.2,.7,.15,1) forwards;
-}
-@keyframes logo-left-in {
-  0%   { opacity: 0; transform: translateX(-42vw) scale(0.96); }
-  60%  { opacity: 1; transform: translateX(-2vw)  scale(1.02); }
-  100% { opacity: 1; transform: translateX(0)     scale(1.00); }
-}
-@keyframes logo-right-in {
-  0%   { opacity: 0; transform: translateX(42vw) scale(0.96); }
-  60%  { opacity: 1; transform: translateX(2vw)  scale(1.02); }
-  100% { opacity: 1; transform: translateX(0)    scale(1.00); }
-}
-@keyframes intro-fade {
-  to { opacity: 0; visibility: hidden; }
-}
-
-/* Reduced motion: quick crossfade */
-@media (prefers-reduced-motion: reduce) {
-  .logo-intro { animation: intro-fade 200ms ease-out 600ms forwards; }
-  .logo-intro .logo-half { opacity: 1; transform: none; animation: none !important; }
-}
-
-/* Ensure the rest of the page doesn't jump when intro ends */
-.match-landing-container { will-change: opacity, transform; }
 </style>
