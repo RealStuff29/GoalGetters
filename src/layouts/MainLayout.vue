@@ -67,9 +67,6 @@ function handleHomeNav() {
           title="Go to Home">
           GoalGetters
         </h3>
-        <small class="brand-tagline text-muted d-none d-md-block">
-          Future of Accountability
-        </small>
       </div>
 
       <!-- Center navigation -->
@@ -222,22 +219,6 @@ function handleHomeNav() {
 .nav-link[href^="#"]:hover {
   opacity: 1;
   color: #ff9800;
-}
-
-/* Subtle tagline beside logo */
-.brand-tagline {
-  background: linear-gradient(90deg, #ff9800, #ffb347);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  font-size: 0.9rem;
-  opacity: 0.8;
-  transition: opacity 0.3s ease;
-}
-
-.navbar:hover .brand-tagline {
-  opacity: 1;
 }
 
 .center-nav a {
