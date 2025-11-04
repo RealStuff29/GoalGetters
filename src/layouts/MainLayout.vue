@@ -89,7 +89,7 @@ function handleHomeNav() {
       <!-- Right side buttons -->
       <div v-if="checkedSession">
         <!-- Logged in -->
-        <Button v-if="userSession" severity="warn" label="Log Out" @click="handleLogout" />
+        <Button v-if="userSession" label="Log Out" class="btn-gradient" @click="handleLogout" />
 
         <!-- Logged out -->
         <div v-else class="d-flex gap-2">
