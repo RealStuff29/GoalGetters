@@ -1,16 +1,7 @@
 <!-- src/views/MatchLandingView.vue -->
- 
 <template>
-  
   <!-- Hide everything while resuming to avoid any UI flash -->
   <div v-if="!isResuming" class="match-landing-container">
-    <!-- Logo Split Intro (plays once per session) -->
-    <div v-if="showLogoIntro" class="logo-intro" aria-hidden="true">
-      <!-- Use one image, clipped into halves -->
-      <img class="logo-half left"  src="../assets/images/Logo.png" alt="" />
-      <img class="logo-half right" src="../assets/images/Logo.png" alt="" />
-    </div>
-
     <!-- Background aura + floating shapes (pure CSS) -->
     <div class="bg-aura" aria-hidden="true"></div>
     <div class="float float-1" aria-hidden="true"></div>
@@ -27,6 +18,19 @@
     <div v-if="store.stage === 'landing'" class="match-form fx-rise">
       <!-- Glow frame -->
       <div class="frame-glow" aria-hidden="true"></div>
+
+      <!-- GOALGETTERS LOGO (animated) -->
+      <div
+        class="logo-hero"
+        ref="logoRef"
+        @mousemove="onLogoMouseMove"
+        @mouseleave="resetLogoTilt"
+        aria-label="GoalGetters logo"
+      >
+        <img class="logo-img" src="../assets/images/Logo.png" alt="GoalGetters" />
+        <span class="logo-glow" aria-hidden="true"></span>
+        <span class="logo-shine" aria-hidden="true"></span>
+      </div>
 
       <div class="match-header">
         <h1 class="match-title">
@@ -73,9 +77,7 @@
     <!-- MATCH NOT FOUND STATE -->
     <div v-else-if="store.stage === 'notfound'" class="match-notfound fx-rise">
       <h2 class="match-title-sm">No Match Found 😞</h2>
-      <p class="match-subtitle">
-        You can try again later
-      </p>
+      <p class="match-subtitle">You can try again later</p>
       <Button class="mt-4 ghost-btn" label="Try Again" @click="backToLanding" />
     </div>
 
@@ -107,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMatchStore } from '@/stores/match'
 import { supabase } from '@/lib/supabase'
@@ -117,8 +119,6 @@ const store = useMatchStore()
 
 // while this is true, nothing renders (prevents the brief "searching" flash)
 const isResuming = ref(true)
-// logo intro flag
-const showLogoIntro = ref(false)
 
 const timeSlots = [
   { id: 'slot_morning',   label: 'Morning',   window: '8:30am – 11:30am' },
@@ -129,15 +129,32 @@ const timeSlots = [
 
 const selectedSlots = ref<string[]>([])
 
-// (optional debug helper you had)
-function callGetIdleOthers(myId: string) {
-  store.getIdleOthers(myId)
+/* ===== Logo tilt (tiny parallax) ===== */
+const logoRef = ref<HTMLElement | null>(null)
+function onLogoMouseMove(e: MouseEvent) {
+  const el = logoRef.value
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  const cx = rect.left + rect.width / 2
+  const cy = rect.top + rect.height / 2
+  const dx = (e.clientX - cx) / rect.width  // -0.5..0.5
+  const dy = (e.clientY - cy) / rect.height // -0.5..0.5
+  // small tilt
+  el.style.setProperty('--rx', `${(-dy * 6).toFixed(2)}deg`)
+  el.style.setProperty('--ry', `${(dx * 8).toFixed(2)}deg`)
+  // move highlight
+  el.style.setProperty('--mx', `${((dx + 0.5) * 100).toFixed(1)}%`)
+  el.style.setProperty('--my', `${((dy + 0.5) * 100).toFixed(1)}%`)
+}
+function resetLogoTilt() {
+  const el = logoRef.value
+  if (!el) return
+  el.style.removeProperty('--rx')
+  el.style.removeProperty('--ry')
+  el.style.removeProperty('--mx')
+  el.style.removeProperty('--my')
 }
 
-/**
- * Mount: prefill timeslots, then silently resume.
- * We keep the whole page hidden until we decide where to go.
- */
 onMounted(async () => {
   try {
     if (store.stage === 'searching') {
@@ -179,18 +196,10 @@ onMounted(async () => {
     console.warn('[landing] resume check failed', e)
   } finally {
     isResuming.value = false
-
-    // Play the logo intro once per session
-    const played = sessionStorage.getItem('logoIntroShown')
-    if (!played) {
-      showLogoIntro.value = true
-      setTimeout(() => {
-        showLogoIntro.value = false
-        sessionStorage.setItem('logoIntroShown', '1')
-      }, 1400) // matches CSS timing (join + fade)
-    }
   }
 })
+
+onBeforeUnmount(() => resetLogoTilt())
 
 function toggleSlot(id: string) {
   if (selectedSlots.value.includes(id)) {
@@ -226,7 +235,7 @@ async function onStart() {
 
 <style scoped>
 /* ---------- Warm Sunrise Theme ---------- */
-:root, :host {
+:host {
   /* warm palette */
   --sun-bg-1: #fff7e6;   /* light peach */
   --sun-bg-2: #fff0cc;   /* pale amber */
@@ -254,8 +263,6 @@ async function onStart() {
   padding: 2rem;
   overflow: clip;
   isolation: isolate;
-
-  /* Bright, warm background */
   background:
     radial-gradient(1200px 800px at -10% -10%, rgba(255, 183, 3, 0.25), transparent 60%),
     radial-gradient(900px 600px at 110% 0%, rgba(251, 133, 0, 0.18), transparent 55%),
@@ -315,12 +322,21 @@ async function onStart() {
   position: absolute;
   inset: -2px;
   border-radius: 20px;
-  background:
-    linear-gradient(180deg, rgba(255, 183, 3, 0.9), rgba(251, 133, 0, 0.9)) border-box;
+  background: linear-gradient(180deg, rgba(255, 183, 3, 0.9), rgba(251, 133, 0, 0.9)) border-box;
+
+  /* Standard mask (Chrome/Firefox/Edge) */
+  mask:
+    linear-gradient(#000 0 0) padding-box,
+    linear-gradient(#000 0 0);
+  /* For multiple layers, this defines how they combine: exclude = punch out */
+  mask-composite: exclude;
+
+  /* WebKit/Safari */
   -webkit-mask:
-    linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+    linear-gradient(#000 0 0) padding-box,
+    linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
-          mask-composite: exclude;
+
   border: 2px solid transparent;
   filter: blur(12px) saturate(120%);
   opacity: 0.55;
@@ -334,6 +350,73 @@ async function onStart() {
   background: var(--color-background-mute);
   border: 1px solid var(--color-border);
   box-shadow: 0 16px 40px rgba(251, 133, 0, 0.15);
+}
+
+/* ---------- Logo Hero (animated) ---------- */
+.logo-hero {
+  --rx: 0deg;
+  --ry: 0deg;
+  --mx: 50%;
+  --my: 50%;
+  width: clamp(110px, 16vw, 160px);
+  height: clamp(110px, 16vw, 160px);
+  margin: 0.25rem auto 0.9rem;
+  position: relative;
+  perspective: 800px;
+  transform-style: preserve-3d;
+  animation: logo-bob 4.8s ease-in-out infinite;
+  will-change: transform;
+  filter: drop-shadow(0 10px 22px rgba(251,133,0,.25));
+}
+@keyframes logo-bob {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-6px); }
+}
+.logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 22px;
+  transform:
+    rotateX(var(--rx)) rotateY(var(--ry))
+    translateZ(0);
+  transition: transform .08s ease;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.35);
+  background: radial-gradient(120% 120% at var(--mx) var(--my), rgba(255,255,255,.35), transparent 55%);
+}
+.logo-glow {
+  position: absolute; inset: -10%;
+  border-radius: 28px;
+  background: radial-gradient(60% 60% at 50% 60%, rgba(255, 183, 3, 0.35), transparent 60%),
+              radial-gradient(45% 45% at 60% 35%, rgba(251, 133, 0, 0.25), transparent 60%);
+  filter: blur(16px);
+  pointer-events: none;
+  animation: glow-pulse 2.6s ease-in-out infinite;
+}
+@keyframes glow-pulse {
+  0%,100% { opacity: .55; }
+  50%     { opacity: .9; }
+}
+/* Shine sweep on first paint + on hover */
+.logo-shine {
+  position: absolute; inset: 0;
+  border-radius: 22px;
+  pointer-events: none;
+  overflow: hidden;
+}
+.logo-shine::after {
+  content: "";
+  position: absolute; inset: -20%;
+  background: linear-gradient(120deg, rgba(255,255,255,.65), rgba(255,255,255,0) 40%);
+  transform: translateX(-130%) rotate(12deg);
+  animation: shine 1.1s ease .25s 1;
+}
+.logo-hero:hover .logo-shine::after {
+  animation: shine 1s ease 0s 1;
+}
+@keyframes shine {
+  to { transform: translateX(130%) rotate(12deg); }
 }
 
 /* ---------- Header ---------- */
@@ -360,7 +443,7 @@ async function onStart() {
 .slots-grid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(2, minmax(0, 2fr)) !important; /* always 2x2 */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-bottom: 2.2rem;
 }
 
@@ -399,18 +482,16 @@ async function onStart() {
 .slot-title { font-weight: 900; display: block; }
 .slot-window { opacity: 0.95; font-weight: 600; }
 
-/* Active (selected) slot: stronger color + deeper shadow */
+/* Active (selected) slot */
 .slot-btn--active {
-  background: linear-gradient(180deg, #ff9e2c, #fb8500) !important;
-  border-color: rgba(255, 255, 255, 0.5) !important;
-  color: #fff !important;
+  background: linear-gradient(180deg, #ff9e2c, #fb8500);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #fff;
   box-shadow:
     0 22px 40px rgba(251, 133, 0, 0.45),
     0 2px 0 rgba(255, 255, 255, 0.25) inset;
 }
-.slot-btn--active:hover {
-  transform: translateY(-2px);
-}
+.slot-btn--active:hover { transform: translateY(-2px); }
 
 /* Ripple (pure CSS, warm) */
 .slot-btn .ripple {
@@ -422,48 +503,18 @@ async function onStart() {
   pointer-events: none;
 }
 .slot-btn:hover .ripple { opacity: 1; }
-.slot-btn:hover { --mx: 50%; --my: 50%; }
-.slot-btn:hover::before {
-  content: "";
-  position: absolute; inset: 0;
-  border-radius: inherit;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
-  pointer-events: none;
-}
-.slot-btn::after {
-  /* glossy top highlight for “clickable” affordance */
-  content: "";
-  position: absolute; left: 0; right: 0; top: 0; height: 38%;
-  border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255,255,255,.65), rgba(255,255,255,0));
-  pointer-events: none;
-}
-.slot-btn:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 3px rgba(255, 183, 3, 0.45),
-    0 16px 30px rgba(0, 0, 0, 0.22);
-  border-color: rgba(255, 153, 51, 0.65);
-}
 
-/* ---------- Primary Start Button ---------- */
-.match-start { margin-top: 0.5rem; }
-
-.start-btn :deep(button),
-.start-btn {
-  --btn-bg: linear-gradient(90deg, #22c55e, #16a34a 55%, #0ea5a0);          /* fresh green with a mint tail */
-  --btn-bg-hover: linear-gradient(90deg, #34d399, #22c55e 55%, #10b981);    /* brighter hover */
-  --btn-shadow: 0 16px 34px rgba(34, 197, 94, 0.35), inset 0 -2px 0 rgba(0,0,0,0.06);
-  --btn-shadow-active: 0 10px 22px rgba(34, 197, 94, 0.3), inset 0 -2px 0 rgba(0,0,0,0.12);
-
-  background: var(--btn-bg) !important;
-  border-color: transparent !important;
-  color: #082b12 !important;
-  font-weight: 900 !important;
+/* ---------- Primary Start Button (PrimeVue) ---------- */
+.start-btn :deep(button) {
+  position: relative;
+  background: linear-gradient(90deg, #22c55e, #16a34a 55%, #0ea5a0);
+  border-color: transparent;
+  color: #082b12;
+  font-weight: 900;
   letter-spacing: .2px;
-  border-radius: 0.9rem !important;
-  padding: 0.95rem 1.2rem !important;
-  box-shadow: var(--btn-shadow);
+  border-radius: 0.9rem;
+  padding: 0.95rem 1.2rem;
+  box-shadow: 0 16px 34px rgba(34, 197, 94, 0.35), inset 0 -2px 0 rgba(0,0,0,0.06);
   transform: translateY(0);
   transition: transform .08s ease, box-shadow .12s ease, filter .2s ease, background .25s ease;
 }
@@ -479,22 +530,23 @@ async function onStart() {
   transform: translateX(-120%);
   transition: transform .6s ease;
 }
-.start-btn:hover :deep(button),
-.start-btn:hover {
-  background: var(--btn-bg-hover) !important;
+
+.start-btn:hover :deep(button) {
+  background: linear-gradient(90deg, #34d399, #22c55e 55%, #10b981);
   box-shadow: 0 20px 38px rgba(34, 197, 94, 0.4), inset 0 -2px 0 rgba(0,0,0,0.08);
   transform: translateY(-2px);
   filter: saturate(1.05);
 }
-.start-btn:active :deep(button),
-.start-btn:active {
+
+.start-btn:active :deep(button) {
   transform: translateY(0);
-  box-shadow: var(--btn-shadow-active);
+  box-shadow: 0 10px 22px rgba(34, 197, 94, 0.3), inset 0 -2px 0 rgba(0,0,0,0.12);
 }
-.start-btn:disabled {
-  background: linear-gradient(90deg, rgba(52, 211, 153, 0.55), rgba(34, 197, 94, 0.55)) !important;
-  border-color: rgba(16, 185, 129, 0.35) !important;
-  color: rgba(8, 43, 18, 0.7) !important;
+
+.start-btn :deep(button:disabled) {
+  background: linear-gradient(90deg, rgba(52, 211, 153, 0.55), rgba(34, 197, 94, 0.55));
+  border-color: rgba(16, 185, 129, 0.35);
+  color: rgba(8, 43, 18, 0.7);
   cursor: not-allowed;
   box-shadow: none;
 }
@@ -523,7 +575,7 @@ async function onStart() {
   color: transparent;
 }
 
-/* Orbit loader (warm accents) */
+/* Orbit loader */
 .orbit {
   position: relative;
   width: 140px; height: 140px;
@@ -563,33 +615,16 @@ async function onStart() {
 .delay-300 { animation-delay: .3s; }
 @keyframes pulse { 50% { opacity: .5; transform: scale(0.85); } }
 
-/* Soft ring progress */
-.ring { position: relative; width: 120px; height: 120px; margin: 12px auto 0; }
-.ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-.track {
-  fill: none; stroke: rgba(251, 133, 0, .15); stroke-width: 8; stroke-linecap: round;
-}
-.meter {
-  fill: none; stroke: url(#grad);
-  stroke-width: 8; stroke-linecap: round; stroke-dasharray: 264; stroke-dashoffset: 200;
-  animation: meter 2.6s ease-in-out infinite;
-}
-@keyframes meter {
-  0% { stroke-dashoffset: 260; }
-  50% { stroke-dashoffset: 120; }
-  100% { stroke-dashoffset: 260; }
-}
-
 /* ---------- Not Found ---------- */
 .match-notfound { text-align: center; max-width: 520px; margin: 0 auto; color: var(--sun-brown); }
-.ghost-btn :deep(button), .ghost-btn {
-  background: transparent !important;
-  color: #fb8500 !important;
-  border: 1px dashed rgba(251,133,0,.55) !important;
-  border-radius: 10px !important;
+.ghost-btn :deep(button) {
+  background: transparent;
+  color: #fb8500;
+  border: 1px dashed rgba(251,133,0,.55);
+  border-radius: 10px;
 }
-.ghost-btn:hover :deep(button), .ghost-btn:hover {
-  background: rgba(255, 183, 3, 0.12) !important;
+.ghost-btn:hover :deep(button) {
+  background: rgba(255, 183, 3, 0.12);
 }
 
 /* ---------- Notice ---------- */
@@ -612,66 +647,13 @@ async function onStart() {
 
 /* ---------- Reduced Motion ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .float, .orbit .satellite, .dot, .meter, .fx-rise, .fx-pop, .fx-fade-in {
+  .float, .orbit .satellite, .dot, .fx-rise, .fx-pop, .fx-fade-in,
+  .logo-hero, .logo-glow, .logo-shine::after {
     animation: none !important;
+    transition: none !important;
   }
 }
 
 /* ---------- Utilities ---------- */
 .mt-4 { margin-top: 1rem; }
-
-/* ===== Logo Split & Join Intro ===== */
-.logo-intro {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  z-index: 100;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(255,247,230,0.92), rgba(255,240,204,0.92));
-  backdrop-filter: blur(2px) saturate(110%);
-  animation: intro-fade 350ms ease-out 1s forwards;
-}
-.logo-intro .logo-half {
-  width: min(72vw, 560px);
-  max-width: 90vw;
-  height: auto;
-  filter: drop-shadow(0 18px 38px rgba(0,0,0,0.22));
-  opacity: 0;
-}
-/* Clip one image into two halves */
-.logo-intro .logo-half.left  { clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%); }
-.logo-intro .logo-half.right { clip-path: polygon(50% 0, 100% 0, 100% 100%, 50% 100%); }
-
-/* Entry animations: slide from sides & meet in center, tiny "ta-da" squeeze */
-.logo-intro .logo-half.left {
-  transform: translateX(-42vw) scale(0.96);
-  animation: logo-left-in 700ms cubic-bezier(.2,.7,.15,1) forwards;
-}
-.logo-intro .logo-half.right {
-  transform: translateX(42vw) scale(0.96);
-  animation: logo-right-in 700ms cubic-bezier(.2,.7,.15,1) forwards;
-}
-@keyframes logo-left-in {
-  0%   { opacity: 0; transform: translateX(-42vw) scale(0.96); }
-  60%  { opacity: 1; transform: translateX(-2vw)  scale(1.02); }
-  100% { opacity: 1; transform: translateX(0)     scale(1.00); }
-}
-@keyframes logo-right-in {
-  0%   { opacity: 0; transform: translateX(42vw) scale(0.96); }
-  60%  { opacity: 1; transform: translateX(2vw)  scale(1.02); }
-  100% { opacity: 1; transform: translateX(0)    scale(1.00); }
-}
-@keyframes intro-fade {
-  to { opacity: 0; visibility: hidden; }
-}
-
-/* Reduced motion: quick crossfade */
-@media (prefers-reduced-motion: reduce) {
-  .logo-intro { animation: intro-fade 200ms ease-out 600ms forwards; }
-  .logo-intro .logo-half { opacity: 1; transform: none; animation: none !important; }
-}
-
-/* Ensure the rest of the page doesn't jump when intro ends */
-.match-landing-container { will-change: opacity, transform; }
 </style>
