@@ -44,6 +44,7 @@ const router = createRouter({
         { path: 'matchlandingview', name: 'matchlanding', component: MatchLanding, meta: { requiresAuth: true } },
         { path: 'matchdecisionview/:id?', name: 'matchdecision', component: MatchDecision, meta: { requiresAuth: true } },
         { path: 'matchchatview/:chatId?', name: 'matchchat', component: MatchChat, meta: { requiresAuth: true } },
+        { path: 'review/:id?', name: 'matchreview', component: () => import('@/views/MatchReviewView.vue'), meta: { requiresAuth: true } }
       ],
 
     },

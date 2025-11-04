@@ -1,73 +1,80 @@
-import { supabase } from '@/lib/supabase.js';
-import { ref, onMounted } from 'vue';
+// src/composables/useAuth.js (your file)
+import { supabase } from '@/lib/supabase.js'
+import { ref, onMounted } from 'vue'
 
 export function useAuth() {
-    const user = ref(null);
-    const error = ref(null);
-    const loading = ref(false);
+  const user = ref(null)
+  const error = ref(null)
+  const loading = ref(false)
 
+  // SIGN UP
+  async function registerUser(email, password) {
+    loading.value = true
+    error.value = null
 
-    async function registerUser(email, password) {
-        loading.value = true;
-        error.value = null;
+    const { data, error: err } = await supabase.auth.signUp({
+      email,
+      password,
+    })
 
-        const { data, error: err } = await supabase.auth.signUp( //error:err is destructuring Supabase's expected and given "error" as "err", because we already have an "error" we are using and do not want to overwrite (I think)
-            {
-                email: email,
-                password: password,
-            })
+    loading.value = false
 
-        loading.value = false;
-
-        if (err) {
-            error.value = err.message;
-            return null;
-        }
-
-        user.value = data.user;
-        return data.user;
+    if (err) {
+      error.value = err.message
+      return null
     }
 
-    async function loginUser(email, password) {
-        loading.value = true;
-        error.value = null;
+    // ⚠️ IMPORTANT:
+    // If your Supabase project requires email confirmation,
+    // signUp will NOT give you an active session yet.
+    // So we do NOT do: user.value = data.user
+    // Just return it so the UI can show "check your email".
+    return data.user
+  }
 
-        const { data, error: err } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
+  // LOGIN (email/password)
+  async function loginUser(email, password) {
+    loading.value = true
+    error.value = null
 
-        loading.value = false;
+    const { data, error: err } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-        if (err) {
-            error.value = err.message;
-            return null;
-        }
+    loading.value = false
 
-        user.value = data.user;
-        return data.user;
+    if (err) {
+      error.value = err.message
+      return null
     }
 
-    async function logoutUser() {
-        loading.value = true;
-        error.value = null;
+    user.value = data.user
+    return data.user
+  }
 
-        const { error: err } = await supabase.auth.signOut();
+  // LOGOUT
+  async function logoutUser() {
+    loading.value = true
+    error.value = null
 
-        loading.value = false;
+    const { error: err } = await supabase.auth.signOut()
 
-        if (err) {
-            error.value = err.message;
-            return null;
-        }
+    loading.value = false
 
-        user.value = null;
-        return true;
+    if (err) {
+      error.value = err.message
+      return null
     }
 
-    async function loginUserWithGoogle() {
-        loading.value = true;
-        error.value = null;
+    user.value = null
+    return true
+  }
+
+  // LOGIN WITH GOOGLE
+  async function loginUserWithGoogle() {
+    loading.value = true
+    error.value = null
 
         const { error: err } = await supabase.auth.signInWithOAuth({
             provider: 'google',

@@ -112,8 +112,9 @@ import Checkbox from 'primevue/checkbox'
 import Dialog from 'primevue/dialog'
 import AutoComplete from 'primevue/autocomplete';
 
-
-
+import Skeleton from 'primevue/skeleton'
+import Toast from 'primevue/toast'
+import ToastService from 'primevue/toastservice'
 
 
 
@@ -156,6 +157,11 @@ app.component('Checkbox', Checkbox);
 app.component('Dialog', Dialog)
 app.component('AutoComplete', AutoComplete);
 app.component('Toast', Toast);
+
+app.use(ToastService)
+app.component('Skeleton', Skeleton)
+app.component('Toast', Toast)
+
 
 app.mount('#app');
 
