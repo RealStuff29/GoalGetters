@@ -77,8 +77,6 @@ function handleHomeNav() {
         class="center-nav d-flex align-items-center justify-content-center gap-4 position-absolute top-50 start-50 translate-middle">
         <!-- Show app features when logged in -->
         <template v-if="userSession">
-          <RouterLink to="/crudview" class="nav-link">Crud Test</RouterLink>
-          <RouterLink to="/profilesetupview" class="nav-link">Profile Setup</RouterLink>
           <RouterLink to="/profilesettingsview" class="nav-link">Profile Settings</RouterLink>
           <RouterLink to="/matchlandingview" class="nav-link">Matchmake Now</RouterLink>
           <RouterLink to="/feedbackview" class="nav-link">Feedback</RouterLink>
