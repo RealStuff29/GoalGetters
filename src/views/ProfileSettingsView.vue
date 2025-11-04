@@ -1,3 +1,4 @@
+<!--  src/views/ProfileSettingsView.vue -->
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -9,8 +10,10 @@ import { moduleIndex } from '@/constants/modules'
 import {  mbtiQuestions } from '@/constants/mbti'
 import { useComputeMBTI } from '@/composables/useComputeMBTI'
 import { updateProfile } from '@/services/profileService'  
+import { useNotify } from '@/composables/useNotify'
 
 const router = useRouter()
+const notify = useNotify('settings')
 
 /* ---------------- UI state ---------------- */
 const loading = ref(true)
@@ -45,6 +48,7 @@ const ratingBreakdown = ref([
 
 /* --------------- Form helpers ------------- */
 const newPassword = ref('')
+const canUpdatePwd = computed(() => (newPassword.value?.length ?? 0) >= 6)
 const activeUserId = ref(null)
 
 /* --------------- Avatar shuffle ------------ */
@@ -54,17 +58,24 @@ const {
   avatarLoaded,
   gender,
   setGender,
-  setAvatar,
+  setSeedFromUrl,
   ensureDefaultAvatar,
-  shuffleAvatar
+  shuffleAvatar,
+  onImageLoad
 } = useAvatar()
 
+// make spinner show when shuffling 
+function handleShuffle() {
+  avatarLoaded.value = false
+  shuffleAvatar()
+}
 
 
 /* ----------------- Mounted ----------------- */
 onMounted(async () => {
   try {
     loading.value = true
+    avatarLoaded.value = false
 
     // 1) Current user
     const { data: { user }, error: uerr } = await supabase.auth.getUser()
@@ -102,9 +113,9 @@ onMounted(async () => {
     degree.value     = profile?.degree ?? ''
     mbti.value       = String(profile?.personality || '').trim().toUpperCase()
 
-    setAvatar(profile?.profile_photo)
     setGender(profile?.gender)
-    ensureDefaultAvatar()
+    setSeedFromUrl(profile?.profile_photo)  // keep same avatar if it exists
+    ensureDefaultAvatar()                 
 
     
     const rawModules = profile?.modules
@@ -177,15 +188,19 @@ onMounted(async () => {
 
 /* ---------------- Actions ------------------ */
 async function changePassword() {
-  if (!newPassword.value) return
+  if (!canUpdatePwd.value) {
+    notify.warn('Password too short', 'Minimum 6 characters')
+    return
+  }
   const { error } = await supabase.auth.updateUser({ password: newPassword.value })
   if (error) {
-    alert(error.message || 'Failed to change password')
+    notify.error('Failed to change password', notify.fromError(error))
   } else {
     newPassword.value = ''
-    alert('Password updated')
+    notify.success('Password updated', 'Your new password is ready to use')
   }
 }
+
 
 
 async function saveAll() {
@@ -209,10 +224,13 @@ async function saveAll() {
     const saved = await updateProfile(activeUserId.value, patch)  // UPDATE only
     console.log('[profile save] saved row →', saved)
 
-    alert('Saved!')
+    // alert('Saved!')
+    notify.clearGroup()
+    notify.success('Profile saved', 'Your changes have been updated')
   } catch (e) {
     console.error('[profile save]', e)
     alert(e?.message || 'Failed to save')
+    notify.error('Save failed', notify.fromError(e))
   } finally {
     saving.value = false
   }
@@ -266,7 +284,7 @@ async function openMatchHistory() {
 
   const { data: rows, error } = await supabase
     .from('sessions')
-    .select('sessid, created_at, created_by_a, created_by_b') // keep it simple; we'll prefer started_at if it exists on the row
+    .select('sessid, created_at, started_at, created_by_a, created_by_b') 
     .or(`created_by_a.eq.${activeUserId.value},created_by_b.eq.${activeUserId.value}`)
     .order('created_at', { ascending: false })
 
@@ -333,7 +351,8 @@ function computeMbtiNow() {
   mbtiResult.value = computeMbtiType(mbtiAnswers.value,  mbtiQuestions)
 }
 async function saveMbtiToProfile() {
-  if (!mbtiResult.value) return alert('Please compute your MBTI result first.')
+  // if (!mbtiResult.value) return alert('Please compute your MBTI result first.')
+  if (!mbtiResult.value) return notify.warn('Please compute MBTI first', 'Click “Compute” before saving')
   try {
     mbtiWorking.value = true
     const { data: { user }, error: uerr } = await supabase.auth.getUser()
@@ -348,7 +367,8 @@ async function saveMbtiToProfile() {
     mbti.value = mbtiResult.value
     showMbtiDialog.value = false
   } catch (e) {
-    alert(e?.message || 'Failed to save MBTI')
+    // alert(e?.message || 'Failed to save MBTI')
+    notify.error('Failed to save MBTI', notify.fromError(e))
   } finally {
     mbtiWorking.value = false
   }
@@ -356,6 +376,7 @@ async function saveMbtiToProfile() {
 </script>
 
 <template>
+  <Toast position="top-center" group="settings" />
   <section class="container py-4">
     <h1 class="text-center mb-4 fw-semibold">Profile Settings</h1>
 
@@ -368,14 +389,46 @@ async function saveMbtiToProfile() {
 
           <!-- Avatar -->
           <div class="row">
-            <div class="d-flex align-items-center gap-3 mb-3">
-              <img :src="avatarUrl" alt="Avatar" class="rounded-circle border shadow-sm" width="100" height="100" />
+            <!-- <div class="d-flex align-items-center gap-3 mb-3">
+              <img :src="avatarUrl" alt="Avatar" width="100" height="100" class="rounded-circle border shadow-sm" @load="onImageLoad" />
               <div>
                 <Button label="Shuffle" icon="pi pi-refresh" size="small" @click="shuffleAvatar()" />
+              </div>
+            </div> -->
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="position-relative" style="width:100px;height:100px;">
+                <!-- Spinner overlay -->
+                <ProgressSpinner
+                  v-if="!avatarLoaded"
+                  class="position-absolute top-50 start-50 translate-middle"
+                  strokeWidth="4"
+                  style="width:36px;height:36px;"
+                />
+                <!-- Avatar image -->
+                <img
+                  :key="avatarUrl"               
+                  :src="avatarUrl"
+                  alt="Avatar"
+                  width="100"
+                  height="100"
+                  @load="onImageLoad"
+                  class="rounded-circle border shadow-sm"
+                  :style="{ opacity: avatarLoaded ? 1 : 0 }"  
+                />
+              </div>
+              <div>
+                <Button
+                  label="Shuffle"
+                  icon="pi pi-refresh"
+                  size="small"
+                  @click="handleShuffle()"
+                  :disabled="!avatarLoaded" 
+                />
               </div>
             </div>
             <Message closable size="small"><i class="pi pi-info-circle">&nbsp;</i> Tap on “Shuffle” to change your avatar</Message>
           </div>
+          
 
           <!-- Email -->
           <div class="mb-3">
@@ -432,7 +485,7 @@ async function saveMbtiToProfile() {
                   </ul>
                 </template>
               </Password>
-              <Button label="Update" icon="pi pi-lock" @click="changePassword" class="flex-shrink-0" />
+              <Button label="Update" icon="pi pi-lock" @click="changePassword" class="flex-shrink-0" :disabled="!canUpdatePwd" />
             </div>
           </div>
         </div>
@@ -600,7 +653,9 @@ async function saveMbtiToProfile() {
 
     <!-- Save Button -->
     <div class="text-center mt-4">
-      <Button label="Save Changes" icon="pi pi-check" @click="saveAll" />
+      <!-- <Button label="Save Changes" icon="pi pi-check" @click="saveAll" /> -->
+      <Button label="Save Changes" icon="pi pi-check" :loading="saving" :disabled="saving" @click="saveAll" />
+
     </div>
   </section>
 </template>

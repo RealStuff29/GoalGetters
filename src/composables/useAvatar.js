@@ -1,57 +1,61 @@
-import { ref } from 'vue'
-import { avatarBase } from '@/lib/avatar'
-
-function makeSeed() {
-  // Create a random short unique ID
-  return 'u-' + Math.random().toString(36).slice(2, 7)
-}
-
-function buildAvatarUrl(seed, gender) {
-  // Construct avatar URL based on gender and random seed
-  const base = avatarBase.endsWith('/') ? avatarBase.slice(0, -1) : avatarBase
-  const q = `?username=${encodeURIComponent(seed)}`
-  if (gender === 'boy') return `${base}/boy${q}`
-  if (gender === 'girl') return `${base}/girl${q}`
-  return `${base}${q}`
-}
+// src/composables/useAvatar.js
+import { ref, computed, nextTick } from 'vue'
+import { makeSeed, buildAvatarUrl, extractSeedFromUrl } from '@/lib/avatar'
 
 export function useAvatar() {
-  const avatarUrl = ref('')
+  const gender = ref('')               // 'boy' | 'girl' | ''
+  const seed = ref('')                 // holds the current random id
   const avatarLoaded = ref(true)
-  const gender = ref('')
 
-  // Set gender from profile
+  // derive the URL from seed + gender
+  const avatarUrl = computed(() => {
+    if (!seed.value) return ''         // if there is nothing, it will show spinner
+    return buildAvatarUrl(seed.value, gender.value)
+  })
+
+  // set from profile
   function setGender(g) {
     gender.value = g || ''
   }
 
-  // Set avatar URL from profile
-  function setAvatar(url) {
-    avatarUrl.value = url || ''
+// Use this when loading a stored profile URL to keep the same avatar
+  function setSeedFromUrl(url) {
+    const s = extractSeedFromUrl(String(url || ''))
+    if (s) seed.value = s
   }
 
-  // Generate a default avatar if none exists
+  // create a default avatar if none exists
   function ensureDefaultAvatar() {
-    if (!avatarUrl.value) {
-      avatarUrl.value = buildAvatarUrl(makeSeed(), gender.value)
-    }
+    if (!seed.value) seed.value = makeSeed()
   }
 
-  // Shuffle to generate new avatar variation
+  // shuffle = new variation of avatar
   function shuffleAvatar() {
-    const seed = makeSeed()
-    avatarUrl.value = buildAvatarUrl(seed, gender.value)
     avatarLoaded.value = false
-    requestAnimationFrame(() => (avatarLoaded.value = true))
+    // Clear the src first so the <img> unmounts/updates and spinner shows
+    seed.value = ''
+    // Next DOM update, assign a fresh seed (new URL), image will start loading
+    nextTick(() => {
+      seed.value = makeSeed()
+    })
+  }
+
+  // hook for <img @load>
+  function onImageLoad() {
+    avatarLoaded.value = true
   }
 
   return {
+    // state
+    gender,
+    seed,
     avatarUrl,
     avatarLoaded,
-    gender,
+    // actions
     setGender,
-    setAvatar,
+    setSeedFromUrl,          
     ensureDefaultAvatar,
-    shuffleAvatar
+    shuffleAvatar,
+    onImageLoad
   }
 }

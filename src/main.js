@@ -25,7 +25,8 @@ import PrimeVue from 'primevue/config';
 import 'primeicons/primeicons.css' 
 // import Aura from '@primeuix/themes/aura'; //https://primevue.org/theming/styled
 import Lara from '@primeuix/themes/lara'; //https://primevue.org/theming/styled
-
+import ToastService from 'primevue/toastservice';
+import Toast from 'primevue/toast';
 
 
 
@@ -40,6 +41,8 @@ app.use(PrimeVue, {
         preset:Lara
     }
 })
+app.use(ToastService)
+
 
 app.use(createPinia())
 
@@ -90,9 +93,6 @@ import AutoComplete from 'primevue/autocomplete';
 
 
 
-
-
-
 // import Select from 'primevue/select'
 // import MultiSelect from 'primevue/multiselect'
 app.component('Button', Button);
@@ -128,6 +128,7 @@ app.component('Rating', Rating);
 app.component('Checkbox', Checkbox);
 app.component('Dialog', Dialog)
 app.component('AutoComplete', AutoComplete);
+app.component('Toast', Toast);
 
 app.mount('#app');
 

@@ -1,3 +1,4 @@
+<!-- src/views/ProfileSetupView.vue -->
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -8,9 +9,11 @@ import { degrees } from '@/constants/degrees'
 import { useModulesPicker } from '@/composables/useModulesPicker'
 import { mbtiQuestions } from '@/constants/mbti'
 import { useComputeMBTI } from '@/composables/useComputeMBTI'
+import { useNotify } from '@/composables/useNotify'
 
 
 const router = useRouter()
+const notify = useNotify('setup')
 const { username, gender, avatarUrl, isComplete, errors, shuffleAvatar, randomiseUsername } = useProfileSetup()
 const { computeMbtiType } = useComputeMBTI()
 
@@ -69,7 +72,8 @@ async function handleAcademicNext(activateCallback) {
     // Check duplicate username (excluding the current user)
     const clash = await usernameClash(username.value, user.id)
     if (clash) {
-      alert('Username already taken! Please randomise again.')
+      // alert('Username already taken! Please randomise again.')
+      notify.warn('Username taken', 'Try shuffling your username again')
       return
     }
 
@@ -78,13 +82,14 @@ async function handleAcademicNext(activateCallback) {
       gender: gender.value,
       profile_photo: avatarUrl.value,
       degree: degree.value,
-      modules: modules.value,      
+      modules: modules.value.join(','),  
       study_hours: studyHours.value
     })
 
     activateCallback('3');
   } catch (e) {
-    alert(e?.message || 'Failed to save academic info');
+    // alert(e?.message || 'Failed to save academic info');
+    notify.error('Failed to save account & academic info', notify.fromError(e))
   } finally {
     saving.value = false;
   }
@@ -106,7 +111,8 @@ function handleComputeMbti() {
 // Final save including personality
 async function handleSavePersonality() {
   if (!mbtiResult.value) {
-    alert('Please compute your MBTI result first.');
+    // alert('Please compute your MBTI result first.');
+    notify.warn('Please compute MBTI first', 'Tap “Compute Result” before saving')
     return;
   }
   try {
@@ -126,10 +132,11 @@ async function handleSavePersonality() {
       personality: mbtiResult.value,
     });
 
-    alert('Profile successfully created!');
-    router.push('/');
+    // alert('Profile successfully created!');
+    router.push({ path: '/', query: { flash: 'profile_created' } });
   } catch (e) {
-    alert(e?.message || 'Failed to save personality info');
+    // alert(e?.message || 'Failed to save personality info');
+    notify.error('Failed to save personality', notify.fromError(e))
   } finally {
     saving.value = false;
   }
@@ -138,6 +145,7 @@ async function handleSavePersonality() {
 </script>
 
 <template>
+  <Toast position="top-center" group="setup" />
   <section class="container mt-3 position-relative">
     <div class="d-flex align-items-center justify-content-between mb-3">
       <h1 class="h2 mb-0">Profile Setup</h1>
