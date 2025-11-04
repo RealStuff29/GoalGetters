@@ -116,7 +116,7 @@
             </template>
           </Card>
 
-          <Card class="feature-card" @click="navigateTo('/profilesetupview')">
+          <Card class="feature-card" @click="navigateTo('/profilesettingsview')">
             <template #content>
               <div class="feature-icon orange">
                 <i class="pi pi-user-edit" style="font-size: 1.3rem;"></i>
@@ -125,7 +125,7 @@
               <p class="feature-description">
                 Keep your profile up-to-date with your current subjects and study preferences.
               </p>
-              <RouterLink to="/profilesetupview" class="no-decoration">
+              <RouterLink to="/profilesettingsview" class="no-decoration">
                 <Button label="Edit Profile" icon="pi pi-arrow-right" iconPos="right" text class="feature-btn" />
               </RouterLink>
             </template>
