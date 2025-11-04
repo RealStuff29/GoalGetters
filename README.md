@@ -95,11 +95,19 @@ Provide screenshots and captions showing how users interact with your app.
    <img src="screenshots/matchmaking.png" width="600">  
    - Users pick preferred timeslots and start matchmaking.
 
-4. **User Dashboard**  
+4. **Match Found Feature**  
+   <img src="screenshots/matchmaking.png" width="600">  
+   - Users can decline or accept the match.
+
+5. **Chat Feature**  
+   <img src="screenshots/chat.png" width="600">  
+   - Users can chat and find nearest study spots.
+
+6. **User Dashboard**  
    <img src="screenshots/dashboard.png" width="600">  
    - Displays user profile info, match history, and ratings.
 
-5. **Feedback Feature**  
+7. **Feedback Feature**  
    <img src="screenshots/feedback.png" width="600">  
    - Users provide feedback on the web application.
 
