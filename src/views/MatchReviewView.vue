@@ -222,6 +222,51 @@ async function resolveRoomAndSide() {
   iAmA.value = room.user1 === myId
 }
 
+async function tryFinalizeAndDeleteRoom() {
+  if (!sessid.value || !roomId.value) return
+
+  // 1) Re-read session to confirm both sides rated
+  const { data: sRow, error: sErr } = await supabase
+    .from('sessions')
+    .select('rating_by_a, rating_by_b, ended_at')
+    .eq('sessid', sessid.value)
+    .maybeSingle()
+  if (sErr || !sRow) return
+
+  const bothRated = !!sRow.rating_by_a && !!sRow.rating_by_b
+  if (!bothRated) return
+
+  // 2) Ensure session is marked ended
+  if (!sRow.ended_at) {
+    const { error: endErr } = await supabase
+      .from('sessions')
+      .update({ ended_at: new Date().toISOString() })
+      .eq('sessid', sessid.value)
+    if (endErr) {
+      console.debug('[finalize] could not set ended_at:', endErr.message)
+      // still proceed to cleanup best-effort
+    }
+  }
+
+  // 3) Best-effort cleanup of chat first (ok if table/rows don’t exist)
+  const { error: chatDelErr } = await supabase
+    .from('match_chat')
+    .delete()
+    .eq('room_id', roomId.value)
+  if (chatDelErr) {
+    console.debug('[finalize] match_chat delete ignored:', chatDelErr.message)
+  }
+
+  // 4) Delete the room (partner’s client should also react if they are still around)
+  const { error: roomDelErr } = await supabase
+    .from('match_room')
+    .delete()
+    .eq('id', roomId.value)
+  if (roomDelErr) {
+    console.debug('[finalize] match_room delete ignored:', roomDelErr.message)
+  }
+}
+
 async function loadExistingReviewAndState() {
   if (!sessid.value || iAmA.value === null) return
   // Only select fields that exist
@@ -262,8 +307,13 @@ async function submit() {
     if (error) throw error
 
     alreadySubmitted.value = true
-    toast.add({ severity: 'success', summary: 'Review submitted', detail: 'Thanks for your feedback!', life: 2000 })
-    setTimeout(() => router.replace({ name: 'home' }), 1200)
+    toast.add({ severity: 'success', summary: 'Review submitted', detail: 'Thanks for your feedback!', life: 1600 })
+
+    // ⬇️ Key bit: if both have submitted, end session + delete room (and chat)
+    await tryFinalizeAndDeleteRoom()
+
+    // send them home (or matchlanding if you prefer)
+    setTimeout(() => router.replace({ name: 'home' }), 1100)
   } catch (e: any) {
     errorMsg.value = 'Could not submit your review. Please try again.'
     toast.add({ severity: 'error', summary: 'Submission failed', detail: e?.message || 'Unknown error', life: 2500 })
@@ -276,6 +326,7 @@ onMounted(async () => {
   try {
     await resolveRoomAndSide()
     await loadExistingReviewAndState()
+    await tryFinalizeAndDeleteRoom() // harmless if not both-rated yet
   } catch (e: any) {
     errorMsg.value = e?.message || 'Failed to load review session.'
   } finally {
