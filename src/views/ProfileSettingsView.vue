@@ -110,7 +110,7 @@ function handleAvatarLoad() {
   }
 }
 
-// In case the image fails to load (bad URL/network), don't leave user hanging
+// In case the image fails to load (bad URL/network), it doesnt leave user hanging
 function handleAvatarError() {
   if (pendingAvatarToast.value && avatarUrl.value === lastSavedAvatarUrl.value) {
     pendingAvatarToast.value = false
@@ -1067,8 +1067,5 @@ async function saveMbtiToProfile() {
   .score-value { font-size: 2rem; }
   .reviews-count { font-size: 1.15rem; }
 }
-
-
-
 </style>
 
