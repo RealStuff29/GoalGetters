@@ -987,7 +987,6 @@ export const useMatchStore = defineStore('match', () => {
 
   const availabilityList = computed(() => strToArray(availability.value))
 
-<<<<<<< Updated upstream
   async function getMyProfile() {
     const { data: auth, error: authErr } = await supabase.auth.getUser()
     if (authErr) {
@@ -1004,27 +1003,11 @@ export const useMatchStore = defineStore('match', () => {
       )
       .eq('user_id', userId)
       .maybeSingle()
-=======
-  // ============= helper: my profile =============
-  async function getMyProfile() {
-    const { data: auth } = await supabase.auth.getUser()
-    const userId = auth?.user?.id
-    if (!userId) return null
-
-    // pick ONLY columns that exist in your table
-    const { data: prof, error } = await supabase
-      .from('profiles')
-      .select('user_id, username, email, profile_photo, personality, gender, timeslot_avail, modules, study_hours, degree, school')
-      .eq('user_id', userId)
-      .single()
-
->>>>>>> Stashed changes
     if (error) {
       console.warn('[match] getMyProfile error', error)
       return null
     }
     if (!prof) return null
-<<<<<<< Updated upstream
     return { userId, profile: prof }
   }
 
@@ -1069,11 +1052,6 @@ export const useMatchStore = defineStore('match', () => {
     console.log(`📦 Found existing open room for ${myId}:`, room.id)
     return room.id as string
   }
-=======
-
-    return { userId, profile: prof }
-  }
->>>>>>> Stashed changes
 
   async function findBestCandidateForMe(
     myId: string,
@@ -1092,7 +1070,6 @@ export const useMatchStore = defineStore('match', () => {
       console.warn('[match] findBestCandidateForMe → queue error', othersErr)
       return null
     }
-<<<<<<< Updated upstream
     if (!others || others.length === 0) {
       console.log('⚠️ No other idle users in queue.')
       return null
@@ -1101,33 +1078,6 @@ export const useMatchStore = defineStore('match', () => {
     const candidateIds = others.map(o => o.user_id).filter(cid => !blocked.has(cid))
     if (!candidateIds.length) {
       console.log('🚫 Everyone in queue is blocked (mutual rejections).')
-=======
-    if (!waiting || waiting.length === 0) return null
-
-    const candidateIds = waiting.map(w => w.user_id)
-
-    // 2) load their profiles
-    const { data: candProfiles, error: profErr } = await supabase
-      .from('profiles')
-      .select('user_id, username, profile_photo, personality, gender, timeslot_avail, modules, study_hours, degree, school')
-      .in('user_id', candidateIds)
-
-    if (profErr) {
-      console.warn('[match] findBestCandidateForMe → profiles error', profErr)
-      return null
-    }
-
-    const myGender = myProfile.gender
-    const mySlots = strToArray(myProfile.timeslot_avail ?? availability.value)
-    const myMods = strToArray(myProfile.modules)
-    const mySchool = myProfile.school
-    const myStudyHours = typeof myProfile.study_hours === 'number'
-      ? myProfile.study_hours
-      : Number(myProfile.study_hours ?? 0)
-
-    if (mySlots.length === 0 && !relax) {
-      // I don't have slots → cannot match strictly
->>>>>>> Stashed changes
       return null
     }
 
@@ -1227,26 +1177,16 @@ export const useMatchStore = defineStore('match', () => {
       // set partner card, start timer, etc.
       const { data: prof } = await supabase
         .from('profiles')
-<<<<<<< Updated upstream
         .select('username, profile_photo, personality')
-=======
-        .select('username, profile_photo')
->>>>>>> Stashed changes
         .eq('user_id', partnerId)
         .maybeSingle()
       if (prof?.username) {
         match.value.partner = {
           name: prof.username,
           photo: prof.profile_photo,
-<<<<<<< Updated upstream
           description: prof.personality ?? null,
         }
       }
-=======
-        }
-      }
-
->>>>>>> Stashed changes
       stage.value = 'match'
       startCountdown(() => declineMatch(partnerId))
       persist()
@@ -1254,7 +1194,6 @@ export const useMatchStore = defineStore('match', () => {
       return finalId
     }
 
-<<<<<<< Updated upstream
     // Try instantaneous match first
     const best = await findBestCandidateForMe(myId, myProfile)
     if (best?.user_id) {
@@ -1263,49 +1202,12 @@ export const useMatchStore = defineStore('match', () => {
       if (rid) {
         currentMatchId.value = rid
         match.value.id = rid
-=======
-    // 2) immediate try with rules
-    {
-      const best = await findBestCandidateForMe(myId, myProfile)
-      if (best?.user_id) {
-        const rid = await markMatched(best.user_id)
-        if (rid) {
-          currentMatchId.value = rid
-          match.value.id = rid
-          return rid
-        }
-      }
-    }
-
-    // 3) poll
-    const deadline = Date.now() + 60_000
-    while (Date.now() < deadline) {
-      const elapsed = 60_000 - (deadline - Date.now())
-      const shouldRelax = elapsed > 40_000 // after 40s, relax
-
-      // maybe someone matched us
-      const { data: meQueue } = await supabase
-        .from('match_queue')
-        .select('status, room_id')
-        .eq('user_id', myId)
-        .single()
-
-      if (meQueue?.status === 'matched' && meQueue?.room_id) {
-        const rid = meQueue.room_id as string
-        currentMatchId.value = rid
-        match.value.id = rid
-        stage.value = 'match'
-        await setPartnerFromRoom(rid)
-        startCountdown(() => declineMatch())
-        void persist()
->>>>>>> Stashed changes
         return rid
       }
     } else {
       console.log('⏳ No immediate candidate, will poll...')
     }
 
-<<<<<<< Updated upstream
     // Poll for 15s
     const deadline = Date.now() + 15_000
     while (Date.now() < deadline) {
@@ -1326,12 +1228,6 @@ export const useMatchStore = defineStore('match', () => {
       if (polled?.user_id) {
         console.log(`💞 Polled match found: ${myId} ↔ ${polled.user_id}`)
         const rid = await markMatched(polled.user_id)
-=======
-      // else: try to match again (maybe relaxed)
-      const best = await findBestCandidateForMe(myId, myProfile, { relax: shouldRelax })
-      if (best?.user_id) {
-        const rid = await markMatched(best.user_id)
->>>>>>> Stashed changes
         if (rid) {
           currentMatchId.value = rid
           match.value.id = rid
@@ -1362,11 +1258,7 @@ export const useMatchStore = defineStore('match', () => {
     const partnerId = room.user1 === myId ? room.user2 : room.user1
     const { data: partner } = await supabase
       .from('profiles')
-<<<<<<< Updated upstream
       .select('username, profile_photo, personality')
-=======
-      .select('username, profile_photo')
->>>>>>> Stashed changes
       .eq('user_id', partnerId)
       .single()
     return partner
@@ -1385,10 +1277,7 @@ export const useMatchStore = defineStore('match', () => {
       match.value.partner = {
         name: partner.username,
         photo: partner.profile_photo,
-<<<<<<< Updated upstream
         description: partner.personality ?? null,
-=======
->>>>>>> Stashed changes
       }
     }
   }
@@ -1406,11 +1295,7 @@ export const useMatchStore = defineStore('match', () => {
 
     const { data: prof } = await supabase
       .from('profiles')
-<<<<<<< Updated upstream
       .select('username, profile_photo, personality')
-=======
-      .select('username, profile_photo')
->>>>>>> Stashed changes
       .eq('user_id', partnerId)
       .single()
 
@@ -1418,10 +1303,7 @@ export const useMatchStore = defineStore('match', () => {
       match.value.partner = {
         name: prof.username,
         photo: prof.profile_photo,
-<<<<<<< Updated upstream
         description: prof.personality ?? null,
-=======
->>>>>>> Stashed changes
       }
     }
   }
