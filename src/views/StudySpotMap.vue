@@ -1,14 +1,14 @@
 <template>
   <div class="study-spot-map-container">
-    <div class="search-controls p-4 ps-0 bg-white border-b">
+    <div class="search-controls p-1 ps-0 bg-white border-b">
       <!-- Search Input and Button -->
       <div class="d-flex justify-content-start align-items-center w-100">
-        <input type="text"
+        <input type="text" 
           v-model="locationQuery"
           @keyup.enter="searchLocation"
           placeholder="Enter an address or landmark..."
           class="p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-          style="width:70%;"
+          style="width:80%; margin-left: 5px; margin-left: 0;"
         />
         <Button
           outlined
@@ -17,7 +17,7 @@
           :disabled="isLoading || !isApiLoaded"
           :icon="isLoading ? 'pi pi-spin pi-spinner' : 'pi pi-search'"
           :label="isLoading ? 'Searching...' : 'Search'"
-          style="width:20%; margin-left: 10px;"
+          style="width:20%; margin-left: 5px;"
         >
         </Button>
       </div>
@@ -557,7 +557,7 @@ onMounted(() => {
   min-height: v-bind(height);
 }
 
-.search-controls {
+/* .search-controls {
   flex-shrink: 0;
-}
+} */
 </style>

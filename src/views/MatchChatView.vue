@@ -5,8 +5,8 @@
   <div class="float float-2" aria-hidden="true"></div>
   <div class="float float-3" aria-hidden="true"></div>
   <div
-    class="min-h-screen p-4 w-full max-w-6xl mx-auto"
-    v-if="store.stage === 'chat'"
+  class="min-h-screen p-4 w-full max-w-6xl mx-auto"
+  v-if="store.stage === 'chat'"
   >
     <Tabs value="0">
       <TabList>
@@ -19,15 +19,18 @@
         <TabPanel value="0">
           <div class="space-y-4 max-w-6xl mx-auto">
             <div class="frame-glow" aria-hidden="true">
-              <Card style="border: 1px solid #ff9800;">
+              <Card class="partner-card">
                 <template #content>
                   <div class="flex items-center gap-3">
                     <div>
                       <div class="font-medium">
-                        <Avatar :label="store.partnerInitials" shape="circle" />
+                        <Avatar :label="store.partnerInitials" shape="circle" class="partner-avatar" />
                         {{ store.match.partner.name || 'Study partner' }}
                       </div>
-                      <small class="opacity-70">Online now</small>
+                      <small class="opacity-70 online-indicator">
+                        <span class="pulse-dot"></span>
+                        Online now
+                      </small>
                     </div>
                   </div>
                 </template>
@@ -37,43 +40,49 @@
             <!-- Study Session Details and Verification side by side -->
             <div class="grid lg:grid-cols-2 gap-4">
               <!-- Study Session Details -->
-              <Card style="border: 1px solid #ff9800;">
+              <Card class="detail-card">
                 <template #title>
-                  <span class="text-base font-medium">Study Session Details</span>
+                  <span class="text-base font-medium card-title-glow">
+                    <i :class="pi('users')" style="margin-right: 8px;" />
+                    Study Session Details
+                  </span>
                 </template>
                 <template #content>
                   <div class="space-y-4">
                     <!-- Common time slots -->
-                    <div class="flex items-start gap-3">
+                    <div class="flex items-start gap-3 detail-item">
                       <div>
                         <div class="font-medium mb-1">
-                          <i :class="pi('clock')" class="opacity-70 mt-1" />
-                          Common Time Slots</div>
-                        <div v-if="commonSlotsLabels.length">
-                          <Tag v-for="s in commonSlotsLabels" :key="s" severity="secondary" :value="s" class="mr-2 mb-2" />
+                          <i :class="pi('clock')" class="detail-icon" />
+                          Common Time Slots
+                        </div>
+                        <div v-if="commonSlotsLabels.length" class="tags-container">
+                          <Tag v-for="s in commonSlotsLabels" :key="s" severity="secondary" :value="s" class="mr-2 mb-2 tag-hover" />
                         </div>
                         <small v-else class="opacity-70">No overlapping availability yet.</small>
                       </div>
                     </div>
 
                     <!-- Common modules -->
-                    <div class="flex items-start gap-3">
+                    <div class="flex items-start gap-3 detail-item">
                       <div>
                         <div class="font-medium mb-1">
-                          <i :class="pi('book')" class="opacity-70 mt-1" />
-                          Common Modules</div>
-                        <div v-if="commonModules.length">
-                          <Tag v-for="m in commonModules" :key="m" severity="secondary" :value="m" class="mr-2 mb-2" />
+                          <i :class="pi('book')" class="detail-icon" />
+                          Common Modules
+                        </div>
+                        <div v-if="commonModules.length" class="tags-container">
+                          <Tag v-for="m in commonModules" :key="m" severity="secondary" :value="m" class="mr-2 mb-2 tag-hover" />
                         </div>
                         <small v-else class="opacity-70">They have no common modules.</small>
                       </div>
                     </div>
 
                     <!-- Degrees / Schools -->
-                    <div class="flex items-start gap-3">
-                      <i :class="pi('university')" class="opacity-70 mt-1" />
+                    <div class="flex items-start gap-3 detail-item">
                       <div>
-                        <div class="font-medium mb-1">School / Degree</div>
+                        <div class="font-medium mb-1">
+                        <i :class="pi('warehouse')" class="detail-icon" />
+                        School / Degree</div>
                         <div class="text-sm">
                           <div><b>You:</b> {{ myDegreeLabel || '-' }}</div>
                           <div><b>Partner:</b> {{ partnerDegreeLabel || '-' }}</div>
@@ -84,9 +93,12 @@
                 </template>
               </Card>
 
-              <Card style="border: 1px solid #ff9800;">
+              <Card class="verify-card">
                 <template #title>
-                  <span class="text-base font-medium">Verify Your Partner</span>
+                  <span class="text-base font-medium card-title-glow">
+                    <i :class="pi('shield')" style="margin-right: 8px;" />
+                    Verify Your Partner
+                  </span>
                 </template>
                 <template #content>
                   <div class="space-y-3">
@@ -94,17 +106,16 @@
                       <div class="opacity-70 mb-1">Share this word with your partner:</div>
 
                       <div class="flex items-center gap-2">
-                        <div class="px-3 py-2 rounded bg-surface-200 font-mono text-sm select-all flex-1" style="max-width: 250px;">
-                            {{ store.roomVerifyCode || '—' }}
+                        <div class="verify-code-box">
+                          {{ store.roomVerifyCode || '—' }}
                           <Button
                             :disabled="!store.roomVerifyCode"
                             :icon="pi('copy')"
                             text
                             aria-label="Copy"
                             @click="copyCode"
+                            class="copy-btn"
                           />
-                        </div>
-                        <div>
                         </div>
                       </div>
 
@@ -117,7 +128,7 @@
                       <InputText
                         v-model="store.verifyWordInput"
                         placeholder="Enter the shared verification word"
-                        class="flex-1"
+                        class="flex-1 verify-input"
                         :disabled="store.myVerified"
                         @keyup.enter="onVerify"
                         style="width: 300px;"
@@ -129,15 +140,18 @@
                         :disabled="store.myVerified || !store.verifyWordInput"
                         @click="onVerify"
                         style="margin-left: 10px;"
+                        class="verify-btn"
                       />
                     </div>
 
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 status-tags">
                       <Tag :severity="store.myVerified ? 'success' : 'danger'"
-                           :value="store.myVerified ? 'You: Verified' : 'You: Not verified'"/>
+                          :value="store.myVerified ? 'You: Verified' : 'You: Not verified'"
+                          class="status-tag"/>
                       <Tag style="margin-left: 5px;" :severity="store.partnerVerified ? 'success' : 'warn'"
-                           :value="store.partnerVerified ? 'Partner: Verified' : 'Partner: Pending'"/>
-                      <Tag v-if="store.sessionId" severity="success" :value="`Session: ${store.sessionId.slice(0,8)}…`"/>
+                          :value="store.partnerVerified ? 'Partner: Verified' : 'Partner: Pending'"
+                          class="status-tag"/>
+                      <Tag style="margin-left: 5px;" v-if="store.sessionId" severity="success" :value="`Session: ${store.sessionId.slice(0,8)}…`" class="status-tag"/>
                     </div>
                   </div>
                 </template>
@@ -145,15 +159,20 @@
             </div>
 
             <!-- Time Remaining -->
-            <Card v-if="store.myVerified && store.partnerVerified && store.sessionSecondsLeft > 0">
+            <Card v-if="store.myVerified && store.partnerVerified && store.sessionSecondsLeft > 0" class="timer-card">
               <template #title>
-                <span class="text-base font-medium">Time Remaining</span>
-                <div><Button outlined icon="pi pi-flag" label="End Session & Review" @click="endAndReview" /></div>
+                <div class="flex items-center justify-between w-full">
+                  <span class="text-base font-medium card-title-glow">
+                    <i :class="pi('hourglass')" style="margin-right: 8px;" />
+                    Time Remaining
+                  </span>
+                  <Button outlined icon="pi pi-flag" label="End Session & Review" @click="endAndReview" class="end-btn" />
+                </div>
               </template>
 
               <template #content>
                 <div class="flex items-center">
-                  <Tag severity="danger" :value="store.sessionCountdownText" />
+                  <Tag severity="danger" :value="store.sessionCountdownText" class="countdown-tag" />
                 </div>
 
                 <small class="block opacity-70 mt-2">
@@ -163,7 +182,7 @@
               </template>
             </Card>
 
-            <Button outlined class="w-full" :icon="pi('refresh')" label="Find Another Match" @click="endForBoth" />
+            <Button outlined class="w-full find-match-btn" :icon="pi('refresh')" label="Find Another Match" @click="endForBoth" />
           </div>
         </TabPanel>
 
@@ -171,23 +190,29 @@
         <TabPanel value="1">
           <div class="grid lg:grid-cols-2 gap-6">
             <!-- Left: Chat -->
-            <Card class="chat-card" style="border: 1px solid #ff9800; height: 844px">
+            <Card class="chat-card">
               <template #title>
-                <span class="text-base font-medium">Chat</span>
+                <span class="text-base font-medium card-title-glow">
+                  <i :class="pi('comments')" style="margin-right: 8px;" />
+                  Chat
+                </span>
               </template>
               <template #content>
-                <div class="chat-wrapper" style="height: 750px;">
+                <div class="chat-wrapper">
                   <!-- Messages Area - THIS IS THE SCROLLABLE SECTION -->
                   <div class="messages-container" ref="chatScroller">
                     <!-- Loading State -->
-                    <div v-if="isLoadingMessages" class="flex items-center justify-center h-full opacity-70">
-                      <i class="pi pi-spin pi-spinner mr-2"></i>
+                    <div v-if="isLoadingMessages" class="flex items-center justify-center h-full opacity-70 loading-state">
+                      <i class="pi pi-spin pi-spinner mr-2 spinner-icon"></i>
                       Loading messages...
                     </div>
                     
                     <!-- No Messages -->
-                    <div v-else-if="store.messages.length === 0" class="flex items-center justify-center h-full opacity-70">
-                      No messages yet. Say hi! 👋
+                    <div v-else-if="store.messages.length === 0" class="flex items-center justify-center h-full opacity-70 no-messages">
+                      <div class="text-center">
+                        <i :class="pi('comment')" class="text-4xl mb-2 empty-icon"></i>
+                        <div>No messages yet. Say hi! 👋</div>
+                      </div>
                     </div>
                     
                     <!-- Messages -->
@@ -198,12 +223,12 @@
                             <div
                               :class="[
                                 'message-bubble',
-                                m.from === 'me' ? 'bg-primary-500 text-white' : 'bg-surface-200'
+                                m.from === 'me' ? 'message-bubble-me' : 'message-bubble-partner'
                               ]"
                             >
                               {{ m.text }}
                             </div>
-                            <div class="text-xs opacity-50 mt-1">
+                            <div class="text-xs opacity-50 mt-1 message-time">
                               {{ formatTime(m.created_at) }}
                             </div>
                           </div>
@@ -211,24 +236,25 @@
                       </div>
                     </div>
                   </div>
-                  <Divider class="my-3" />
+                  <Divider class="my-3 chat-divider" />
                   
                   <!-- Input Area - FIXED AT BOTTOM -->
                   <div class="input-area">
                     <InputText
                       v-model="store.draft"
                       placeholder="Type a message..."
-                      class="flex-1"
+                      class="flex-1 chat-input"
                       @keyup.enter="send"
                       :disabled="isSending"
                     />
                     <Button 
-                      size="small" 
+                      size="medium" 
                       @click="send" 
                       icon="pi pi-send" 
                       label="Send"
                       :disabled="!store.draft.trim() || isSending"
                       :loading="isSending"
+                      class="send-btn"
                     />
                   </div>
                 </div>
@@ -237,55 +263,67 @@
 
             <!-- Right: Map and Suggestions -->
             <div class="space-y-4">
-              <Card style="border: 1px solid #ff9800;">
+              <Card class="map-card">
                 <template #title>
-                  <span class="text-base font-medium">
-                    <i :class="pi('direction')" class="mr-2" /> Nearby Study Locations
+                  <span class="text-base font-medium card-title-glow">
+                    <i :class="pi('map-marker')" class="mr-2" /> Nearby Study Locations
                   </span>
                 </template>
                 <template #content>
-                  <StudySpotMap
-                    ref="mapRef"
-                    :api-key="YOUR_GOOGLE_MAPS_API_KEY"
-                    height="400px"
-                    @places-updated="handlePlacesUpdate"
-                  />
+                  <div class="map-wrapper" style="margin-top: 0;">
+                    <StudySpotMap
+                      ref="mapRef"
+                      :api-key="YOUR_GOOGLE_MAPS_API_KEY"
+                      height="400px"
+                      @places-updated="handlePlacesUpdate"
+                    />
+                  </div>
                 </template>
               </Card>
 
-              <Card :key="studySpots.length" style="border: 1px solid #ff9800;">
+              <Card :key="studySpots.length" class="spots-card">
                 <template #title>
                   <div>
-                    <div class="text-base font-medium">Suggested Study Spots</div>
-                    <small class="opacity-70">{{ studySpots.length }} spots found</small>
+                    <div class="text-base font-medium card-title-glow">
+                      <i :class="pi('building')" />
+                      Suggested Study Spots
+                    </div>
+                    <small class="opacity-70 spots-count">
+                      <i :class="pi('check-circle')" class="mr-1" style="margin-right: 5px;"/>
+                      {{ studySpots.length }} spots found
+                    </small>
                   </div>
                 </template>
                 <template #content>
-                  <div v-if="studySpots.length === 0" class="text-center p-4 opacity-70">
-                    Search for a location to find study spots
+                  <div v-if="studySpots.length === 0" class="text-center p-4 opacity-70 empty-spots">
+                    <i :class="pi('search')" class="text-3xl mb-2 empty-icon"></i>
+                    <div>Search for a location to find study spots</div>
                   </div>
                   <div v-else>
                     <div class="space-y-4 mb-3">
                       <div
                         v-for="spot in paginatedSpots"
                         :key="spot.place_id"
-                        class="flex items-start justify-between p-3 rounded border surface-border hover:bg-gray-50 transition-colors"
+                        class="spot-item"
                       >
                         <div class="flex-1">
-                          <div class="font-medium">{{ spot.name }}</div>
-                          <small class="opacity-70 block">{{ spot.vicinity || spot.formatted_address }}</small>
-                          <small v-if="spot.rating" class="text-yellow-600">
+                          <div class="font-medium spot-name">{{ spot.name }}</div>
+                          <small class="opacity-70 block spot-address">
+                            {{ spot.vicinity || spot.formatted_address }}
+                          </small>
+                          <small v-if="spot.rating" class="spot-rating">
                             ★ {{ spot.rating }}
                             {{ spot.user_ratings_total ? `(${spot.user_ratings_total} reviews)` : '' }}
                           </small>
                         </div>
-                        <div class="flex gap-3 space-y-4">
+                        <div class="flex gap-3 spot-actions">
                           <Button
                             outlined
                             size="small"
                             icon="pi pi-map-marker"
                             label="View"
                             @click="focusOnSpot(spot)"
+                            class="spot-btn"
                           />
                           <Button
                             outlined
@@ -293,6 +331,7 @@
                             icon="pi pi-plus"
                             label="Suggest"
                             @click="suggestSpot(spot)"
+                            class="spot-btn"
                           />
                         </div>
                       </div>
@@ -300,7 +339,7 @@
                   </div>
 
                   <!-- Pagination Controls -->
-                  <div class="flex justify-between items-center pt-2 border-t">
+                  <div class="pagination-controls" v-if="studySpots.length > 0">
                     <Button
                       :disabled="currentPage === 1"
                       @click="currentPage--"
@@ -308,8 +347,9 @@
                       text
                       size="small"
                       label="Previous"
+                      class="pagination-btn"
                     />
-                    <small class="opacity-70">
+                    <small class="opacity-70 page-info">
                       Page {{ currentPage }} of {{ totalPages }}
                     </small>
                     <Button
@@ -320,20 +360,22 @@
                       text
                       size="small"
                       label="Next"
+                      class="pagination-btn"
                     />
                   </div>
                 </template>
               </Card>
-
             </div>
           </div>
-          <Button outlined 
-          class="w-full" 
+        </TabPanel>
+        <Button 
+          outlined 
+          class="w-full find-match-btn" 
           style="margin-top: 10px;"
           :icon="pi('refresh')" 
           label="Find Another Match" 
-          @click="endForBoth" />
-        </TabPanel>
+          @click="endForBoth" 
+        />
       </TabPanels>
     </Tabs>
   </div>
@@ -787,24 +829,24 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  max-width: 70%;
+  max-width: 100%;
 }
 
 .message-content-left {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  max-width: 70%;
+  max-width: 100%;
 }
 
 .message-bubble-wrapper {
-  max-width: 70%;
+  max-width: 100%;
 }
 
 .message-bubble {
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
-  word-wrap: break-word;
+  word-wrap: break-word; 
   overflow-wrap: break-word;
   word-break: break-word;
   max-width: 100%;
@@ -849,5 +891,724 @@ onUnmounted(() => {
 .float-1 { top: 12%; left: -6%; animation-delay: -2s; }
 .float-2 { bottom: -8%; right: -4%; --size: 340px; animation-delay: -6s; }
 .float-3 { top: 40%; right: 18%; --size: 220px; animation-delay: -9s; }
+
+.card-gradient {
+  border: 1px solid #ff9800;
+  background: linear-gradient(135deg, #fff8f0 0%, #ffffff 100%);
+}
+
+/* Card backgrounds with subtle gradients and depth */
+.partner-card {
+  background: linear-gradient(135deg, #fff5e6 0%, #ffffff 100%);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.1);
+}
+
+.partner-card::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, #ff9800, #ffb74d);
+  border-radius: inherit;
+  z-index: -1;
+}
+
+.detail-card, .verify-card {
+  background: linear-gradient(135deg, #fff8f0 0%, #ffffff 50%, #fff5e6 100%);
+  border: 1px solid #ffe0b2;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 12px rgba(255, 152, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.detail-card::after, .verify-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 152, 0, 0.05) 0%, transparent 70%);
+  animation: rotateGlow 20s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes rotateGlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.detail-card:hover, .verify-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(255, 152, 0, 0.15);
+  border-color: #ffb74d;
+}
+
+.timer-card {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 50%, #fff8f0 100%);
+  border: 2px solid #ff9800;
+  box-shadow: 0 4px 16px rgba(255, 152, 0, 0.15);
+  animation: pulse 3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 4px 16px rgba(255, 152, 0, 0.15);
+  }
+  50% {
+    box-shadow: 0 4px 24px rgba(255, 152, 0, 0.25);
+  }
+}
+
+/* Title glow effect */
+.card-title-glow {
+  background: linear-gradient(90deg, #ff9800, #f57c00, #ff9800);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: titleShine 3s linear infinite;
+}
+
+@keyframes titleShine {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* Detail items animation */
+.detail-item {
+  animation: fadeInUp 0.5s ease backwards;
+}
+
+.detail-item:nth-child(1) { animation-delay: 0.1s; }
+.detail-item:nth-child(2) { animation-delay: 0.2s; }
+.detail-item:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Icons */
+.detail-icon {
+  color: #ff9800;
+  margin-right: 8px;
+  transition: transform 0.3s ease;
+}
+
+.detail-item:hover .detail-icon {
+  transform: scale(1.2) rotate(5deg);
+}
+
+/* Tags */
+.tag-hover {
+  transition: all 0.2s ease;
+}
+
+.tag-hover:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+}
+
+/* Online indicator */
+.online-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: #4caf50;
+  border-radius: 50%;
+  animation: pulseDot 2s ease-in-out infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.2);
+  }
+}
+
+/* Partner avatar */
+.partner-avatar {
+  background: linear-gradient(135deg, #ff9800, #f57c00) !important;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+}
+
+/* Verify code box */
+.verify-code-box {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+  border: 2px solid #ffb74d;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  color: #e65100;
+  max-width: 250px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: all;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.verify-code-box:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25);
+}
+
+.copy-btn {
+  transition: transform 0.2s ease;
+}
+
+.copy-btn:hover {
+  transform: scale(1.1);
+}
+
+/* Verify input */
+.verify-input {
+  transition: all 0.3s ease;
+}
+
+.verify-input:focus {
+  border-color: #ff9800 !important;
+  box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1) !important;
+}
+
+/* Buttons */
+.verify-btn, .end-btn, .find-match-btn {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.verify-btn::before, .end-btn::before, .find-match-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s;
+}
+
+.verify-btn:hover::before, .end-btn:hover::before, .find-match-btn:hover::before {
+  transform: translateX(100%);
+}
+
+.verify-btn:hover, .end-btn:hover, .find-match-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
+
+/* Status tags */
+.status-tag {
+  transition: all 0.3s ease;
+  animation: slideIn 0.5s ease backwards;
+}
+
+.status-tag:nth-child(1) { animation-delay: 0.1s; }
+.status-tag:nth-child(2) { animation-delay: 0.2s; }
+.status-tag:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.status-tag:hover {
+  transform: scale(1.05);
+}
+
+/* Countdown tag */
+.countdown-tag {
+  font-size: 1.1rem;
+  font-weight: bold;
+  padding: 8px 16px;
+  animation: countdownPulse 2s ease-in-out infinite;
+}
+
+@keyframes countdownPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Find match button */
+.find-match-btn {
+  background: linear-gradient(135deg, #fff5e6, #ffffff);
+  border: 2px solid #ff9800;
+  font-weight: 600;
+}
+
+.find-match-btn:hover {
+  background: linear-gradient(135deg, #ffe0b2, #fff5e6);
+  border-color: #f57c00;
+}
+
+/* Chat Card */
+.chat-card {
+  background: linear-gradient(135deg, #fff8f0 0%, #ffffff 50%, #fff5e6 100%);
+  border: 2px solid #ffe0b2 !important;
+  height: 844px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 12px rgba(255, 152, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.chat-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 152, 0, 0.05) 0%, transparent 70%);
+  animation: rotateGlow 20s linear infinite;
+  pointer-events: none;
+}
+
+.chat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(255, 152, 0, 0.15);
+  border-color: #ffb74d !important;
+}
+
+/* Map and Spots Cards */
+.map-card, .spots-card {
+  background: linear-gradient(135deg, #fff8f0 0%, #ffffff 50%, #fff5e6 100%);
+  border: 1px solid #ffe0b2 !important;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 12px rgba(255, 152, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.map-card::after, .spots-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 152, 0, 0.05) 0%, transparent 70%);
+  animation: rotateGlow 20s linear infinite;
+  pointer-events: none;
+}
+
+.map-card:hover, .spots-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(255, 152, 0, 0.15);
+  border-color: #ffb74d !important;
+}
+
+@keyframes rotateGlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Title glow effect */
+.card-title-glow {
+  background: linear-gradient(90deg, #ff9800, #f57c00, #ff9800);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: titleShine 3s linear infinite;
+}
+
+@keyframes titleShine {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* Chat wrapper */
+.chat-wrapper {
+  height: 750px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Messages container */
+.messages-container {
+  height: calc(100% - 80px);
+  overflow-y: auto;
+  padding-right: 8px;
+  scroll-behavior: smooth;
+}
+
+.messages-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+  background: #fff3e0;
+  border-radius: 4px;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #ff9800, #f57c00);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.messages-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #f57c00, #e65100);
+}
+
+/* Loading and empty states */
+.loading-state, .no-messages, .empty-spots {
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.spinner-icon {
+  color: #ff9800;
+  font-size: 1.5rem;
+}
+
+.empty-icon {
+  color: #ffb74d;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Message bubbles */
+.message-item {
+  animation: messageSlide 0.3s ease;
+}
+
+@keyframes messageSlide {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-right {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  flex-direction: row;
+}
+
+.message-left {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+  flex-direction: row;
+}
+
+.message-bubble-me {
+  background: linear-gradient(135deg, #ff9800, #f57c00) !important;
+  color: white !important;
+  padding: 10px 14px;
+  border-radius: 16px 16px 4px 16px;
+  max-width: 70%;
+  word-wrap: break-word;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+  transition: all 0.2s ease;
+  min-width: fit-content; 
+}
+
+.message-bubble-me:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+}
+
+.message-bubble-partner {
+  background: linear-gradient(135deg, #fff3e0, #ffe0b2) !important;
+  color: #5d4037 !important;
+  padding: 10px 14px;
+  border-radius: 16px 16px 16px 4px;
+  max-width: 70%;
+  word-wrap: break-word;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.15);
+  transition: all 0.2s ease;
+  white-space: pre-wrap;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  min-width: fit-content; 
+}
+
+.message-bubble-partner:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25);
+}
+
+.message-time {
+  font-size: 0.75rem;
+  transition: opacity 0.2s ease;
+}
+
+.message-item:hover .message-time {
+  opacity: 1 !important;
+}
+
+/* Chat divider */
+.chat-divider {
+  border-color: #ffe0b2;
+  margin: 12px 0;
+}
+
+/* Input area */
+.input-area {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.chat-input {
+  transition: all 0.3s ease;
+}
+
+.chat-input:focus {
+  border-color: #ff9800 !important;
+  box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1) !important;
+}
+
+.send-btn {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.send-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s;
+}
+
+.send-btn:hover::before {
+  transform: translateX(100%);
+}
+
+.send-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
+
+/* Map wrapper */
+.map-wrapper {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.1);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.map-wrapper:hover {
+  box-shadow: 0 4px 16px rgba(255, 152, 0, 0.2);
+}
+
+/* Spots count */
+.spots-count {
+  display: flex;
+  align-items: center;
+  color: #ff9800;
+  font-weight: 500;
+}
+
+/* Spot items */
+.spot-item {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid #ffe0b2;
+  background: linear-gradient(135deg, #ffffff, #fff8f0);
+  transition: all 0.3s ease;
+  animation: spotFadeIn 0.4s ease backwards;
+  position: relative;
+  overflow: hidden;
+}
+
+.spot-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 4px;
+  background: linear-gradient(180deg, #ff9800, #f57c00);
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.spot-item:hover::before {
+  transform: scaleY(1);
+}
+
+.spot-item:hover {
+  background: linear-gradient(135deg, #fff8f0, #ffe0b2);
+  border-color: #ff9800;
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.15);
+}
+
+@keyframes spotFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.spot-item:nth-child(1) { animation-delay: 0.05s; }
+.spot-item:nth-child(2) { animation-delay: 0.1s; }
+.spot-item:nth-child(3) { animation-delay: 0.15s; }
+
+.spot-name {
+  color: #e65100;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.spot-address {
+  color: #666;
+  display: flex;
+  align-items: center;
+}
+
+.spot-rating {
+  color: #f57c00;
+  font-weight: 600;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.spot-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.spot-btn {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.spot-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(45deg, transparent, rgba(255, 233, 199, 0.2), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s;
+}
+
+.spot-btn:hover::before {
+  transform: translateX(100%);
+}
+
+.spot-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(255, 152, 0, 0.2);
+  border-color: #ff9800;
+}
+
+/* Pagination */
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid #ffe0b2;
+  margin-top: 12px;
+}
+
+.pagination-btn {
+  transition: all 0.3s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  color: #ff9800 !important;
+  transform: scale(1.05);
+}
+
+.page-info {
+  font-weight: 500;
+  color: #f57c00;
+}
+
+/* Find match button */
+.find-match-btn {
+  background: linear-gradient(135deg, #fff5e6, #ffffff);
+  border: 2px solid #ff9800 !important;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.find-match-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s;
+}
+
+.find-match-btn:hover::before {
+  transform: translateX(100%);
+}
+
+.find-match-btn:hover {
+  background: linear-gradient(135deg, #ffe0b2, #fff5e6);
+  border-color: #f57c00 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
 
 </style>
