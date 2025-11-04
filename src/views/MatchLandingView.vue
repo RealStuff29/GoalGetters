@@ -1,10 +1,7 @@
 <!-- src/views/MatchLandingView.vue -->
- 
 <template>
-  
   <!-- Hide everything while resuming to avoid any UI flash -->
   <div v-if="!isResuming" class="match-landing-container">
-
     <!-- Background aura + floating shapes (pure CSS) -->
     <div class="bg-aura" aria-hidden="true"></div>
     <div class="float float-1" aria-hidden="true"></div>
@@ -22,8 +19,20 @@
       <!-- Glow frame -->
       <div class="frame-glow" aria-hidden="true"></div>
 
+      <!-- GOALGETTERS LOGO (animated) -->
+      <div
+        class="logo-hero"
+        ref="logoRef"
+        @mousemove="onLogoMouseMove"
+        @mouseleave="resetLogoTilt"
+        aria-label="GoalGetters logo"
+      >
+        <img class="logo-img" src="../assets/images/Logo.png" alt="GoalGetters" />
+        <span class="logo-glow" aria-hidden="true"></span>
+        <span class="logo-shine" aria-hidden="true"></span>
+      </div>
+
       <div class="match-header">
-        
         <h1 class="match-title">
           <span class="sparkle" aria-hidden="true">✨</span>
           Find Your Study Partner
@@ -68,9 +77,7 @@
     <!-- MATCH NOT FOUND STATE -->
     <div v-else-if="store.stage === 'notfound'" class="match-notfound fx-rise">
       <h2 class="match-title-sm">No Match Found 😞</h2>
-      <p class="match-subtitle">
-        You can try again later
-      </p>
+      <p class="match-subtitle">You can try again later</p>
       <Button class="mt-4 ghost-btn" label="Try Again" @click="backToLanding" />
     </div>
 
@@ -102,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMatchStore } from '@/stores/match'
 import { supabase } from '@/lib/supabase'
@@ -122,10 +129,32 @@ const timeSlots = [
 
 const selectedSlots = ref<string[]>([])
 
-/**
- * Mount: prefill timeslots, then silently resume.
- * We keep the whole page hidden until we decide where to go.
- */
+/* ===== Logo tilt (tiny parallax) ===== */
+const logoRef = ref<HTMLElement | null>(null)
+function onLogoMouseMove(e: MouseEvent) {
+  const el = logoRef.value
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  const cx = rect.left + rect.width / 2
+  const cy = rect.top + rect.height / 2
+  const dx = (e.clientX - cx) / rect.width  // -0.5..0.5
+  const dy = (e.clientY - cy) / rect.height // -0.5..0.5
+  // small tilt
+  el.style.setProperty('--rx', `${(-dy * 6).toFixed(2)}deg`)
+  el.style.setProperty('--ry', `${(dx * 8).toFixed(2)}deg`)
+  // move highlight
+  el.style.setProperty('--mx', `${((dx + 0.5) * 100).toFixed(1)}%`)
+  el.style.setProperty('--my', `${((dy + 0.5) * 100).toFixed(1)}%`)
+}
+function resetLogoTilt() {
+  const el = logoRef.value
+  if (!el) return
+  el.style.removeProperty('--rx')
+  el.style.removeProperty('--ry')
+  el.style.removeProperty('--mx')
+  el.style.removeProperty('--my')
+}
+
 onMounted(async () => {
   try {
     if (store.stage === 'searching') {
@@ -169,6 +198,8 @@ onMounted(async () => {
     isResuming.value = false
   }
 })
+
+onBeforeUnmount(() => resetLogoTilt())
 
 function toggleSlot(id: string) {
   if (selectedSlots.value.includes(id)) {
@@ -291,12 +322,21 @@ async function onStart() {
   position: absolute;
   inset: -2px;
   border-radius: 20px;
-  background:
-    linear-gradient(180deg, rgba(255, 183, 3, 0.9), rgba(251, 133, 0, 0.9)) border-box;
+  background: linear-gradient(180deg, rgba(255, 183, 3, 0.9), rgba(251, 133, 0, 0.9)) border-box;
+
+  /* Standard mask (Chrome/Firefox/Edge) */
+  mask:
+    linear-gradient(#000 0 0) padding-box,
+    linear-gradient(#000 0 0);
+  /* For multiple layers, this defines how they combine: exclude = punch out */
+  mask-composite: exclude;
+
+  /* WebKit/Safari */
   -webkit-mask:
-    linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+    linear-gradient(#000 0 0) padding-box,
+    linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
-          mask-composite: exclude;
+
   border: 2px solid transparent;
   filter: blur(12px) saturate(120%);
   opacity: 0.55;
@@ -310,6 +350,73 @@ async function onStart() {
   background: var(--color-background-mute);
   border: 1px solid var(--color-border);
   box-shadow: 0 16px 40px rgba(251, 133, 0, 0.15);
+}
+
+/* ---------- Logo Hero (animated) ---------- */
+.logo-hero {
+  --rx: 0deg;
+  --ry: 0deg;
+  --mx: 50%;
+  --my: 50%;
+  width: clamp(110px, 16vw, 160px);
+  height: clamp(110px, 16vw, 160px);
+  margin: 0.25rem auto 0.9rem;
+  position: relative;
+  perspective: 800px;
+  transform-style: preserve-3d;
+  animation: logo-bob 4.8s ease-in-out infinite;
+  will-change: transform;
+  filter: drop-shadow(0 10px 22px rgba(251,133,0,.25));
+}
+@keyframes logo-bob {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-6px); }
+}
+.logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 22px;
+  transform:
+    rotateX(var(--rx)) rotateY(var(--ry))
+    translateZ(0);
+  transition: transform .08s ease;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.35);
+  background: radial-gradient(120% 120% at var(--mx) var(--my), rgba(255,255,255,.35), transparent 55%);
+}
+.logo-glow {
+  position: absolute; inset: -10%;
+  border-radius: 28px;
+  background: radial-gradient(60% 60% at 50% 60%, rgba(255, 183, 3, 0.35), transparent 60%),
+              radial-gradient(45% 45% at 60% 35%, rgba(251, 133, 0, 0.25), transparent 60%);
+  filter: blur(16px);
+  pointer-events: none;
+  animation: glow-pulse 2.6s ease-in-out infinite;
+}
+@keyframes glow-pulse {
+  0%,100% { opacity: .55; }
+  50%     { opacity: .9; }
+}
+/* Shine sweep on first paint + on hover */
+.logo-shine {
+  position: absolute; inset: 0;
+  border-radius: 22px;
+  pointer-events: none;
+  overflow: hidden;
+}
+.logo-shine::after {
+  content: "";
+  position: absolute; inset: -20%;
+  background: linear-gradient(120deg, rgba(255,255,255,.65), rgba(255,255,255,0) 40%);
+  transform: translateX(-130%) rotate(12deg);
+  animation: shine 1.1s ease .25s 1;
+}
+.logo-hero:hover .logo-shine::after {
+  animation: shine 1s ease 0s 1;
+}
+@keyframes shine {
+  to { transform: translateX(130%) rotate(12deg); }
 }
 
 /* ---------- Header ---------- */
@@ -540,8 +647,10 @@ async function onStart() {
 
 /* ---------- Reduced Motion ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .float, .orbit .satellite, .dot, .fx-rise, .fx-pop, .fx-fade-in {
+  .float, .orbit .satellite, .dot, .fx-rise, .fx-pop, .fx-fade-in,
+  .logo-hero, .logo-glow, .logo-shine::after {
     animation: none !important;
+    transition: none !important;
   }
 }
 
