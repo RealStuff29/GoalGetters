@@ -101,9 +101,10 @@
 
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { onMounted, onUnmounted, ref, computed } from 'vue'
-import { useMatchStore } from '@/stores/match'
+import { onMounted, onUnmounted, onBeforeUnmount, ref, computed, watch } from 'vue'
 import { supabase } from '@/lib/supabase'
+import booyahSound from '@/assets/LATESTBOOYAHmp3.mp3'
+import { useMatchStore } from '@/stores/match'
 
 function pi(name: string) { return `pi pi-${name}` }
 
@@ -124,6 +125,60 @@ const studyHoursClose = ref<boolean>(false)
 
 let pollTimer: number | null = null
 
+// Reuse a single Audio element so it’s warmed & controllable
+const booyah = new Audio(booyahSound)
+booyah.preload = 'auto'
+booyah.volume = 0.8
+// 1) Unlock audio on first user interaction (satisfies autoplay policies)
+function unlockAudioOnce() {
+  // Attempt a silent play-then-pause to mark it "user-gestured"
+  booyah.play().then(() => {
+    booyah.pause()
+    booyah.currentTime = 0
+  }).catch(() => {
+    // Ignore; some browsers still need a real click path, but keeping listener helps
+  })
+  window.removeEventListener('pointerdown', unlockAudioOnce, true)
+  window.removeEventListener('keydown', unlockAudioOnce, true)
+}
+
+onMounted(() => {
+  window.addEventListener('pointerdown', unlockAudioOnce, true)
+  window.addEventListener('keydown', unlockAudioOnce, true)
+
+  // 2) If we arrived on this view and we’re already in "match", play once
+  if (store.stage === 'match') {
+    safePlay()
+  }
+})
+
+// 3) Also react to future transitions into "match"
+const lastStage = ref(store.stage)
+watch(
+  () => store.stage,
+  (newStage) => {
+    if (newStage === 'match' && lastStage.value !== 'match') {
+      safePlay()
+    }
+    lastStage.value = newStage
+  }
+)
+
+// Play with error handling to surface common issues
+function safePlay() {
+  // Guard against muted tab/device
+  booyah.muted = false
+  booyah.currentTime = 0
+  booyah.play().catch((err) => {
+    console.warn('Match sound blocked or failed:', err?.message || err)
+    // If you want, show a tiny toast: "Tap anywhere to enable sounds"
+  })
+}
+
+onBeforeUnmount(() => {
+  window.removeEventListener('pointerdown', unlockAudioOnce, true)
+  window.removeEventListener('keydown', unlockAudioOnce, true)
+})
 const SLOT_LABELS = {
   slot_morning: 'Morning (8:30am - 11:30am)',
   slot_midday: 'Midday (12:00pm - 3:00pm)',
@@ -265,7 +320,7 @@ onMounted(async () => {
       const nowRejected = await store.checkIfPartnerRejected(partnerId.value)
       if (nowRejected) {
         if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
-        store.setLandingNotice('Your partner declined the match.')
+        store.setLandingNotice("Match has been decline. Let's Matchmake again!")
         store.startOver()
         router.push({ name: 'matchlanding' })
       }

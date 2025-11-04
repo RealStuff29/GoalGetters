@@ -627,21 +627,48 @@ async function onStart() {
   background: rgba(255, 183, 3, 0.12);
 }
 
-/* ---------- Notice ---------- */
+/* ---------- Notice (centered) ---------- */
 .notice-banner {
-  position: fixed; top: 1rem; right: 1rem;
-  background: #fff3cd; color: #6a3b00; border: 1px solid #ffdd89;
-  border-radius: 0.75rem; padding: 0.75rem 1rem;
-  display: flex; gap: 0.75rem; align-items: center; z-index: 50;
-  box-shadow: 0 8px 20px rgba(251, 133, 0, 0.18);
+  position: absolute;
+  top: calc(3.5rem + env(safe-area-inset-top, 0px)); /* ⬅️ shifted slightly down */
+  left: 50%;
+  transform: translateX(-50%);
+  /* look & feel */
+  background: #ffe5e5;
+  color: #6b520d;
+  border: 1px solid #c86c2f;
+  border-radius: 0.9rem;
+  padding: 0.9rem 1.1rem;
+
+  /* layout */
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  text-align: center;
+  z-index: 9999;
+
+  /* responsive width */
+  width: min(92vw, 520px);
+  box-shadow: 0 18px 40px rgba(251, 133, 0, 0.25);
 }
-.notice-close { background: transparent; border: none; font-size: 1.1rem; cursor: pointer; color: inherit; }
+
+
+.notice-close {
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: inherit;
+  margin-left: auto;
+}
+
 
 /* ---------- Micro motions ---------- */
 .fx-rise { animation: fx-rise .4s ease both; }
 @keyframes fx-rise { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-.fx-pop { animation: fx-pop .2s ease both; }
-@keyframes fx-pop { from { transform: scale(.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.fx-pop { animation: fx-pop .22s ease both; }
+@keyframes fx-pop { from { transform: translate(-50%, -50%) scale(.96); opacity: 0; }
+                    to   { transform: translate(-50%, -50%) scale(1);    opacity: 1; } }
 .fx-fade-in { animation: fx-fade-in .25s ease both; }
 @keyframes fx-fade-in { from { opacity: 0 } to { opacity: 1 } }
 
