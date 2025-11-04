@@ -12,6 +12,7 @@
       <span>{{ store.landingNotice }}</span>
       <button class="notice-close" @click="store.clearLandingNotice()" aria-label="Close notice">×</button>
     </div>
+    
 
     <!-- LANDING / FORM -->
     <div v-if="store.stage === 'landing'" class="match-form fx-rise">
@@ -108,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount,watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMatchStore } from '@/stores/match'
 import { supabase } from '@/lib/supabase'
@@ -153,6 +154,17 @@ function resetLogoTilt() {
   el.style.removeProperty('--mx')
   el.style.removeProperty('--my')
 }
+watch(
+  () => store.landingNotice,
+  (val) => {
+    if (val) {
+      // auto-hide after 2 seconds
+      setTimeout(() => {
+        store.clearLandingNotice()
+      }, 2000)
+    }
+  }
+)
 
 onMounted(async () => {
   try {
@@ -642,7 +654,8 @@ async function onStart() {
   border: 1px solid #c86c2f;
   border-radius: 0.9rem;
   padding: 0.9rem 1.1rem;
-
+  justify-content: center;
+  text-align: center;
   /* layout */
   display: flex;
   gap: 0.75rem;
@@ -661,7 +674,7 @@ async function onStart() {
   font-size: 1.1rem;
   cursor: pointer;
   color: inherit;
-  margin-left: auto;
+  margin-left: 0;
 }
 
 /* ---------- Micro motions ---------- */

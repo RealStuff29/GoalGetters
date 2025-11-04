@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { getTopCompatibleMBTI } from '@/composables/useComputeMBTICompatibility';
 
+
 type Stage = 'landing' | 'searching' | 'match' | 'result' | 'chat' | 'notfound'
 type Message = { 
   id: string
