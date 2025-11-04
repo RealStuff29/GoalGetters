@@ -962,16 +962,53 @@ async function saveMbtiToProfile() {
 .btn-press:active { transform: translateY(2px); box-shadow: 0 4px 10px rgba(255,152,0,0.16); }
 
 /* ===== Reviews ===== */
+.settings-wrap {
+  /* light mode defaults */
+  --chip-bg: #fff;
+  --chip-fg: #222;
+  --chip-border: rgba(255,152,0,0.35);
+  --chip-bg-active: linear-gradient(135deg,#fff5e6,#fff);
+  --chip-fg-muted: rgba(0,0,0,0.55);
+}
+
+/* if you toggle a .dark class on <html> or <body>, use :global to penetrate scope */
+:global(.dark) .settings-wrap {
+  --chip-bg: rgba(255,255,255,0.06);
+  --chip-fg: #e8e8e8;
+  --chip-border: rgba(255,184,92,0.55);  /* a touch stronger for contrast */
+  --chip-bg-active: linear-gradient(135deg, rgba(255,184,92,0.18), rgba(255,184,92,0.08));
+  --chip-fg-muted: rgba(255,255,255,0.7);
+}
+
 .bg-panel { background: rgba(255,255,255,0.7); }
 .breakdown {
-  border: 1px dashed rgba(255,152,0,0.35);
+  border: 1px dashed var(--chip-border);
   border-radius: 999px;
   padding: 6px 12px;
-  background: #fff;
+  background: var(--chip-bg);
+  color: var(--chip-fg);
+  transition: background .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease;
 }
+
+.breakdown:hover,
+.breakdown:focus-visible {
+  border-style: solid;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  outline: none;
+}
+
 .breakdown.active {
   border-style: solid;
-  background: linear-gradient(135deg,#fff5e6,#fff);
+  background: var(--chip-bg-active);
+}
+
+.breakdown small {
+  color: var(--chip-fg-muted);
+}
+
+/* optional: improve button focus for keyboard nav in both themes */
+.breakdown:focus-visible {
+  box-shadow: 0 0 0 3px rgba(255,152,0,0.25);
 }
 .review-card {
   background: #fff;
