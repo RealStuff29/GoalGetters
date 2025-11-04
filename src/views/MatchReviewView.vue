@@ -1,141 +1,151 @@
 <!-- src/views/MatchReviewView.vue -->
 <template>
-  <div class="min-h-screen grid place-items-center p-4 md:p-6 lg:p-8">
-    <div class="w-full max-w-xl space-y-4">
-      <!-- Header -->
-      <div class="text-center space-y-2">
-        <h1 class="text-2xl font-semibold">Match Review</h1>
-        <p class="text-sm opacity-70">Thanks for studying together! Tell us how it went.</p>
-        <div class="flex justify-center">
-          <Tag :value="sessionShort" severity="secondary" />
+  <div class="review-shell">
+    <div class="review-header">
+      <h1 class="title">Match Review</h1>
+      <p class="subtitle">Thanks for studying together—share how it went.</p>
+      <div class="session-tag">
+        <Tag :value="sessionShort" severity="secondary" />
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div v-if="errorMsg" class="row">
+      <Message severity="error" :closable="false" class="fx-fade">
+        {{ errorMsg }}
+      </Message>
+    </div>
+
+    <!-- Loading -->
+    <div v-if="loading" class="review-card fx-rise">
+      <div class="card-body">
+        <div class="loading-line">
+          <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+          <span>Loading session…</span>
+        </div>
+        <Skeleton height="2.6rem" class="sk" />
+        <Skeleton height="7rem" class="sk" />
+        <div class="sk-row">
+          <Skeleton height="2.6rem" width="10rem" />
+          <Skeleton height="2.6rem" width="10rem" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Review -->
+    <div v-else class="review-card fx-rise" ref="cardEl">
+      <!-- Card Title -->
+      <div class="card-title">
+        <div class="title-stack">
+          <span class="card-heading">Your Review</span>
+          <div class="tag-row">
+            <Tag :value="`You are ${mySideLabel}`" severity="info" />
+            <Tag :value="partnerStatusLabel" :severity="partnerRated ? 'success' : 'warn'" />
+          </div>
         </div>
       </div>
 
-      <!-- Error -->
-      <Message v-if="errorMsg" severity="error" :closable="false" class="mx-auto w-full max-w-md text-center">
-        {{ errorMsg }}
-      </Message>
-
-      <!-- Loading -->
-      <Card v-if="loading" :pt="{ content: { class: 'py-6 px-6 flex flex-col items-center gap-4' } }">
-        <template #content>
-          <div class="flex items-center gap-2 opacity-70">
-            <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
-            Loading session…
-          </div>
-          <Skeleton height="2.25rem" class="w-56" />
-          <Skeleton height="6rem" class="w-80" />
-          <div class="flex gap-2">
-            <Skeleton height="2.5rem" width="9rem" />
-            <Skeleton height="2.5rem" width="9rem" />
-          </div>
-        </template>
-      </Card>
-
-      <!-- Review Form -->
-      <Card v-else :pt="{ title: { class: 'text-center' }, content: { class: 'py-6 px-6 flex flex-col items-center gap-6' } }">
-        <template #title>
-          <div class="flex flex-col items-center gap-2">
-            <span class="text-lg font-medium">Your Review</span>
-            <div class="flex flex-wrap justify-center gap-2">
-              <Tag :value="`You are ${mySideLabel}`" severity="info" />
-              <Tag :value="partnerStatusLabel" :severity="partnerRated ? 'success' : 'warn'" />
-            </div>
-          </div>
-        </template>
-
-        <template #content>
-          <!-- Rating -->
-          <div class="flex flex-col items-center gap-2">
-            <span class="text-sm opacity-80">Your rating</span>
-            <div class="flex items-center gap-2">
-              <Rating v-model="myRating" :cancel="false" :readonly="alreadySubmitted" />
-              <small v-if="alreadySubmitted" class="opacity-60">Submitted</small>
-            </div>
-          </div>
-
-          <!-- Comment -->
-          <div class="w-full max-w-md mx-auto space-y-2">
-            <div class="flex items-center justify-between">
-              <label class="text-sm opacity-80">Your comment (optional)</label>
-              <small class="text-xs opacity-60">{{ myComment.length }}/500</small>
-            </div>
-
-            <Textarea
-              v-model="myComment"
-              rows="4"
-              autoResize
-              class="w-full"
-              :maxlength="500"
-              :disabled="alreadySubmitted"
-              placeholder="What went well? Any suggestions?"
-              @keyup.ctrl.enter="trySubmit"
-            />
-
-            <div class="flex items-center justify-between text-xs opacity-70">
-              <div class="flex items-center gap-2">
-                <i class="pi pi-shield" aria-hidden="true"></i>
-                <span> Be kind and specific. Avoid personal details and offensive language.</span>
+      <!-- Card Body -->
+      <div class="card-body">
+        <!-- Rating -->
+        <section class="section-block">
+          <div class="section-head">Your rating</div>
+          <div class="rating-row">
+            <div class="rating-anim">
+              <div class="rating-enhanced" :class="{ 'is-readonly': alreadySubmitted }" ref="ratingEl">
+                <Rating v-model="myRating" :cancel="false" :readonly="alreadySubmitted" />
               </div>
-              <span v-if="remainingChars < 50">{{ remainingChars }} left</span>
             </div>
+            <small v-if="alreadySubmitted" class="dim">Submitted</small>
+          </div>
+        </section>
 
+        <!-- Comment -->
+        <section class="section-block">
+          <div class="section-label">
+            <label>Your comment (optional)</label>
+            <small class="count dim">{{ myComment.length }}/500</small>
+          </div>
+
+          <Textarea
+            v-model="myComment"
+            rows="5"
+            autoResize
+            class="w-100"
+            :maxlength="500"
+            :disabled="alreadySubmitted"
+            placeholder="What went well? Any suggestions for next time?"
+            @keyup.ctrl.enter="trySubmit"
+          />
+
+          <div class="helper-row">
+            <div class="helper-left dim">
+              <i class="pi pi-shield"></i>
+              <span>Be kind, specific, and avoid personal/identifying details.</span>
+            </div>
+            <span v-if="remainingChars < 50" class="dim">{{ remainingChars }} left</span>
+          </div>
+
+          <!-- Progress with soft shimmer -->
+          <div class="prog-wrap">
             <ProgressBar
-              class="mt-1"
               :value="Math.min(Math.round((myComment.length / 500) * 100), 100)"
               :showValue="false"
             />
-
-            <small v-if="commentError" class="block text-center text-red-500">{{ commentError }}</small>
+            <div class="prog-shimmer"></div>
           </div>
 
-          <Divider class="w-full max-w-md mx-auto" />
+          <small v-if="commentError" class="error-text">{{ commentError }}</small>
+        </section>
 
-          <!-- Actions -->
-          <div class="flex justify-center">
-            <div class="flex flex-col sm:flex-row gap-2">
-              <Button
-                v-if="canGoBackToChat"
-                outlined
-                severity="secondary"
-                icon="pi pi-comments"
-                label="Back to Chat"
-                @click="goChat"
-              />
-              <Button
-                :disabled="!canSubmitEnhanced"
-                :loading="submitting"
-                icon="pi pi-check"
-                label="Submit review"
-                @click="submit"
-              />
-            </div>
-          </div>
+        <hr class="divider" />
 
-          <!-- Post-submit note -->
-          <Message v-if="alreadySubmitted" severity="success" :closable="false" class="mx-auto w-full max-w-md text-center">
+        <!-- Actions -->
+        <section class="actions">
+          <Button
+            v-if="canGoBackToChat"
+            outlined
+            severity="secondary"
+            icon="pi pi-comments"
+            label="Back to Chat"
+            class="btn fx-press"
+            @click="goChat"
+          />
+          <Button
+            :disabled="!canSubmitEnhanced"
+            :loading="submitting"
+            icon="pi pi-check"
+            label="Submit review"
+            class="btn primary fx-press"
+            @click="submit"
+          />
+        </section>
+
+        <Transition name="fade">
+          <Message v-if="alreadySubmitted" severity="success" :closable="false" class="fx-pop">
             Review submitted — thanks for your feedback!
           </Message>
-        </template>
-      </Card>
+        </Transition>
+      </div>
 
-      <Toast position="top-center" />
+      <!-- Confetti canvas -->
+      <div class="confetti-layer" ref="confettiLayer"></div>
     </div>
+
+    <Toast position="top-center" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { useToast } from 'primevue/usetoast'
 
-// router / toast
 const router = useRouter()
 const route = useRoute()
 const toast = useToast()
 
-// state
 const loading = ref(true)
 const submitting = ref(false)
 const errorMsg = ref<string>('')
@@ -148,15 +158,13 @@ const myRating = ref<number>(0)
 const myComment = ref<string>('')
 const partnerRated = ref<boolean>(false)
 const alreadySubmitted = ref<boolean>(false)
-const sessionEnded = ref<boolean | null>(null) // null=unknown, false=ongoing, true=ended
+const sessionEnded = ref<boolean | null>(null)
 
-// computed
 const mySideLabel = computed(() => (iAmA.value === null ? '…' : iAmA.value ? 'Side A' : 'Side B'))
 const sessionShort = computed(() => (sessid.value ? `Session ${sessid.value.substring(0, 8)}…` : 'Session —'))
 const partnerStatusLabel = computed(() => (partnerRated.value ? 'Partner reviewed' : 'Partner pending'))
 const remainingChars = computed(() => 500 - myComment.value.length)
 
-// simple soft-check (client UX)
 const bannedWords = ['fuck', 'shit', 'bitch']
 const trimmedComment = computed(() => (myComment.value || '').trim())
 const commentHasOnlyWhitespace = computed(() => myComment.value.length > 0 && trimmedComment.value.length === 0)
@@ -172,20 +180,86 @@ const commentError = computed(() => {
   return ''
 })
 
-// gating
 const canSubmitEnhanced = computed(
   () => !!myRating.value && !alreadySubmitted.value && !submitting.value && !commentHasOnlyWhitespace.value && !commentHasBanned.value
 )
-// Back to Chat shows only if session is ongoing and we know the room
 const canGoBackToChat = computed(() => sessionEnded.value === false && !!roomId.value)
 
-function trySubmit() {
-  if (canSubmitEnhanced.value) submit()
+function trySubmit() { if (canSubmitEnhanced.value) submit() }
+function goChat() { router.replace({ name: 'matchchat', params: { chatId: roomId.value } }) }
+
+/* ---------- Confetti (directional) ---------- */
+const cardEl = ref<HTMLElement | null>(null)
+const confettiLayer = ref<HTMLElement | null>(null)
+const ratingEl = ref<HTMLElement | null>(null)
+
+function spawnConfetti(pieces: number, dir: 'up' | 'down', centerX?: number, centerY?: number) {
+  const layer = confettiLayer.value
+  const card = cardEl.value
+  if (!layer || !card) return
+
+  const rect = card.getBoundingClientRect()
+  const baseX = (centerX ?? rect.width / 2)
+  const baseY = (centerY ?? 80) // near rating row
+
+  for (let i = 0; i < pieces; i++) {
+    const el = document.createElement('span')
+    el.className = `confetti-piece ${dir}`
+
+    const spread = dir === 'up' ? 70 : 35
+    const angle = (Math.random() * (spread * 2) - spread) // -spread..+spread
+    const dist = (dir === 'up' ? 110 : 70) + Math.random() * (dir === 'up' ? 180 : 60)
+    const time = (dir === 'up' ? 950 : 800) + Math.random() * (dir === 'up' ? 800 : 500)
+    const delay = Math.random() * 140
+    const sizeW = 6 + Math.random() * 7
+    const sizeH = 8 + Math.random() * 12
+    const hue = Math.floor(200 + Math.random() * 140) // 200-340
+
+    const rad = angle * Math.PI / 180
+    const tx = Math.cos(rad) * dist
+    // negative ty for 'up', positive for 'down'
+    const ty =
+      (dir === 'up' ? -1 : 1) *
+      (Math.sin((90 - angle) * Math.PI / 180) * (dist * 0.6) + (dir === 'up' ? 160 : 120))
+
+    el.style.setProperty('--x', `${baseX}px`)
+    el.style.setProperty('--y', `${baseY}px`)
+    el.style.setProperty('--tx', `${tx}px`)
+    el.style.setProperty('--ty', `${ty}px`)
+    el.style.setProperty('--rot', `${Math.random() * 720 - 360}deg`)
+    el.style.setProperty('--time', `${time}ms`)
+    el.style.setProperty('--delay', `${delay}ms`)
+    el.style.width = `${sizeW}px`;
+    el.style.height = `${sizeH}px`;
+    el.style.background = `hsl(${hue} 90% 60%)`
+
+    layer.appendChild(el)
+    window.setTimeout(() => { el.remove() }, time + delay + 120)
+  }
 }
 
-function goChat() {
-  router.replace({ name: 'matchchat', params: { chatId: roomId.value } })
-}
+/* Fire confetti on every increase (clicking a higher star):
+   - 1★ or 2★ => small downward sprinkle
+   - 3★ to 5★ => big upward burst
+   No confetti on decreases. */
+watch(myRating, (val, oldVal) => {
+  if (alreadySubmitted.value) return
+  if (typeof oldVal !== 'number') oldVal = 0
+
+  const increased = val > oldVal
+  if (!increased) return
+
+  const starRect = ratingEl.value?.getBoundingClientRect()
+  const cardRect = cardEl.value?.getBoundingClientRect()
+  const cx = starRect ? starRect.width / 2 : undefined
+  const cy = starRect && cardRect ? (starRect.top - cardRect.top) + 10 : undefined
+
+  if (val >= 3) {
+    spawnConfetti(56, 'up', cx, cy)   // celebrate upwards
+  } else {
+    spawnConfetti(10, 'down', cx, cy) // subtle sprinkle when moving up to 1 or 2
+  }
+})
 
 async function resolveRoomAndSide() {
   const { data: auth, error: authErr } = await supabase.auth.getUser()
@@ -225,7 +299,6 @@ async function resolveRoomAndSide() {
 async function tryFinalizeAndDeleteRoom() {
   if (!sessid.value || !roomId.value) return
 
-  // 1) Re-read session to confirm both sides rated
   const { data: sRow, error: sErr } = await supabase
     .from('sessions')
     .select('rating_by_a, rating_by_b, ended_at')
@@ -236,40 +309,23 @@ async function tryFinalizeAndDeleteRoom() {
   const bothRated = !!sRow.rating_by_a && !!sRow.rating_by_b
   if (!bothRated) return
 
-  // 2) Ensure session is marked ended
   if (!sRow.ended_at) {
     const { error: endErr } = await supabase
       .from('sessions')
       .update({ ended_at: new Date().toISOString() })
       .eq('sessid', sessid.value)
-    if (endErr) {
-      console.debug('[finalize] could not set ended_at:', endErr.message)
-      // still proceed to cleanup best-effort
-    }
+    if (endErr) console.debug('[finalize] could not set ended_at:', endErr.message)
   }
 
-  // 3) Best-effort cleanup of chat first (ok if table/rows don’t exist)
-  const { error: chatDelErr } = await supabase
-    .from('match_chat')
-    .delete()
-    .eq('room_id', roomId.value)
-  if (chatDelErr) {
-    console.debug('[finalize] match_chat delete ignored:', chatDelErr.message)
-  }
+  const { error: chatDelErr } = await supabase.from('match_chat').delete().eq('room_id', roomId.value)
+  if (chatDelErr) console.debug('[finalize] match_chat delete ignored:', chatDelErr.message)
 
-  // 4) Delete the room (partner’s client should also react if they are still around)
-  const { error: roomDelErr } = await supabase
-    .from('match_room')
-    .delete()
-    .eq('id', roomId.value)
-  if (roomDelErr) {
-    console.debug('[finalize] match_room delete ignored:', roomDelErr.message)
-  }
+  const { error: roomDelErr } = await supabase.from('match_room').delete().eq('id', roomId.value)
+  if (roomDelErr) console.debug('[finalize] match_room delete ignored:', roomDelErr.message)
 }
 
 async function loadExistingReviewAndState() {
   if (!sessid.value || iAmA.value === null) return
-  // Only select fields that exist
   const { data: sRow, error } = await supabase
     .from('sessions')
     .select('rating_by_a, rating_by_b, comment_by_a, comment_by_b, ended_at')
@@ -278,7 +334,6 @@ async function loadExistingReviewAndState() {
   if (error) throw error
   if (!sRow) { sessionEnded.value = null; return }
 
-  // Ended status is strictly from ended_at
   sessionEnded.value = !!sRow.ended_at
 
   if (iAmA.value) {
@@ -309,10 +364,7 @@ async function submit() {
     alreadySubmitted.value = true
     toast.add({ severity: 'success', summary: 'Review submitted', detail: 'Thanks for your feedback!', life: 1600 })
 
-    // ⬇️ Key bit: if both have submitted, end session + delete room (and chat)
     await tryFinalizeAndDeleteRoom()
-
-    // send them home (or matchlanding if you prefer)
     setTimeout(() => router.replace({ name: 'home' }), 1100)
   } catch (e: any) {
     errorMsg.value = 'Could not submit your review. Please try again.'
@@ -326,7 +378,7 @@ onMounted(async () => {
   try {
     await resolveRoomAndSide()
     await loadExistingReviewAndState()
-    await tryFinalizeAndDeleteRoom() // harmless if not both-rated yet
+    await tryFinalizeAndDeleteRoom()
   } catch (e: any) {
     errorMsg.value = e?.message || 'Failed to load review session.'
   } finally {
@@ -334,3 +386,162 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+/* ---------- Layout ---------- */
+.review-shell {
+  min-height: 100vh;
+  padding: 32px 16px 56px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  background:
+    radial-gradient(1400px 220px at 50% -40px, rgba(24, 119, 242, .06), transparent 60%),
+    linear-gradient(180deg, #ffffff, #f8fafc);
+}
+.review-header { text-align: center; margin-bottom: 20px; animation: fadeIn .35s ease-out both; }
+.title { margin: 0; font-size: 34px; font-weight: 700; letter-spacing: .2px; }
+.subtitle { margin: 6px 0 12px; opacity: .75; }
+.session-tag { display: flex; justify-content: center; }
+
+/* Card */
+.review-card {
+  position: relative; /* needed for confetti positioning */
+  width: 100%;
+  max-width: 920px;
+  background: rgba(255,255,255,.9);
+  border: 1px solid rgba(15,23,42,.08);
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(2, 6, 23, .06), 0 2px 6px rgba(2, 6, 23, .04);
+  overflow: hidden;
+  backdrop-filter: blur(6px);
+}
+.card-title {
+  padding: 22px 28px;
+  border-bottom: 1px solid rgba(15,23,42,.08);
+  background: linear-gradient(180deg, rgba(248,250,252,.85), rgba(255,255,255,.8));
+}
+.title-stack { display: grid; justify-items: center; gap: 10px; }
+.card-heading { font-size: 18px; font-weight: 600; }
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.card-body { padding: 26px 28px 30px; }
+
+/* ---------- Sections ---------- */
+.section-block { margin: 8px 0 22px; }
+.section-head { font-size: 14px; opacity: .8; margin-bottom: 8px; }
+
+.rating-row { display: flex; align-items: center; gap: 10px; }
+.rating-anim { transform-origin: left center; animation: popIn .35s ease-out both .1s; }
+
+/* Bigger stars + animations */
+.rating-enhanced :deep(.p-rating) { display: inline-flex; gap: 8px; }
+.rating-enhanced :deep(.p-rating-item) { transition: transform .15s ease; }
+.rating-enhanced :deep(.p-rating-icon) {
+  font-size: 2.15rem;
+  cursor: pointer;
+  transition: transform .18s ease, color .18s ease, filter .25s ease;
+}
+.rating-enhanced :deep(.p-rating-item:hover .p-rating-icon) {
+  transform: translateY(-1px) scale(1.18) rotate(-6deg);
+  color: #ffb300;
+  filter: drop-shadow(0 0 4px rgba(255,179,0,.45));
+}
+.rating-enhanced :deep(.p-rating-item:active .p-rating-icon) {
+  transform: translateY(0) scale(1.05);
+}
+@keyframes starPop { 0%{transform:scale(1)} 40%{transform:scale(1.35)} 100%{transform:scale(1)} }
+.rating-enhanced :deep(.p-rating-icon.pi-star-fill) {
+  color: #ffb300;
+  filter: drop-shadow(0 0 4px rgba(255,179,0,.4));
+  animation: starPop .22s ease-out;
+}
+.rating-enhanced.is-readonly :deep(.p-rating-icon) { cursor: default; }
+.rating-enhanced.is-readonly :deep(.p-rating-item:hover .p-rating-icon) { transform: none; filter: none; color: inherit; }
+
+.section-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.section-label label { font-size: 14px; opacity: .8; }
+.count { font-size: 12px; }
+.w-100 { width: 100%; }
+.helper-row { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; font-size: 12px; }
+.helper-left { display: flex; align-items: center; gap: 8px; }
+
+/* Progress */
+.prog-wrap { position: relative; margin-top: 6px; }
+.prog-shimmer {
+  pointer-events: none; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+  transform: translateX(-100%); animation: shimmer 2.2s infinite linear; mix-blend-mode: overlay;
+}
+@keyframes shimmer { 0% { transform: translateX(-100%);} 100% { transform: translateX(100%);} }
+
+.error-text { display: block; margin-top: 8px; color: #dc2626; text-align: center; }
+
+/* Divider */
+.divider { border: none; height: 1px; background: linear-gradient(90deg, transparent, rgba(15,23,42,.12), transparent); margin: 12px 0 18px; }
+
+/* Buttons */
+.actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.btn { min-height: 44px; min-width: 160px; border-radius: 12px; }
+.fx-press { transition: transform .08s ease, filter .18s ease; }
+.fx-press:active { transform: translateY(1px) scale(.995); filter: brightness(.98); }
+
+/* Skeleton helpers */
+.sk { width: 260px; }
+.sk-row { display: flex; gap: 12px; }
+
+/* Micro-animations */
+.fx-fade { animation: fadeIn .25s ease-out both; }
+.fx-rise { animation: riseIn .38s ease-out both; }
+.fx-pop  { animation: popIn .28s ease-out both; }
+
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes riseIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes popIn { 0% { opacity: 0; transform: scale(.97); } 100% { opacity: 1; transform: scale(1); } }
+
+/* Utilities */
+.row { max-width: 920px; width: 100%; }
+.dim { opacity: .72; }
+
+/* PrimeVue ProgressBar tweak */
+:deep(.p-progressbar) { border-radius: 8px; overflow: hidden; height: 10px; }
+:deep(.p-progressbar-value) { transition: width .25s ease; }
+</style>
+
+<!-- 2) Make confetti styles GLOBAL so programmatically-created spans are styled -->
+<style>
+.confetti-layer {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 3; /* ensure on top of card content */
+}
+.confetti-piece {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  transform: translate(-50%, -50%) translate3d(0,0,0);
+  border-radius: 2px;
+  opacity: 0;
+  animation: confetti-fall var(--time) cubic-bezier(.3,.8,.5,1) var(--delay) forwards;
+}
+
+/* Directional variants */
+.confetti-piece.up   { animation-name: confetti-rise; }
+.confetti-piece.down { animation-name: confetti-fall; }
+
+/* Upward burst */
+@keyframes confetti-rise {
+  0%   { opacity: 0; transform: translate(50%, 50%) translate3d(0, 24px, 0) rotate(0deg) scale(1); }
+  10%  { opacity: 1; }
+  55%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) rotate(var(--rot)) scale(1); }
+}
+
+/* Downward sprinkle */
+@keyframes confetti-fall {
+  0%   { opacity: 0; transform: translate(50%, 50%) translate3d(9,60px,9) rotate(45deg) scale(1); }
+  10%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) rotate(var(--rot)) scale(1); }
+}
+</style>
