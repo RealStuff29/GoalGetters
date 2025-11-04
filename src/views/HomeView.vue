@@ -1,5 +1,8 @@
 <template>
   <div class="homepage-container">
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
     <!-- Hero Welcome Section -->
     <section class="hero-section">
       <div class="container">
@@ -310,7 +313,29 @@ onMounted(async () => {
 <style scoped>
 .homepage-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #fff5e6 0%, #ffffff 50%, #fff5e6 100%);
+  position: relative;
+  overflow: hidden;
+
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #fff0e0 0%, transparent 60%),
+    radial-gradient(1200px 600px at 110% 10%, #ffe6ff 0%, transparent 55%),
+    linear-gradient(180deg, #ffffff 0%, #fffaf5 100%);
+}
+
+.bg-blob {
+  position: absolute;
+  filter: blur(40px);
+  opacity: 0.35;
+  border-radius: 50%;
+  animation: floaty 12s ease-in-out infinite;
+}
+.blob-1 { width: 360px; height: 360px; top: -80px; left: -80px; background: linear-gradient(135deg,#ffb85c,#ff7d7d); }
+.blob-2 { width: 300px; height: 300px; top: 20%; right: -100px; background: linear-gradient(135deg,#9ecbff,#b49bff); animation-delay: 2s; }
+.blob-3 { width: 260px; height: 260px; bottom: -80px; left: 20%; background: linear-gradient(135deg,#ffef9e,#ffa7d1); animation-delay: 4s; }
+
+@keyframes floaty {
+  0%,100%{ transform: translateY(0) }
+  50%{ transform: translateY(-16px) }
 }
 
 /* Hero Section */
