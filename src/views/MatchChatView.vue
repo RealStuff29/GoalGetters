@@ -1,5 +1,9 @@
 <!-- src/views/MatchChatView.vue -->
 <template>
+  <div class="bg-aura" aria-hidden="true"></div>
+  <div class="float float-1" aria-hidden="true"></div>
+  <div class="float float-2" aria-hidden="true"></div>
+  <div class="float float-3" aria-hidden="true"></div>
   <div
     class="min-h-screen p-4 w-full max-w-6xl mx-auto"
     v-if="store.stage === 'chat'"
@@ -14,17 +18,19 @@
         <!-- Tab 0: Session Details -->
         <TabPanel value="0">
           <div class="space-y-4 max-w-6xl mx-auto">
-            <Card>
-              <template #content>
-                <div class="flex items-center gap-3">
-                  <Avatar :label="store.partnerInitials" shape="circle" />
-                  <div>
-                    <div class="font-medium">{{ store.match.partner.name || 'Study partner' }}</div>
-                    <small class="opacity-70">Online now</small>
+            <div class="frame-glow" aria-hidden="true">
+              <Card>
+                <template #content>
+                  <div class="flex items-center gap-3">
+                    <Avatar :label="store.partnerInitials" shape="circle" />
+                    <div>
+                      <div class="font-medium">{{ store.match.partner.name || 'Study partner' }}</div>
+                      <small class="opacity-70">Online now</small>
+                    </div>
                   </div>
-                </div>
-              </template>
-            </Card>
+                </template>
+              </Card>
+            </div>
 
             <!-- Study Session Details and Verification side by side -->
             <div class="grid lg:grid-cols-2 gap-4">
@@ -802,5 +808,37 @@ onUnmounted(() => {
   flex-shrink: 0;
   padding-top: 0.5rem;
 }
+
+.bg-aura {
+  position: absolute;
+  inset: -40% -20% -20% -20%;
+  background:
+    radial-gradient(60% 60% at 20% 10%, rgba(255, 214, 10, 0.45), transparent 60%),
+    radial-gradient(50% 50% at 80% 0%, rgba(251, 133, 0, 0.3), transparent 60%),
+    radial-gradient(40% 40% at 50% 100%, rgba(239, 68, 68, 0.18), transparent 60%);
+  filter: blur(50px);
+  z-index: -2;
+  pointer-events: none;
+}
+
+.float {
+  --size: 260px;
+  position: absolute;
+  width: var(--size); height: var(--size);
+  border-radius: 50%;
+  background: conic-gradient(from 180deg,
+    rgba(255, 183, 3, 0.20),
+    rgba(251, 133, 0, 0.20),
+    rgba(239, 68, 68, 0.18),
+    rgba(255, 183, 3, 0.20)
+  );
+  filter: blur(22px);
+  opacity: 0.6;
+  animation: float 18s ease-in-out infinite;
+  z-index: -1;
+}
+.float-1 { top: 12%; left: -6%; animation-delay: -2s; }
+.float-2 { bottom: -8%; right: -4%; --size: 340px; animation-delay: -6s; }
+.float-3 { top: 40%; right: 18%; --size: 220px; animation-delay: -9s; }
 
 </style>
