@@ -295,7 +295,7 @@
         </template>
       </Card>
 
-      <Button outlined class="w-full" :icon="pi('refresh')" label="Find Another Match" @click="restart" />
+      <Button outlined class="w-full" :icon="pi('refresh')" label="Find Another Match" @click="endForBoth" />
     </div>
   </div>
 
@@ -516,6 +516,52 @@ const formatTime = (timestamp: string) => {
   })
 }
 
+//handels find another match button
+// ADD near other refs
+let roomCloseChannel: ReturnType<typeof supabase.channel> | null = null
+  // ADD this helper
+async function endForBoth() {
+  try {
+    const roomId = store.currentMatchId || store.match?.id
+    if (!roomId) return
+
+    // Best-effort: clear chat, end session, then delete the room.
+    // If your RLS forbids deletes, see the "Fallback" at the end.
+    await supabase.from('match_chat').delete().eq('room_id', roomId)
+
+    if (store.sessionId) {
+      await supabase.from('sessions').delete().eq('sessid', store.sessionId)
+    }
+
+    // Deleting the room will trigger the partner's realtime subscription (below)
+    await supabase.from('match_room').delete().eq('id', roomId)
+
+    // Local cleanup + redirect
+    store.teardownVerification()
+    store.stopSessionSlotTimer()
+    await store.startOver()
+    router.replace({ name: 'matchlanding' })
+  } catch (e) {
+    console.error('[endForBoth] failed', e)
+    // Soft fallback: still navigate away so the user isn’t stuck
+    await store.startOver()
+    router.replace({ name: 'matchlanding' })
+  }
+}
+
+// ADD this handler (called when partner deletes the room)
+async function onRoomClosedByPartner() {
+  // Prevent double handling
+  try {
+    store.teardownVerification()
+    store.stopSessionSlotTimer()
+  } finally {
+    await store.forceLeaveChat?.('Your partner ended the session. Returning to matchmaking.')
+    await store.startOver()
+    router.replace({ name: 'matchlanding' })
+  }
+}
+
 // init
 onMounted(async () => {
   await store.hydrateFromCache()
@@ -547,7 +593,17 @@ onMounted(async () => {
     // Scroll to bottom after messages load
     nextTick(scrollToBottom)
     setTimeout(() => nextTick(scrollToBottom), 500)
+    //bounce together
+     roomCloseChannel = supabase
+    .channel(`room-close-${roomId}`)
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'match_room', filter: `id=eq.${roomId}` },
+      () => onRoomClosedByPartner()
+    )
+    .subscribe()
   }
+  
 
   // Set stage
   store.stage = 'chat'
@@ -617,6 +673,10 @@ onUnmounted(() => {
   if (rejectPoll) clearInterval(rejectPoll)
   rejectPoll = null
   // stop realtime + short-lived verification polling if still running
+  if (roomCloseChannel) {
+    supabase.removeChannel(roomCloseChannel)
+    roomCloseChannel = null
+  }
   store.teardownVerification()
   store.stopSessionSlotTimer()
 })
