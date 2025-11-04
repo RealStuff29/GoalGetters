@@ -120,21 +120,19 @@ function handleAvatarError() {
   avatarLoaded.value = true
 }
 
-/* ---------------- Dirty snapshot (for enabling Save) --------------- */
+/* ---------------- Unsaved Changes --------------- */
 const initial = ref({
   degree: '',
   modulesCsv: '',
   studyHours: 4,
-  avatarUrl: ''
 })
 
-const isDirty = computed(() => {
+const hasUnsavedChanges = computed(() => {
   const nowCsv = (modules.value || []).join(',')
   return (
     degree.value !== initial.value.degree ||
     Number(studyHours.value ?? 0) !== Number(initial.value.studyHours ?? 0) ||
-    nowCsv !== initial.value.modulesCsv ||
-    (avatarUrl.value || '') !== (initial.value.avatarUrl || '')
+    nowCsv !== initial.value.modulesCsv 
   )
 })
 
@@ -619,14 +617,7 @@ async function saveMbtiToProfile() {
             <!-- Academic card actions -->
             <div class="card-actions mt-4">
               <span class="save-hint">Review your changes</span>
-              <Button
-                label="Save Changes"
-                icon="pi pi-check"
-                :loading="saving"
-                :disabled="saving || !isDirty"
-                class="btn-press"
-                @click="saveAll"
-              />
+              <Button label="Save Changes" icon="pi pi-check" :loading="saving" :disabled="saving || !hasUnsavedChanges" class="btn-press" @click="saveAll" />
             </div>
           </div>
         </Transition>
