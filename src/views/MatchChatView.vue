@@ -19,12 +19,14 @@
         <TabPanel value="0">
           <div class="space-y-4 max-w-6xl mx-auto">
             <div class="frame-glow" aria-hidden="true">
-              <Card>
+              <Card style="border: 1px solid #ff9800;">
                 <template #content>
                   <div class="flex items-center gap-3">
-                    <Avatar :label="store.partnerInitials" shape="circle" />
                     <div>
-                      <div class="font-medium">{{ store.match.partner.name || 'Study partner' }}</div>
+                      <div class="font-medium">
+                        <Avatar :label="store.partnerInitials" shape="circle" />
+                        {{ store.match.partner.name || 'Study partner' }}
+                      </div>
                       <small class="opacity-70">Online now</small>
                     </div>
                   </div>
@@ -35,7 +37,7 @@
             <!-- Study Session Details and Verification side by side -->
             <div class="grid lg:grid-cols-2 gap-4">
               <!-- Study Session Details -->
-              <Card>
+              <Card style="border: 1px solid #ff9800;">
                 <template #title>
                   <span class="text-base font-medium">Study Session Details</span>
                 </template>
@@ -43,9 +45,10 @@
                   <div class="space-y-4">
                     <!-- Common time slots -->
                     <div class="flex items-start gap-3">
-                      <i :class="pi('clock')" class="opacity-70 mt-1" />
                       <div>
-                        <div class="font-medium mb-1">Common Time Slots</div>
+                        <div class="font-medium mb-1">
+                          <i :class="pi('clock')" class="opacity-70 mt-1" />
+                          Common Time Slots</div>
                         <div v-if="commonSlotsLabels.length">
                           <Tag v-for="s in commonSlotsLabels" :key="s" severity="secondary" :value="s" class="mr-2 mb-2" />
                         </div>
@@ -55,9 +58,10 @@
 
                     <!-- Common modules -->
                     <div class="flex items-start gap-3">
-                      <i :class="pi('book')" class="opacity-70 mt-1" />
                       <div>
-                        <div class="font-medium mb-1">Common Modules</div>
+                        <div class="font-medium mb-1">
+                          <i :class="pi('book')" class="opacity-70 mt-1" />
+                          Common Modules</div>
                         <div v-if="commonModules.length">
                           <Tag v-for="m in commonModules" :key="m" severity="secondary" :value="m" class="mr-2 mb-2" />
                         </div>
@@ -80,7 +84,7 @@
                 </template>
               </Card>
 
-              <Card>
+              <Card style="border: 1px solid #ff9800;">
                 <template #title>
                   <span class="text-base font-medium">Verify Your Partner</span>
                 </template>
@@ -90,10 +94,8 @@
                       <div class="opacity-70 mb-1">Share this word with your partner:</div>
 
                       <div class="flex items-center gap-2">
-                        <div class="px-3 py-2 rounded bg-surface-200 font-mono text-sm select-all flex-1" style="max-width: 200px;">
-                          {{ store.roomVerifyCode || '—' }}
-                        </div>
-                        <div>
+                        <div class="px-3 py-2 rounded bg-surface-200 font-mono text-sm select-all flex-1" style="max-width: 250px;">
+                            {{ store.roomVerifyCode || '—' }}
                           <Button
                             :disabled="!store.roomVerifyCode"
                             :icon="pi('copy')"
@@ -101,6 +103,8 @@
                             aria-label="Copy"
                             @click="copyCode"
                           />
+                        </div>
+                        <div>
                         </div>
                       </div>
 
@@ -131,7 +135,7 @@
                     <div class="flex items-center gap-2">
                       <Tag :severity="store.myVerified ? 'success' : 'danger'"
                            :value="store.myVerified ? 'You: Verified' : 'You: Not verified'"/>
-                      <Tag :severity="store.partnerVerified ? 'success' : 'warn'"
+                      <Tag style="margin-left: 5px;" :severity="store.partnerVerified ? 'success' : 'warn'"
                            :value="store.partnerVerified ? 'Partner: Verified' : 'Partner: Pending'"/>
                       <Tag v-if="store.sessionId" severity="success" :value="`Session: ${store.sessionId.slice(0,8)}…`"/>
                     </div>
@@ -167,12 +171,12 @@
         <TabPanel value="1">
           <div class="grid lg:grid-cols-2 gap-6">
             <!-- Left: Chat -->
-            <Card class="chat-card">
+            <Card class="chat-card" style="border: 1px solid #ff9800; height: 844px">
               <template #title>
                 <span class="text-base font-medium">Chat</span>
               </template>
               <template #content>
-                <div class="chat-wrapper">
+                <div class="chat-wrapper" style="height: 750px;">
                   <!-- Messages Area - THIS IS THE SCROLLABLE SECTION -->
                   <div class="messages-container" ref="chatScroller">
                     <!-- Loading State -->
@@ -233,7 +237,7 @@
 
             <!-- Right: Map and Suggestions -->
             <div class="space-y-4">
-              <Card>
+              <Card style="border: 1px solid #ff9800;">
                 <template #title>
                   <span class="text-base font-medium">
                     <i :class="pi('direction')" class="mr-2" /> Nearby Study Locations
@@ -249,7 +253,7 @@
                 </template>
               </Card>
 
-              <Card :key="studySpots.length">
+              <Card :key="studySpots.length" style="border: 1px solid #ff9800;">
                 <template #title>
                   <div>
                     <div class="text-base font-medium">Suggested Study Spots</div>
@@ -321,9 +325,14 @@
                 </template>
               </Card>
 
-              <Button outlined class="w-full" :icon="pi('refresh')" label="Find Another Match" @click="endForBoth" />
             </div>
           </div>
+          <Button outlined 
+          class="w-full" 
+          style="margin-top: 10px;"
+          :icon="pi('refresh')" 
+          label="Find Another Match" 
+          @click="endForBoth" />
         </TabPanel>
       </TabPanels>
     </Tabs>
