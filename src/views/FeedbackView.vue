@@ -1,5 +1,8 @@
 <template>
   <div class="feedback-page-container">
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
     <transition name="fade-in-out">
       <div v-if="messageText" :class="['message-box', messageType]">
         <span class="message-icon">{{ messageIcon }}</span>
@@ -7,70 +10,43 @@
       </div>
     </transition>
 
-    <div class="feedback-card">
+    <div class="feedback-card glass-card">
       <header class="header-section">
         <div class="icon-circle mb-4">
-          <i class="pi pi-comment header-icon text-primary"></i>
+          <i class="pi pi-comment header-icon text-white"></i>
         </div>
         <h1 class="title">GoalGetters Feedback</h1>
         <p class="subtitle">Tell us what's working and what we can improve.</p>
       </header>
 
+      <hr class="divider" />
+
       <div class="form-body">
         <div class="form-group">
           <label class="form-label">Which area is your feedback about?</label>
-          <Dropdown
-            v-model="selectedFeature"
-            :options="featureOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Select a feature area"
-            class="w-full rounded-input"
-          />
+          <Dropdown v-model="selectedFeature" :options="featureOptions" optionLabel="label" optionValue="value"
+            placeholder="Select a feature area" class="w-full rounded-input" />
         </div>
 
         <div class="form-group">
           <label class="form-label">How would you rate your experience?</label>
-          <Rating
-            v-model="rating"
-            :cancel="false"
-            class="w-full rating-input rating-large"
-          />
+          <Rating v-model="rating" :cancel="false" class="w-full rating-input rating-large" />
         </div>
 
         <div class="form-group">
           <label class="form-label">Detailed Comments</label>
-          <Textarea
-            v-model="comments"
-            rows="6"
-            autoResize
+          <Textarea v-model="comments" rows="6" autoResize
             placeholder="What worked well? What specific issue did you face? (Minimum 10 characters)"
-            class="w-full rounded-input textarea-input"
-          />
+            class="w-full rounded-input textarea-input" />
         </div>
 
         <div class="button-group">
-          <Button
-            :disabled="!isValid || submitting"
-            @click="submitFeedback"
-            label="Send Feedback"
-            icon="pi pi-send"
-            class="p-button p-button-rounded hover-button"
-          />
-          <Button
-            :disabled="submitting"
-            @click="clearForm"
-            label="Clear Form"
-            icon="pi pi-refresh"
-            class="p-button p-button-rounded hover-button"
-          />
-          <Button
-            :disabled="submitting"
-            @click="goToHome"
-            label="Back to Home"
-            icon="pi pi-home"
-            class="p-button p-button-rounded hover-button"
-          />
+          <Button :disabled="!isValid || submitting" @click="submitFeedback" label="Send Feedback" icon="pi pi-send"
+            class="p-button p-button-rounded hover-button" />
+          <Button :disabled="submitting" @click="clearForm" label="Clear Form" icon="pi pi-refresh"
+            class="p-button p-button-rounded hover-button" />
+          <Button :disabled="submitting" @click="goToHome" label="Back to Home" icon="pi pi-home"
+            class="p-button p-button-rounded hover-button" />
         </div>
       </div>
     </div>
@@ -181,29 +157,41 @@ const clearForm = () => {
 const goToHome = () => router.push({ name: 'home' })
 </script>
 
-<style scoped>
+<style>
 .feedback-page-container {
   min-height: 100vh;
+  position: relative;
+  overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 2rem 1rem;
-  background: #fff7ed;
   font-family: 'Inter', sans-serif;
+  background: radial-gradient(1200px 600px at 10% -10%, #fff0e0 0%, transparent 60%),
+    radial-gradient(1200px 600px at 110% 10%, #ffe6ff 0%, transparent 55%),
+    linear-gradient(180deg, #ffffff 0%, #fffaf5 100%);
 }
 
 .feedback-card {
   width: 100%;
-  max-width: 650px;
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  padding: 2.5rem;
-  transition: transform 0.2s ease;
+  max-width: 700px;
+  padding: 2.75rem;
+  border-radius: 22px;
+  backdrop-filter: blur(22px);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.08),
+    0 4px 8px rgba(255, 168, 88, 0.25);
+  /* subtle brand tint */
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
 }
 
 .feedback-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-6px);
+  box-shadow:
+    0 24px 50px rgba(0, 0, 0, 0.12),
+    0 6px 14px rgba(255, 168, 88, 0.35);
 }
 
 .header-section {
@@ -212,19 +200,15 @@ const goToHome = () => router.push({ name: 'home' })
 }
 
 .icon-circle {
-  width: 60px;
-  height: 60px;
-  background: #ffedd5;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 1rem auto;
-  font-size: 1.5rem;
-}
-
-.header-icon {
-  font-size: 1.8rem;
+  margin: 0 auto 1.15rem;
+  background: linear-gradient(135deg, #ffb45c, #ff8a3d);
+  box-shadow: 0 6px 18px rgba(255, 136, 0, 0.35);
 }
 
 .title {
@@ -303,5 +287,82 @@ const goToHome = () => router.push({ name: 'home' })
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* === Decorative Animated Blobs (copied from ProfileSettingsView) === */
+.bg-blob {
+  position: absolute;
+  filter: blur(40px);
+  opacity: 0.35;
+  border-radius: 50%;
+  animation: floaty 12s ease-in-out infinite;
+  pointer-events: none;
+  /* so they never block clicking UI */
+}
+
+.blob-1 {
+  width: 360px;
+  height: 360px;
+  top: -80px;
+  left: -80px;
+  background: linear-gradient(135deg, #ffb85c, #ff7d7d);
+}
+
+.blob-2 {
+  width: 300px;
+  height: 300px;
+  top: 20%;
+  right: -100px;
+  background: linear-gradient(135deg, #9ecbff, #b49bff);
+  animation-delay: 2s;
+}
+
+.blob-3 {
+  width: 260px;
+  height: 260px;
+  bottom: -80px;
+  left: 20%;
+  background: linear-gradient(135deg, #ffef9e, #ffa7d1);
+  animation-delay: 4s;
+}
+
+@keyframes floaty {
+
+  0%,
+  100% {
+    transform: translateY(0)
+  }
+
+  50% {
+    transform: translateY(-16px)
+  }
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 168, 88, 0.25);
+  border-radius: 16px;
+  padding: 20px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px rgba(255, 152, 0, 0.08), 0 2px 12px rgba(0, 0, 0, 0.05);
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 36px rgba(255, 152, 0, 0.14), 0 3px 14px rgba(0, 0, 0, 0.06);
+  border-color: rgba(255, 152, 0, 0.45);
+}
+
+.divider {
+  border: none;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(255, 150, 50, 0.45), transparent);
+  margin: 1.75rem 0 2rem;
+}
+
+.icon-circle .header-icon {
+  font-size: 1.8rem !important;
+  line-height: 1;
 }
 </style>
