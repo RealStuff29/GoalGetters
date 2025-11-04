@@ -25,7 +25,7 @@
             optionLabel="label"
             optionValue="value"
             placeholder="Select a feature area"
-            class="w-full rounded-input"
+            class="w-full rounded-input dropdown-orange"
           />
         </div>
 
@@ -55,21 +55,21 @@
             @click="submitFeedback"
             label="Send Feedback"
             icon="pi pi-send"
-            class="p-button-success p-button-rounded hover-button"
+            class="p-button p-button-rounded hover-button"
           />
           <Button
             :disabled="submitting"
             @click="clearForm"
             label="Clear Form"
             icon="pi pi-refresh"
-            class="p-button-secondary p-button-rounded hover-button"
+            class="p-button p-button-rounded hover-button"
           />
           <Button
             :disabled="submitting"
             @click="goToHome"
             label="Back to Home"
             icon="pi pi-home"
-            class="p-button-info p-button-rounded hover-button"
+            class="p-button p-button-rounded hover-button"
           />
         </div>
       </div>
@@ -188,7 +188,7 @@ const goToHome = () => router.push({ name: 'home' })
   justify-content: center;
   align-items: center;
   padding: 2rem 1rem;
-  background: #f5f5f7;
+  background: #fff7ed; /* light orange background */
   font-family: 'Inter', sans-serif;
 }
 
@@ -214,7 +214,7 @@ const goToHome = () => router.push({ name: 'home' })
 .icon-circle {
   width: 60px;
   height: 60px;
-  background: #e0f2fe;
+  background: #ffedd5; /* light orange accent */
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -225,16 +225,17 @@ const goToHome = () => router.push({ name: 'home' })
 
 .header-icon {
   font-size: 1.8rem;
+  color: #ea580c; /* deep orange */
 }
 
 .title {
   font-size: 1.85rem;
   font-weight: 700;
-  color: #111827;
+  color: #7c2d12;
 }
 
 .subtitle {
-  color: #6b7280;
+  color: #9a3412;
   font-size: 1rem;
   margin-top: 0.25rem;
 }
@@ -247,24 +248,36 @@ const goToHome = () => router.push({ name: 'home' })
   font-weight: 600;
   display: block;
   margin-bottom: 0.5rem;
-  color: #111827;
+  color: #7c2d12;
 }
 
 .rounded-input {
   border-radius: 10px;
 }
 
+.dropdown-orange >>> .p-dropdown {
+  border: 1px solid #fb923c !important;
+}
+
+.dropdown-orange >>> .p-dropdown:hover {
+  border-color: #f97316 !important;
+}
+
+.dropdown-orange >>> .p-dropdown-label {
+  color: #7c2d12 !important;
+}
+
 .textarea-input {
   width: 100%;
   min-height: 140px;
   padding: 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid #f97316;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .textarea-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  border-color: #ea580c;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.25);
 }
 
 .rating-input {
@@ -275,6 +288,7 @@ const goToHome = () => router.push({ name: 'home' })
 .rating-large .pi-star-o {
   font-size: 3rem !important;
   margin-right: 0.5rem;
+  color: #fb923c; /* orange rating stars */
 }
 
 .button-group {
@@ -285,9 +299,17 @@ const goToHome = () => router.push({ name: 'home' })
   margin-top: 1rem;
 }
 
+.hover-button {
+  background-color: #f97316 !important;
+  border: none !important;
+  color: white !important;
+  transition: all 0.2s ease;
+}
+
 .hover-button:hover {
+  background-color: #ea580c !important;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
 }
 
 .message-box {
@@ -301,8 +323,8 @@ const goToHome = () => router.push({ name: 'home' })
   font-weight: 600;
   z-index: 9999;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.95);
-  color: #111827;
+  background: #ffedd5;
+  color: #7c2d12;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 </style>
