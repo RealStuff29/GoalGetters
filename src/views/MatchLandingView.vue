@@ -51,8 +51,7 @@
     <div v-else-if="store.stage === 'notfound'" class="match-notfound">
       <h2 class="match-title-sm">No Match Found 😞</h2>
       <p class="match-subtitle">
-        Nobody met the minimum compatibility score (≥ 200) right now.
-        You can try again later — we kept your availability.
+        You can try again later
       </p>
       <Button class="mt-4" label="Try Again" @click="backToLanding" />
     </div>
