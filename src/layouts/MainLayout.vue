@@ -52,10 +52,8 @@ function handleHomeNav() {
   }
 }
 
-// Only show MatchChat when there’s a room / accepted decision / already in chat
-const showMatchChat = computed(() => {
-  return Boolean(store.currentMatchId) || store.resultAccepted || store.stage === 'chat'
-})
+// Only show MatchChat when users are actually in chat (both accepted and entered chat)
+const showMatchChat = computed(() => store.stage === 'chat')
 </script>
 
 <template>
@@ -77,7 +75,7 @@ const showMatchChat = computed(() => {
           <RouterLink to="/matchlandingview" class="nav-link">Matchmake Now</RouterLink>
           <RouterLink to="/feedbackview" class="nav-link">Feedback</RouterLink>
 
-          <!-- ⬇️ Only show when there’s a match / chat -->
+          <!-- ⬇️ Only show when actually in chat -->
           <RouterLink
             v-if="showMatchChat"
             to="/matchchatview"

@@ -1,4 +1,3 @@
-<!-- src/views/MatchLandingView.vue -->
 <template>
   <!-- Hide everything while resuming to avoid any UI flash -->
   <div v-if="!isResuming" class="match-landing-container">
@@ -235,7 +234,8 @@ async function onStart() {
 
 <style scoped>
 /* ---------- Warm Sunrise Theme ---------- */
-:host {
+/* NOTE: moved from :host ➜ .match-landing-container so variables actually apply */
+.match-landing-container {
   /* warm palette */
   --sun-bg-1: #fff7e6;   /* light peach */
   --sun-bg-2: #fff0cc;   /* pale amber */
@@ -328,7 +328,6 @@ async function onStart() {
   mask:
     linear-gradient(#000 0 0) padding-box,
     linear-gradient(#000 0 0);
-  /* For multiple layers, this defines how they combine: exclude = punch out */
   mask-composite: exclude;
 
   /* WebKit/Safari */
@@ -388,11 +387,11 @@ async function onStart() {
 .logo-glow {
   position: absolute; inset: -10%;
   border-radius: 28px;
-  background: radial-gradient(60% 60% at 50% 60%, rgba(255, 183, 3, 0.35), transparent 60%),
+  background: radial-gradient(90% 90% at 40% 70%, rgba(255, 183, 3, 0.35), transparent 10%),
               radial-gradient(45% 45% at 60% 35%, rgba(251, 133, 0, 0.25), transparent 60%);
   filter: blur(16px);
   pointer-events: none;
-  animation: glow-pulse 2.6s ease-in-out infinite;
+  animation: glow-pulse 2.5s ease-in-out infinite;
 }
 @keyframes glow-pulse {
   0%,100% { opacity: .55; }
@@ -413,7 +412,7 @@ async function onStart() {
   animation: shine 1.1s ease .25s 1;
 }
 .logo-hero:hover .logo-shine::after {
-  animation: shine 1s ease 0s 1;
+  animation: shine 2s ease 0s 1;
 }
 @keyframes shine {
   to { transform: translateX(130%) rotate(12deg); }
@@ -505,10 +504,11 @@ async function onStart() {
 .slot-btn:hover .ripple { opacity: 1; }
 
 /* ---------- Primary Start Button (PrimeVue) ---------- */
-.start-btn :deep(button) {
+/* IMPORTANT: <Button class="start-btn" /> renders <button class="p-button start-btn"> — no child .p-button */
+.start-btn.p-button {
   position: relative;
-  background: linear-gradient(90deg, #22c55e, #16a34a 55%, #0ea5a0);
-  border-color: transparent;
+  background: linear-gradient(90deg, #22c55e, #62e492 55%, #15eae3) !important;
+  border-color: transparent !important;
   color: #082b12;
   font-weight: 900;
   letter-spacing: .2px;
@@ -520,7 +520,7 @@ async function onStart() {
 }
 
 /* Shine sweep */
-.start-btn :deep(button)::after {
+.start-btn.p-button::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -531,22 +531,25 @@ async function onStart() {
   transition: transform .6s ease;
 }
 
-.start-btn:hover :deep(button) {
-  background: linear-gradient(90deg, #34d399, #22c55e 55%, #10b981);
+/* Hover */
+.start-btn.p-button:hover {
+  background: linear-gradient(90deg, #34d399, #22c55e 55%, #10b981) !important;
   box-shadow: 0 20px 38px rgba(34, 197, 94, 0.4), inset 0 -2px 0 rgba(0,0,0,0.08);
   transform: translateY(-2px);
   filter: saturate(1.05);
 }
 
-.start-btn:active :deep(button) {
+/* Active */
+.start-btn.p-button:active {
   transform: translateY(0);
-  box-shadow: 0 10px 22px rgba(34, 197, 94, 0.3), inset 0 -2px 0 rgba(0,0,0,0.12);
+  box-shadow: 0 10px 22px rgba(143, 206, 166, 0.3), inset 0 -2px 0 rgba(0,0,0,0.12);
 }
 
-.start-btn :deep(button:disabled) {
-  background: linear-gradient(90deg, rgba(52, 211, 153, 0.55), rgba(34, 197, 94, 0.55));
-  border-color: rgba(16, 185, 129, 0.35);
-  color: rgba(8, 43, 18, 0.7);
+/* Disabled */
+.start-btn.p-button:disabled {
+  background: linear-gradient(90deg, rgba(52, 211, 153, 0.55), rgba(34, 197, 94, 0.55)) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+  color: rgba(95, 175, 118, 0.7);
   cursor: not-allowed;
   box-shadow: none;
 }
@@ -617,13 +620,13 @@ async function onStart() {
 
 /* ---------- Not Found ---------- */
 .match-notfound { text-align: center; max-width: 520px; margin: 0 auto; color: var(--sun-brown); }
-.ghost-btn :deep(button) {
+.ghost-btn :deep(.p-button) {
   background: transparent;
   color: #fb8500;
   border: 1px dashed rgba(251,133,0,.55);
   border-radius: 10px;
 }
-.ghost-btn:hover :deep(button) {
+.ghost-btn:hover :deep(.p-button) {
   background: rgba(255, 183, 3, 0.12);
 }
 
@@ -652,7 +655,6 @@ async function onStart() {
   box-shadow: 0 18px 40px rgba(251, 133, 0, 0.25);
 }
 
-
 .notice-close {
   background: transparent;
   border: none;
@@ -661,7 +663,6 @@ async function onStart() {
   color: inherit;
   margin-left: auto;
 }
-
 
 /* ---------- Micro motions ---------- */
 .fx-rise { animation: fx-rise .4s ease both; }

@@ -5,12 +5,12 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
 //To create a persist state that fixes hard refreshing bug during matchmaking
-import { createPinia } from 'pinia'
-import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 
-const pinia = createPinia()
-pinia.use(piniaPluginPersistedstate)
-
+ // Pinia + persist
+ import { createPinia } from 'pinia'
+ import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+ const pinia = createPinia()
+ pinia.use(piniaPluginPersistedstate)
 
 //bootstrap
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -64,14 +64,17 @@ app.use(PrimeVue, {
     options: {
       prefix: 'p',
       darkModeSelector: 'system',
-      cssLayer: false
+      // enable CSS Layers so your SFC overrides can sit after the theme cleanly
+      cssLayer: true
     }
   }
 });
-app.use(ToastService)
+
+app.use(ToastService);
 
 
-app.use(createPinia())
+
+app.use(pinia)
 
 //Importing PrimeVue components we want to use
 import Button from "primevue/button"
@@ -163,5 +166,7 @@ app.component('Skeleton', Skeleton)
 app.component('Toast', Toast)
 
 
-app.mount('#app');
+router.isReady().then(() => {
+  app.mount('#app')
+})
 

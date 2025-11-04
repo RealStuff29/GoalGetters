@@ -73,7 +73,7 @@
                         <div v-if="commonModules.length" class="tags-container">
                           <Tag v-for="m in commonModules" :key="m" severity="secondary" :value="m" class="mr-2 mb-2 tag-hover" />
                         </div>
-                        <small v-else class="opacity-70">They have no common modules.</small>
+                        <small v-else class="opacity-70">You have no common modules.</small>
                       </div>
                     </div>
 
