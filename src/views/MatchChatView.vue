@@ -1,6 +1,5 @@
 <!-- src/views/MatchChatView.vue -->
 <template>
-  <Toast position="top-center" />
   <div class="bg-aura" aria-hidden="true"></div>
   <div class="float float-1" aria-hidden="true"></div>
   <div class="float float-2" aria-hidden="true"></div>
@@ -393,8 +392,6 @@ import { useMatchStore } from '@/stores/match'
 import { degrees } from '@/constants/degrees'
 import { supabase } from '@/lib/supabase'
 import StudySpotMap from './StudySpotMap.vue'
-import Toast from 'primevue/toast'
-import { useToast } from 'primevue/usetoast'
 
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
@@ -405,7 +402,6 @@ import TabPanel from 'primevue/tabpanel';
 // ---- study details helpers ----
 const myProfile = ref<any | null>(null)
 const partnerProfile = ref<any | null>(null)
-const toast = useToast()
 
 const SLOT_LABELS = {
   slot_morning:  'Morning (8:30am - 11:30am)',
@@ -518,38 +514,10 @@ watch(
         const rid = await store.endCurrentSession('Time’s up for this slot. Session ended.')
         if (rid) router.replace({ name: 'matchreview', params: { id: rid } })
         else router.replace({ name: 'matchreview' })
-        stopFaviconAlarm()
       })
     }
   },
   { immediate: true, flush: 'post' } // ensure it runs after DOM/reactivity settles
-)
-// ===== ADD: 15-minute trigger =====
-watch(
-  () => store.sessionSecondsLeft,
-  (secs) => {
-    if (
-      secs !== null &&
-      secs <= 900 && secs > 0 &&
-      store.myVerified && store.partnerVerified &&
-      !hasWarned15.value
-    ) {
-      hasWarned15.value = true
-      toast.add({
-        severity: 'warn',
-        summary: '15 minutes remaining',
-        detail: 'Your session is ending soon. Wrap up or plan next steps.',
-        life: 6000
-      })
-      // Optional mobile buzz:
-      // if (navigator.vibrate) navigator.vibrate([120, 60, 120])
-      startFaviconAlarm()
-    }
-    if (secs !== null && secs <= 0) {
-      stopFaviconAlarm()
-    }
-  },
-  { immediate: true }
 )
 
 //extra guard: if sessionId pops in after both flags are already true
@@ -640,7 +608,6 @@ const formatTime = (timestamp: string) => {
 let roomCloseChannel: ReturnType<typeof supabase.channel> | null = null
   // ADD this helper
 async function endForBoth() {
-  stopFaviconAlarm()
   try {
     const roomId = store.currentMatchId || store.match?.id
     if (!roomId) return
@@ -753,7 +720,6 @@ onMounted(async () => {
         }
         await store.forceLeaveChat('Match Declined, Sorry about that!')
         router.replace({ name: 'matchlanding' })
-        stopFaviconAlarm()
       }
     }, 2000) as unknown as number
   }
@@ -777,11 +743,9 @@ async function copyCode() {
 
 // ======= ADDED CODE =========
 async function endAndReview() {
-  stopFaviconAlarm()
   const rid = await store.endCurrentSession('Previous Match Session has ended.')
   if (rid) router.replace({ name: 'matchreview', params: { id: rid } })
   else router.replace({ name: 'matchreview' })
-
 }
 // ======= END OF CODE =========
 
@@ -802,75 +766,7 @@ onUnmounted(() => {
   }
   store.teardownVerification()
   store.stopSessionSlotTimer()
-  stopFaviconAlarm()
 })
-// ===== 15-MINUTE WARNING + FAVICON ALARM (ADD) =====
-const hasWarned15 = ref(false)
-let faviconTimer: number | null = null
-let originalFaviconHref: string | null = null
-let alarmFrameA = ''
-let alarmFrameB = ''
-
-function getFaviconLink(): HTMLLinkElement {
-  let link = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null
-  if (!link) {
-    link = document.createElement('link')
-    link.rel = 'icon'
-    document.head.appendChild(link)
-  }
-  return link!
-}
-function setFavicon(href: string) {
-  const link = getFaviconLink()
-  link.type = 'image/png'
-  link.href = href
-}
-function makeFaviconDataURL(emoji: string, bg?: string) {
-  const size = 64
-  const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = size
-  const ctx = canvas.getContext('2d')!
-  if (bg) {
-    ctx.fillStyle = bg
-    ctx.beginPath()
-    ctx.arc(size/2, size/2, size/2, 0, Math.PI*2)
-    ctx.fill()
-  } else {
-    ctx.clearRect(0, 0, size, size)
-  }
-  ctx.font = '42px system-ui, Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText('⏰', size/2, size/2 + 2)
-  return canvas.toDataURL('image/png')
-}
-function prepareAlarmFrames() {
-  alarmFrameA = makeFaviconDataURL('⏰', '#e53935') // red
-  alarmFrameB = makeFaviconDataURL('⏰', '#fb8c00') // orange
-}
-function startFaviconAlarm() {
-  if (faviconTimer) return
-  const link = getFaviconLink()
-  if (!originalFaviconHref) originalFaviconHref = link?.href || ''
-  if (!alarmFrameA || !alarmFrameB) prepareAlarmFrames()
-  let toggle = false
-  setFavicon(alarmFrameA)
-  faviconTimer = window.setInterval(() => {
-    setFavicon(toggle ? alarmFrameA : alarmFrameB)
-    toggle = !toggle
-  }, 700) as unknown as number
-}
-function stopFaviconAlarm() {
-  if (faviconTimer) {
-    clearInterval(faviconTimer)
-    faviconTimer = null
-  }
-  if (originalFaviconHref !== null) {
-    setFavicon(originalFaviconHref || '')
-    originalFaviconHref = null
-  }
-}
 </script>
 
 <style scoped>
