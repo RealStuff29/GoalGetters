@@ -21,17 +21,20 @@
             <div class="frame-glow" aria-hidden="true">
               <Card class="partner-card">
                 <template #content>
-                  <div class="flex items-center gap-3">
-                    <div>
-                      <div class="font-medium">
-                        <Avatar :label="store.partnerInitials" shape="circle" class="partner-avatar" />
-                        {{ store.match.partner.name || 'Study partner' }}
+                  <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                      <Avatar :label="store.partnerInitials" shape="circle" class="partner-avatar" />
+                      <div>
+                        <div class="font-medium">
+                          {{ store.match.partner.name || 'Study partner' }}
+                        </div>
+                        <small class="opacity-70 online-indicator">
+                          <span class="pulse-dot"></span>
+                          Online now
+                        </small>
                       </div>
-                      <small class="opacity-70 online-indicator">
-                        <span class="pulse-dot"></span>
-                        Online now
-                      </small>
                     </div>
+                    <Button outlined class="find-match-btn" :icon="pi('refresh')" label="Find Another Match" @click="endForBoth" />
                   </div>
                 </template>
               </Card>
@@ -181,201 +184,218 @@
                 </small>
               </template>
             </Card>
-
-            <Button outlined class="w-full find-match-btn" :icon="pi('refresh')" label="Find Another Match" @click="endForBoth" />
           </div>
         </TabPanel>
 
         <!-- Tab 1: Chat & Map -->
         <TabPanel value="1">
-          <div class="grid lg:grid-cols-2 gap-6">
-            <!-- Left: Chat -->
-            <Card class="chat-card">
-              <template #title>
-                <span class="text-base font-medium card-title-glow">
-                  <i :class="pi('comments')" style="margin-right: 8px;" />
-                  Chat
-                </span>
-              </template>
-              <template #content>
-                <div class="chat-wrapper">
-                  <!-- Messages Area - THIS IS THE SCROLLABLE SECTION -->
-                  <div class="messages-container" ref="chatScroller">
-                    <!-- Loading State -->
-                    <div v-if="isLoadingMessages" class="flex items-center justify-center h-full opacity-70 loading-state">
-                      <i class="pi pi-spin pi-spinner mr-2 spinner-icon"></i>
-                      Loading messages...
-                    </div>
-                    
-                    <!-- No Messages -->
-                    <div v-else-if="store.messages.length === 0" class="flex items-center justify-center h-full opacity-70 no-messages">
-                      <div class="text-center">
-                        <i :class="pi('comment')" class="text-4xl mb-2 empty-icon"></i>
-                        <div>No messages yet. Say hi! 👋</div>
+          <div class="space-y-4">
+            <!-- Full Width: Partner Status Card at Top -->
+            <div class="frame-glow" aria-hidden="true">
+              <Card class="partner-card">
+                <template #content>
+                  <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                      <Avatar :label="store.partnerInitials" shape="circle" class="partner-avatar" />
+                      <div>
+                        <div class="font-medium">
+                          {{ store.match.partner.name || 'Study partner' }}
+                        </div>
+                        <small class="opacity-70 online-indicator">
+                          <span class="pulse-dot"></span>
+                          Online now
+                        </small>
                       </div>
                     </div>
-                    
-                    <!-- Messages -->
-                    <div v-else class="space-y-3">
-                      <div v-for="m in store.messages" :key="m.id" class="message-item">
-                        <div :class="m.from === 'me' ? 'message-right' : 'message-left'">
-                          <div :class="m.from === 'me' ? 'message-content-right' : 'message-content-left'">
-                            <div
-                              :class="[
-                                'message-bubble',
-                                m.from === 'me' ? 'message-bubble-me' : 'message-bubble-partner'
-                              ]"
-                            >
-                              {{ m.text }}
-                            </div>
-                            <div class="text-xs opacity-50 mt-1 message-time">
-                              {{ formatTime(m.created_at) }}
+                    <Button outlined class="find-match-btn" :icon="pi('refresh')" label="Find Another Match" @click="endForBoth" />
+                  </div>
+                </template>
+              </Card>
+            </div>
+
+            <!-- Two Column Layout: Chat (Left) and Map (Right) -->
+            <div class="grid lg:grid-cols-2 gap-6">
+              <!-- Left: Chat -->
+              <Card class="chat-card">
+                <template #title>
+                  <span class="text-base font-medium card-title-glow">
+                    <i :class="pi('comments')" style="margin-right: 8px;" />
+                    Chat
+                  </span>
+                </template>
+                <template #content>
+                  <div class="chat-wrapper">
+                    <!-- Messages Area - THIS IS THE SCROLLABLE SECTION -->
+                    <div class="messages-container" ref="chatScroller">
+                      <!-- Loading State -->
+                      <div v-if="isLoadingMessages" class="flex items-center justify-center h-full opacity-70 loading-state">
+                        <i class="pi pi-spin pi-spinner mr-2 spinner-icon"></i>
+                        Loading messages...
+                      </div>
+                      
+                      <!-- No Messages -->
+                      <div v-else-if="store.messages.length === 0" class="flex items-center justify-center h-full opacity-70 no-messages">
+                        <div class="text-center" style="padding-top: 1rem;">
+                          <i :class="pi('comment')" class="text-4xl mb-2 empty-icon"></i>
+                          <div>
+                            No messages yet. Say hi! 👋</div>
+                        </div>
+                      </div>
+                      
+                      <!-- Messages -->
+                      <div v-else class="space-y-3">
+                        <div v-for="m in store.messages" :key="m.id" class="message-item">
+                          <div :class="m.from === 'me' ? 'message-right' : 'message-left'">
+                            <div :class="m.from === 'me' ? 'message-content-right' : 'message-content-left'">
+                              <div
+                                :class="[
+                                  'message-bubble',
+                                  m.from === 'me' ? 'message-bubble-me' : 'message-bubble-partner'
+                                ]"
+                              >
+                                {{ m.text }}
+                              </div>
+                              <div class="text-xs opacity-50 mt-1 message-time">
+                                {{ formatTime(m.created_at) }}
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <Divider class="my-3 chat-divider" />
-                  
-                  <!-- Input Area - FIXED AT BOTTOM -->
-                  <div class="input-area">
-                    <InputText
-                      v-model="store.draft"
-                      placeholder="Type a message..."
-                      class="flex-1 chat-input"
-                      @keyup.enter="send"
-                      :disabled="isSending"
-                    />
-                    <Button 
-                      size="medium" 
-                      @click="send" 
-                      icon="pi pi-send" 
-                      label="Send"
-                      :disabled="!store.draft.trim() || isSending"
-                      :loading="isSending"
-                      class="send-btn"
-                    />
-                  </div>
-                </div>
-              </template>
-            </Card>
-
-            <!-- Right: Map and Suggestions -->
-            <div class="space-y-4">
-              <Card class="map-card">
-                <template #title>
-                  <span class="text-base font-medium card-title-glow">
-                    <i :class="pi('map-marker')" class="mr-2" /> Nearby Study Locations
-                  </span>
-                </template>
-                <template #content>
-                  <div class="map-wrapper" style="margin-top: 0;">
-                    <StudySpotMap
-                      ref="mapRef"
-                      :api-key="YOUR_GOOGLE_MAPS_API_KEY"
-                      height="400px"
-                      @places-updated="handlePlacesUpdate"
-                    />
+                    <Divider class="my-3 chat-divider" />
+                    
+                    <!-- Input Area - FIXED AT BOTTOM -->
+                    <div class="input-area">
+                      <InputText
+                        v-model="store.draft"
+                        placeholder="Type a message..."
+                        class="flex-1 chat-input"
+                        @keyup.enter="send"
+                        :disabled="isSending"
+                      />
+                      <Button 
+                        size="medium" 
+                        @click="send" 
+                        icon="pi pi-send" 
+                        label="Send"
+                        :disabled="!store.draft.trim() || isSending"
+                        :loading="isSending"
+                        class="send-btn"
+                      />
+                    </div>
                   </div>
                 </template>
               </Card>
 
-              <Card :key="studySpots.length" class="spots-card">
-                <template #title>
-                  <div>
-                    <div class="text-base font-medium card-title-glow">
-                      <i :class="pi('building')" />
-                      Suggested Study Spots
+              <!-- Right: Map and Suggestions -->
+              <div class="space-y-4">
+                <Card class="map-card">
+                  <template #title>
+                    <span class="text-base font-medium card-title-glow">
+                      <i :class="pi('map-marker')" class="mr-2" /> Nearby Study Locations
+                    </span>
+                  </template>
+                  <template #content>
+                    <div class="map-wrapper" style="margin-top: 0;">
+                      <StudySpotMap
+                        ref="mapRef"
+                        :api-key="YOUR_GOOGLE_MAPS_API_KEY"
+                        height="400px"
+                        @places-updated="handlePlacesUpdate"
+                      />
                     </div>
-                    <small class="opacity-70 spots-count">
-                      <i :class="pi('check-circle')" class="mr-1" style="margin-right: 5px;"/>
-                      {{ studySpots.length }} spots found
-                    </small>
-                  </div>
-                </template>
-                <template #content>
-                  <div v-if="studySpots.length === 0" class="text-center p-4 opacity-70 empty-spots">
-                    <i :class="pi('search')" class="text-3xl mb-2 empty-icon"></i>
-                    <div>Search for a location to find study spots</div>
-                  </div>
-                  <div v-else>
-                    <div class="space-y-4 mb-3">
-                      <div
-                        v-for="spot in paginatedSpots"
-                        :key="spot.place_id"
-                        class="spot-item"
-                      >
-                        <div class="flex-1">
-                          <div class="font-medium spot-name">{{ spot.name }}</div>
-                          <small class="opacity-70 block spot-address">
-                            {{ spot.vicinity || spot.formatted_address }}
-                          </small>
-                          <small v-if="spot.rating" class="spot-rating">
-                            ★ {{ spot.rating }}
-                            {{ spot.user_ratings_total ? `(${spot.user_ratings_total} reviews)` : '' }}
-                          </small>
-                        </div>
-                        <div class="flex gap-3 spot-actions">
-                          <Button
-                            outlined
-                            size="small"
-                            icon="pi pi-map-marker"
-                            label="View"
-                            @click="focusOnSpot(spot)"
-                            class="spot-btn"
-                          />
-                          <Button
-                            outlined
-                            size="small"
-                            icon="pi pi-plus"
-                            label="Suggest"
-                            @click="suggestSpot(spot)"
-                            class="spot-btn"
-                          />
+                  </template>
+                </Card>
+
+                <Card :key="studySpots.length" class="spots-card">
+                  <template #title>
+                    <div>
+                      <div class="text-base font-medium card-title-glow">
+                        <i :class="pi('building')" />
+                        Suggested Study Spots
+                      </div>
+                      <small class="opacity-70 spots-count">
+                        <i :class="pi('check-circle')" class="mr-1" style="margin-right: 5px;"/>
+                        {{ studySpots.length }} spots found
+                      </small>
+                    </div>
+                  </template>
+                  <template #content>
+                    <div v-if="studySpots.length === 0" class="text-center p-4 opacity-70 empty-spots">
+                      <i :class="pi('search')" class="text-3xl mb-2 empty-icon"></i>
+                      <div>Search for a location to find study spots</div>
+                    </div>
+                    <div v-else>
+                      <div class="space-y-4 mb-3">
+                        <div
+                          v-for="spot in paginatedSpots"
+                          :key="spot.place_id"
+                          class="spot-item"
+                        >
+                          <div class="flex-1">
+                            <div class="font-medium spot-name">{{ spot.name }}</div>
+                            <small class="opacity-70 block spot-address">
+                              {{ spot.vicinity || spot.formatted_address }}
+                            </small>
+                            <small v-if="spot.rating" class="spot-rating">
+                              ★ {{ spot.rating }}
+                              {{ spot.user_ratings_total ? `(${spot.user_ratings_total} reviews)` : '' }}
+                            </small>
+                          </div>
+                          <div class="flex gap-3 spot-actions">
+                            <Button
+                              outlined
+                              size="small"
+                              icon="pi pi-map-marker"
+                              label="View"
+                              @click="focusOnSpot(spot)"
+                              class="spot-btn"
+                            />
+                            <Button
+                              outlined
+                              size="small"
+                              icon="pi pi-plus"
+                              label="Suggest"
+                              @click="suggestSpot(spot)"
+                              class="spot-btn"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  <!-- Pagination Controls -->
-                  <div class="pagination-controls" v-if="studySpots.length > 0">
-                    <Button
-                      :disabled="currentPage === 1"
-                      @click="currentPage--"
-                      icon="pi pi-chevron-left"
-                      text
-                      size="small"
-                      label="Previous"
-                      class="pagination-btn"
-                    />
-                    <small class="opacity-70 page-info">
-                      Page {{ currentPage }} of {{ totalPages }}
-                    </small>
-                    <Button
-                      :disabled="currentPage === totalPages"
-                      @click="currentPage++"
-                      icon="pi pi-chevron-right"
-                      iconPos="right"
-                      text
-                      size="small"
-                      label="Next"
-                      class="pagination-btn"
-                    />
-                  </div>
-                </template>
-              </Card>
+                    <!-- Pagination Controls -->
+                    <div class="pagination-controls" v-if="studySpots.length > 0">
+                      <Button
+                        :disabled="currentPage === 1"
+                        @click="currentPage--"
+                        icon="pi pi-chevron-left"
+                        text
+                        size="small"
+                        label="Previous"
+                        class="pagination-btn"
+                      />
+                      <small class="opacity-70 page-info">
+                        Page {{ currentPage }} of {{ totalPages }}
+                      </small>
+                      <Button
+                        :disabled="currentPage === totalPages"
+                        @click="currentPage++"
+                        icon="pi pi-chevron-right"
+                        iconPos="right"
+                        text
+                        size="small"
+                        label="Next"
+                        class="pagination-btn"
+                      />
+                    </div>
+                  </template>
+                </Card>
+              </div>
             </div>
           </div>
         </TabPanel>
-        <Button 
-          outlined 
-          class="w-full find-match-btn" 
-          style="margin-top: 10px;"
-          :icon="pi('refresh')" 
-          label="Find Another Match" 
-          @click="endForBoth" 
-        />
       </TabPanels>
     </Tabs>
   </div>
@@ -804,7 +824,7 @@ onUnmounted(() => {
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 0.5rem;
-  min-height: 0; /* Important for flex scrolling */
+  max-height: 520px; /* Important for flex scrolling */
 }
 
 .space-y-3 > * + * {
@@ -1177,7 +1197,7 @@ onUnmounted(() => {
 .chat-card {
   background: linear-gradient(135deg, #fff8f0 0%, #ffffff 50%, #fff5e6 100%);
   border: 2px solid #ffe0b2 !important;
-  height: 844px;
+  height: 700px;
   transition: all 0.3s ease;
   box-shadow: 0 2px 12px rgba(255, 152, 0, 0.08);
   position: relative;
