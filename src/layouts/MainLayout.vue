@@ -155,6 +155,7 @@ const showMatchChat = computed(() => store.stage === 'chat')
   border: none;
   color: white !important;
   transition: all 0.3s ease;
+  border-radius: 50px;
 }
 
 .btn-gradient:hover {
@@ -167,6 +168,7 @@ const showMatchChat = computed(() => store.stage === 'chat')
   border: 1px solid rgba(255, 255, 255, 0.4);
   color: #333;
   transition: all 0.3s ease;
+  border-radius: 50px;
 }
 
 .btn-glass:hover {

@@ -687,6 +687,7 @@ onMounted(async () => {
 .feature-btn {
   color: #ff9800 !important;
   font-weight: 600 !important;
+  border-radius: 50px;
 }
 
 .feature-btn:hover {

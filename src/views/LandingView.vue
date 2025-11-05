@@ -26,9 +26,9 @@
 
                 <div class="hero-community">
                     <div class="community-avatars">
-                        <div class="avatar">G</div>
-                        <div class="avatar">G</div>
-                        <div class="avatar">G</div>
+                        <div class="avatar1">G</div>
+                        <div class="avatar2">G</div>
+                        <div class="avatar3">G</div>
                     </div>
                     <p class="community-text">Join 1000+ students achieving their goals together</p>
                 </div>
@@ -358,10 +358,38 @@ const changeQuote = () => {
     gap: -0.5rem;
 }
 
-.avatar {
+.avatar1 {
     width: 40px;
     height: 40px;
     background: linear-gradient(135deg, #ff9800, #f57c00);
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    margin-right: -10px;
+    box-shadow: 0 3px 8px rgba(255, 152, 0, 0.25);
+}
+
+.avatar2 {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #ff9500a9, #f57c00);
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    margin-right: -10px;
+    box-shadow: 0 3px 8px rgba(255, 152, 0, 0.25);
+}
+
+.avatar3 {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #ff95003e, #f57c00);
     border-radius: 50%;
     color: white;
     display: flex;
