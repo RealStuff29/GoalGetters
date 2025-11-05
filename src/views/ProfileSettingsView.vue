@@ -958,6 +958,7 @@ async function saveMbtiToProfile() {
   transform: translateY(0);
   transition: transform .08s ease, box-shadow .2s ease;
   box-shadow: 0 8px 18px rgba(255,152,0,0.18);
+  border-radius: 5px;
 }
 .btn-press:active { transform: translateY(2px); box-shadow: 0 4px 10px rgba(255,152,0,0.16); }
 

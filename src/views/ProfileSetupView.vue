@@ -172,7 +172,7 @@ async function handleSavePersonality() {
                 <i class="pi pi-info-circle">&nbsp;</i> Select a gender and tap “Shuffle” until you like the avatar
               </Message>
 
-              <Button label="Shuffle" @click="handleShuffle" class="mt-2" :disabled="!avatarLoaded" />
+              <Button label="Shuffle" @click="handleShuffle" class="mt-2" :disabled="!avatarLoaded" style="border-radius: 5px ;"/>
             </div>
 
             <!-- Gender -->
@@ -203,7 +203,7 @@ async function handleSavePersonality() {
               <div class="mx-auto w-100" style="max-width: 600px;">
                 <div class="d-flex flex-column flex-sm-row gap-2">
                   <InputText :value="username" readonly class="flex-grow-1" />
-                  <Button class="align-self-center align-self-sm-auto" icon="pi pi-sync" @click="randomiseUsername" />
+                  <Button class="align-self-center align-self-sm-auto" icon="pi pi-sync" @click="randomiseUsername" style="border-radius: 5px;"/>
                 </div>
 
                 <Message closable size="small" class="my-2" style="width: fit-content;">
@@ -215,7 +215,8 @@ async function handleSavePersonality() {
             <!-- Forward -->
             <div class="d-flex justify-content-center mt-5">
               <Button rounded raised aria-label="Next" icon="pi pi-angle-double-down" :disabled="!isStep1Valid"
-                @click="activateCallback('2')" />
+                @click="activateCallback('2')"
+                style="border-radius: 50px;" />
             </div>
           </div>
         </StepPanel>
@@ -227,7 +228,7 @@ async function handleSavePersonality() {
         <StepPanel v-slot="{ activateCallback }">
           <div class="form-container my-3">
             <div class="d-flex justify-content-center mb-5">
-              <Button rounded raised aria-label="Back" icon="pi pi-angle-double-up" @click="activateCallback('1')" />
+              <Button rounded raised aria-label="Back" icon="pi pi-angle-double-up" @click="activateCallback('1')" style="border-radius: 50px;" />
             </div>
 
             <!-- Degree -->
@@ -298,7 +299,8 @@ async function handleSavePersonality() {
             <!-- Next: save steps 1+2, then proceed to Step 3 -->
             <div class="d-flex justify-content-center mt-4">
               <Button label="Next" icon="pi pi-arrow-right" :disabled="!isStep2Valid || saving" :loading="saving"
-                @click="handleAcademicNext(activateCallback)" />
+                @click="handleAcademicNext(activateCallback)" 
+                style="border-radius: 5px;" />
             </div>
           </div>
         </StepPanel>
@@ -311,7 +313,7 @@ async function handleSavePersonality() {
         <StepPanel v-slot="{ activateCallback }">
           <div class="form-container my-3">
             <div class="d-flex justify-content-center mb-4">
-              <Button rounded raised aria-label="Back" icon="pi pi-angle-double-up" @click="activateCallback('2')" />
+              <Button rounded raised aria-label="Back" icon="pi pi-angle-double-up" @click="activateCallback('2')" style="border-radius: 50px;" />
             </div>
 
             <h5 class="fw-semibold mb-3">Tell us about yourself</h5>
@@ -343,7 +345,8 @@ async function handleSavePersonality() {
             <div class="d-flex justify-content-center my-4">
               <Button label="Compute Result" icon="pi pi-check-circle"
                 class="bg-orange-500 border-none hover:bg-orange-600 text-white" :disabled="!isStep3Answered || saving"
-                @click="handleComputeMbti" />
+                @click="handleComputeMbti" 
+                style="border-radius: 5px;" />
             </div>
 
             <!-- result -->
@@ -355,7 +358,8 @@ async function handleSavePersonality() {
             <!-- final save -->
             <div class="d-flex justify-content-center mt-4">
               <Button label="Save & Finish" icon="pi pi-check" :disabled="!mbtiResult || saving" :loading="saving"
-                @click="handleSavePersonality" />
+                @click="handleSavePersonality" 
+                style="border-radius: 50px;" />
             </div>
           </div>
         </StepPanel>
