@@ -126,12 +126,6 @@
             @click="submit"
           />
         </section>
-
-        <Transition name="fade">
-          <Message v-if="alreadySubmitted" severity="success" :closable="false" class="fx-pop">
-            Review submitted. Thank you for your feedback!
-          </Message>
-        </Transition>
       </div>
 
       <!-- kept for structure; drawing now uses global root -->
@@ -539,6 +533,13 @@ onMounted(async () => {
 .card-heading { font-size: 18px; font-weight: 700; }
 .tag-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .card-body { padding: 20px 24px 24px; }
+
+/* ---------- Toast ---------- */
+:global(.p-toast-detail) {
+  color: #1e293b !important; 
+  font-size: 0.875rem;
+}
+
 
 /* ---------- Sections & labels ---------- */
 .section-head { font-size: 14px; opacity: .9; margin-bottom: 10px; }
