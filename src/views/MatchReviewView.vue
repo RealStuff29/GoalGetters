@@ -142,6 +142,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { useToast } from 'primevue/usetoast'
 
+/* ---------- Router/Toast ---------- */
 const router = useRouter()
 const route = useRoute()
 const toast = useToast()
@@ -350,24 +351,20 @@ async function loadExistingReviewAndState() {
     .eq('sessid', sessid.value)
     .maybeSingle()
   if (error) throw error
-  if (!sRow) {
-    sessionEnded.value = null
-    return
-  }
 
-  sessionEnded.value = !!sRow.ended_at
-  startedAt.value = sRow.started_at ?? sRow.created_at ?? null
+  sessionEnded.value = !!sRow?.ended_at
+  startedAt.value = (sRow?.started_at ?? sRow?.created_at) ?? null
 
   if (iAmA.value) {
-    myRating.value = Number(sRow.rating_by_a ?? 0)
-    myComment.value = String(sRow.comment_by_a ?? '')
-    alreadySubmitted.value = !!sRow.rating_by_a
-    partnerRated.value = !!sRow.rating_by_b
+    myRating.value = Number(sRow?.rating_by_a ?? 0)
+    myComment.value = String(sRow?.comment_by_a ?? '')
+    alreadySubmitted.value = !!sRow?.rating_by_a
+    partnerRated.value = !!sRow?.rating_by_b
   } else {
-    myRating.value = Number(sRow.rating_by_b ?? 0)
-    myComment.value = String(sRow.comment_by_b ?? '')
-    alreadySubmitted.value = !!sRow.rating_by_b
-    partnerRated.value = !!sRow.rating_by_a
+    myRating.value = Number(sRow?.rating_by_b ?? 0)
+    myComment.value = String(sRow?.comment_by_b ?? '')
+    alreadySubmitted.value = !!sRow?.rating_by_b
+    partnerRated.value = !!sRow?.rating_by_a
   }
 }
 
@@ -423,14 +420,14 @@ onMounted(async () => {
 <style scoped>
 /* ---------- Background (soft, layered) ---------- */
 .review-shell {
-  min-height: 100dvh; /* ensure full viewport background */
+  min-height: 100dvh;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
-  align-content: start; /* stack from top, not center */
-  padding-block: 8px 12px; /* smaller top/bottom spacing */
-  padding-inline: 16px; /* keep side padding */
-  row-gap: 8px; /* space between header and card */
+  align-content: start;
+  padding-block: 8px 12px;
+  padding-inline: 16px;
+  row-gap: 8px;
 
   background:
     radial-gradient(1200px 380px at 50% -220px, rgba(24,119,242,.08), transparent 60%),
@@ -473,22 +470,22 @@ onMounted(async () => {
   width: 100%;
   max-width: 920px;
 
-  /* background: rgba(255,255,255,0.80); */
+  background: rgba(255,255,255,0.88);
   border: 1px solid rgba(255,168,88,0.25);
   border-radius: 16px;
   backdrop-filter: blur(10px);
 
   box-shadow: 0 10px 30px rgba(255,152,0,0.08), 0 2px 12px rgba(0,0,0,0.05);
   transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
-  overflow: hidden;               /* clip overlays to avoid “double border” illusion */
-  background-clip: padding-box;   /* keep bg out of the border area */
+  overflow: hidden;
+  background-clip: padding-box;
 }
 
-/* subtle brand pattern living INSIDE the card, away from the edges */
+/* inner brand pattern (kept off the 1px border) */
 .review-card::before {
   content: '';
   position: absolute;
-  inset: 2px;                     /* 2px gutter inside the 1px border */
+  inset: 2px;
   border-radius: 14px;
   pointer-events: none;
   z-index: 0;
@@ -497,10 +494,9 @@ onMounted(async () => {
     radial-gradient(rgba(24,119,242,.05) 1px, transparent 1.3px);
   background-size: 18px 18px, 28px 28px;
   background-position: 0 0, 6px 8px;
-  /* mask-image: linear-gradient(to bottom, rgba(0,0,0,0.25), rgba(0,0,0,0.15) 35%, transparent 75%); */
 }
 
-/* warm halo under the card */
+/* warm glow halo */
 .review-card::after {
   content: '';
   position: absolute;
@@ -508,10 +504,10 @@ onMounted(async () => {
   border-radius: 30px;
   pointer-events: none;
   z-index: -1;
-  /* background:
+  background:
     radial-gradient(420px 200px at 20% 0%, rgba(255,152,0,.20), transparent 60%),
     radial-gradient(520px 260px at 85% 10%, rgba(244,91,0,.16), transparent 65%),
-    radial-gradient(620px 320px at 50% 100%, rgba(24,119,242,.10), transparent 70%); */
+    radial-gradient(620px 320px at 50% 100%, rgba(24,119,242,.10), transparent 70%);
   filter: blur(26px);
 }
 
@@ -535,11 +531,7 @@ onMounted(async () => {
 .card-body { padding: 20px 24px 24px; }
 
 /* ---------- Toast ---------- */
-:global(.p-toast-detail) {
-  color: #1e293b !important; 
-  font-size: 0.875rem;
-}
-
+:global(.p-toast-detail) { color: #1e293b !important; font-size: 0.875rem; }
 
 /* ---------- Sections & labels ---------- */
 .section-head { font-size: 14px; opacity: .9; margin-bottom: 10px; }
@@ -555,7 +547,7 @@ onMounted(async () => {
 .rating-row { display: flex; align-items: center; gap: 12px; }
 .rating-anim { transform-origin: left center; animation: popIn .35s ease-out both .1s; }
 
-/* Bigger stars + interactions */
+/* PrimeVue Rating polish */
 .rating-enhanced :deep(.p-rating) { display: inline-flex; gap: 8px; }
 .rating-enhanced :deep(.p-rating-item) { transition: transform .15s ease; }
 .rating-enhanced :deep(.p-rating-icon) {
@@ -576,7 +568,7 @@ onMounted(async () => {
   animation: starPop .22s ease-out;
 }
 @keyframes starPop { 0%{transform:scale(1)} 40%{transform:scale(1.35)} 100%{transform:scale(1)} }
-.rating-enhanced.is-readonly :deep(.p-rating-icon) { cursor: default; }
+rating-enhanced.is-readonly :deep(.p-rating-icon) { cursor: default; }
 .rating-enhanced.is-readonly :deep(.p-rating-item:hover .p-rating-icon) { transform: none; filter: none; color: inherit; }
 
 .section-label {
@@ -622,7 +614,7 @@ onMounted(async () => {
   font-weight: 600;
 }
 
-/* Submit review button (verify-style sweep) */
+/* Submit review button */
 :deep(button.p-button.submit-review),
 :deep(.p-button.submit-review) {
   background: linear-gradient(135deg, #ff9800, #f45b00);
@@ -666,7 +658,7 @@ onMounted(async () => {
 :deep(.p-button.submit-review .p-button-label),
 :deep(.p-button.submit-review .p-button-icon) { color: #fff; }
 
-/* Textarea: force light look (prevents dark token spill) */
+/* Textarea: force light look */
 :deep(.p-inputtextarea) {
   background: #fff !important;
   color: #0f172a !important;
