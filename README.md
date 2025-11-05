@@ -73,11 +73,19 @@ Core features and the benefit each provides:
 
 Provide screenshots and captions showing how users interact with your app.
 
-1. **Landing Page**  
-   <img src="screenshots/landing.png" width="600">  
-   - Displays the homepage with navigation options.
+1. **Landing Page before login**  
+   <img src="screenshots/landing1.png" width="600">  
+   - Displays the homepage with navigation options before login.
 
-2. **Profile Setup Feature**  
+2. **Login Page**  
+   <img src="screenshots/login_page.png" width="600">  
+   - Displays the login page.
+
+3. **Landing Page after login**  
+   <img src="screenshots/landing2.png" width="600">  
+   - Displays the homepage with navigation options after login.
+
+4. **Profile Setup Feature**  
 
    <img src="screenshots/profile1.png" width="600">  
 
@@ -91,23 +99,35 @@ Provide screenshots and captions showing how users interact with your app.
 
    - Users take a personality quiz to discover their MBTI type.  
 
-3. **Matchmaking Feature**  
+5. **Matchmaking Feature**  
    <img src="screenshots/matchmaking.png" width="600">  
    - Users pick preferred timeslots and start matchmaking.
 
-4. **Match Found Feature**  
+6. **Match Search Feature**  
+   <img src="screenshots/search.png" width="600">  
+   - The website searching for the user's match.
+
+7. **Match Found Feature**  
    <img src="screenshots/matchmaking.png" width="600">  
    - Users can decline or accept the match.
 
-5. **Chat Feature**  
+8. **Session Details Feature**  
+   <img src="screenshots/session.png" width="600">  
+   - Users can verfy their partner and see session details.
+
+9. **Chat Feature**  
    <img src="screenshots/chat.png" width="600">  
    - Users can chat and find nearest study spots.
 
-6. **User Dashboard**  
+10. **Match Review Feature**  
+   <img src="screenshots/matchreview.png" width="600">  
+   - Users can rate their match.
+
+11. **User Dashboard**  
    <img src="screenshots/dashboard.png" width="600">  
    - Displays user profile info, match history, and ratings.
 
-7. **Feedback Feature**  
+12. **Feedback Feature**  
    <img src="screenshots/feedback.png" width="600">  
    - Users provide feedback on the web application.
 
