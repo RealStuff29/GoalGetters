@@ -427,7 +427,7 @@ const SLOT_LABELS = {
   slot_morning:  'Morning (8:30am - 11:30am)',
   slot_midday:   'Midday (12:00pm - 3:00pm)',
   slot_afternoon:'Afternoon (3:30pm - 6:30pm)',
-  slot_evening:  'Evening (7:00pm - 1:30am)', // updated label
+  slot_evening:  'Evening (7:00pm - 10:00pm)', // remember to update back to 10pm after testing
 } as const
 type SlotKey = keyof typeof SLOT_LABELS
 const SLOT_ALIASES: Record<string, SlotKey> = {
