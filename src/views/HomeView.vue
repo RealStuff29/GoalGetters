@@ -108,7 +108,8 @@
               <p class="feature-description">
                 Connect with students studying the same subjects and achieve your goals together.
               </p>
-
+            </template>
+            <template #footer>
               <RouterLink to="/matchlandingview" class="no-decoration">
                 <Button label="Start Matching" icon="pi pi-arrow-right" iconPos="right" text class="feature-btn" />
               </RouterLink>
@@ -137,8 +138,10 @@
               </div>
               <h3 class="feature-title">Share Feedback</h3>
               <p class="feature-description">
-                Help us improve GoalGetters by sharing your experience and suggestions.
+                Help us improve GoalGetters by sharing your experience and suggestions for the website.
               </p>
+            </template>
+            <template #footer>
               <RouterLink to="/feedbackview" class="no-decoration">
                 <Button label="Give Feedback" icon="pi pi-arrow-right" iconPos="right" text class="feature-btn" />
               </RouterLink>
