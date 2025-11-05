@@ -78,7 +78,7 @@
     <div v-else-if="store.stage === 'notfound'" class="match-notfound fx-rise">
       <h2 class="match-title-sm">No Match Found 😞</h2>
       <p class="match-subtitle">You can try again later</p>
-      <Button class="mt-4 ghost-btn" label="Try Again" @click="backToLanding" />
+      <Button class="mt-4 ghost-btn" label="Try Again" @click="backToLanding" style="border-radius: 50px;"/>
     </div>
 
     <!-- SEARCHING STATE -->
@@ -96,7 +96,7 @@
         <span class="satellite s3"></span>
       </div>
 
-      <h2 class="match-title-sm gradient-text">Finding Your Perfect Study Match</h2>
+      <h2 class="match-title-sm gradient-text" style="padding-bottom: 1rem;">Finding Your Perfect Study Match</h2>
       <p class="match-subtitle">Searching for classmates with similar study goals...</p>
 
       <div class="dots" aria-hidden="true">

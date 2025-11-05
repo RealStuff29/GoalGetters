@@ -440,7 +440,7 @@ async function saveMbtiToProfile() {
 
     <!-- Header -->
     <header class="page-header">
-      <h1 class="title">
+      <h1 class="title" style="padding-bottom: 1rem;">
         <span class="title-accent">Profile</span> Settings
       </h1>
       <p class="subtitle">Tune your identity, study preferences while viewing your ratings and reviews</p>
