@@ -60,7 +60,7 @@
                           Common Time Slots
                         </div>
                         <div v-if="commonSlotsLabels.length" class="tags-container">
-                          <Tag v-for="s in commonSlotsLabels" :key="s" severity="secondary" :value="s" class="mr-2 mb-2 tag-hover" />
+                          <Tag v-for="s in commonSlotsLabels" :key="s" severity="secondary" :value="s" class="mr-2 mb-2 tag-hover" style="margin-left: 5px;"/>
                         </div>
                         <small v-else class="opacity-70">No overlapping availability yet.</small>
                       </div>
@@ -118,6 +118,7 @@
                             aria-label="Copy"
                             @click="copyCode"
                             class="copy-btn"
+                            style="border-radius: 5px;"
                           />
                         </div>
                       </div>
@@ -137,12 +138,12 @@
                         style="width: 300px;"
                       />
                       <Button
-                        size="small"
+                        size="medium"
                         :icon="pi('check')"
                         label="Verify"
                         :disabled="store.myVerified || !store.verifyWordInput"
                         @click="onVerify"
-                        style="margin-left: 10px;"
+                        style="margin-left: 10px; border-radius: 5px;"
                         class="verify-btn"
                       />
                     </div>
@@ -282,6 +283,7 @@
                         :disabled="!store.draft.trim() || isSending"
                         :loading="isSending"
                         class="send-btn"
+                        style="border-radius: 5px;"
                       />
                     </div>
                   </div>
@@ -351,6 +353,7 @@
                               label="View"
                               @click="focusOnSpot(spot)"
                               class="spot-btn"
+                              style="border-radius: 5px;"
                             />
                             <Button
                               outlined
@@ -359,6 +362,7 @@
                               label="Suggest"
                               @click="suggestSpot(spot)"
                               class="spot-btn"
+                              style="border-radius: 5px;"
                             />
                           </div>
                         </div>

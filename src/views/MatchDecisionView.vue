@@ -80,8 +80,8 @@
       />
 
       <div class="grid grid-cols-2 gap-3">
-        <Button outlined @click="onDecline" :icon="pi('times')" label="Decline" />
-        <Button @click="onAccept" severity="primary" :icon="pi('check')" label="Accept & Chat" />
+        <Button outlined @click="onDecline" :icon="pi('times')" label="Decline" style="border-radius: 5px;"/>
+        <Button @click="onAccept" severity="primary" :icon="pi('check')" label="Accept & Chat" style="border-radius: 5px;"/>
       </div>
     </div>
       <div v-else-if="store.stage === 'searching'" class="py-16 text-center space-y-4">
@@ -94,7 +94,7 @@
     <!-- Fallback -->
     <div v-else class="opacity-70 text-center">
       <p>Loading…</p>
-      <Button class="mt-3" label="Back to Matchmaking" @click="startOver" />
+      <Button class="mt-3" label="Back to Matchmaking" @click="startOver" style="border-radius: 5px;"/>
     </div>
   </div>
 </template>
