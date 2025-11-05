@@ -9,7 +9,7 @@
           You have <b>{{ store.countdownText }}</b> to respond
         </p>
       </div>
-      <Card>
+      <Card class="detail-card">
         <template #title>
           <div class="flex flex-col items-center">
             <div class="mdv-avatar-wrap">
@@ -30,37 +30,37 @@
             </p>
 
             <!-- Common time slots -->
-            <div class="flex items-start gap-3">
+            <div class="flex items-start gap-3 detail-item">
               <div class="flex items-center gap-2 font-medium mb-1">
-                <i :class="pi('clock')" class="opacity-70" />
+                <i :class="pi('clock')" class="opacity-70 detail-icon" />
                 <span>  Common Time Slots</span>
               </div>
               <div class="flex-1">
-                <div v-if="commonSlotLabels.length">
-                  <Tag v-for="s in commonSlotLabels" :key="s" severity="secondary" :value="s" class="mr-2 mb-2" />
+                <div v-if="commonSlotLabels.length" class="tags-container">
+                  <Tag v-for="s in commonSlotLabels" :key="s" severity="secondary" :value="s" class="mr-2 mb-2 tag-hover" style="margin-left: 5px;"/>
                 </div>
                 <small v-else class="opacity-70">No overlapping availability yet.</small>
               </div>
             </div>
 
             <!-- Common modules -->
-            <div class="flex items-start gap-3">
+            <div class="flex items-start gap-3 detail-item">
               <div class="flex items-center gap-2 font-medium mb-1">
-                <i :class="pi('book')" class="opacity-70" />
+                <i :class="pi('book')" class="opacity-70 detail-icon" />
                 <span>  Common Modules</span>
               </div>
               <div class="flex-1">
                 <div v-if="commonMods.length">
-                  <Tag v-for="m in commonMods" :key="m" severity="secondary" :value="m" class="mr-2 mb-2" />
+                  <Tag v-for="m in commonMods" :key="m" severity="secondary" :value="m" class="mr-2 mb-2 tag-hover" />
                 </div>
                 <small v-else class="opacity-70">You have no common modules.</small>
               </div>
             </div>
 
             <!-- School / Degree -->
-            <div class="flex items-start gap-3">
+            <div class="flex items-start gap-3 detail-item">
               <div class="flex items-center gap-2 font-medium mb-1">
-                <i :class="pi('warehouse')" class="opacity-70" />
+                <i :class="pi('warehouse')" class="opacity-70 detail-icon" />
                 <span>  School / Degree</span>
               </div>
               <div class="flex-1 text-sm">
@@ -411,6 +411,111 @@ function startOver() {
 
 .mdv-snapshot { animation: mdvRise .28s ease-out both; }
 @keyframes mdvRise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Detail items animation */
+.detail-item {
+  animation: fadeInUp 0.5s ease backwards;
+}
+
+.detail-item:nth-child(1) { animation-delay: 0.1s; }
+.detail-item:nth-child(2) { animation-delay: 0.2s; }
+.detail-item:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Icons */
+.detail-icon {
+  color: #ff9800;
+  margin-right: 8px;
+  transition: transform 0.3s ease;
+}
+
+.detail-item:hover .detail-icon {
+  transform: scale(1.2) rotate(5deg);
+}
+
+/* Tags */
+.tag-hover {
+  transition: all 0.2s ease;
+}
+
+.tag-hover:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+}
+
+.detail-card {
+  background: linear-gradient(135deg, #fff8f0 0%, #ffffff 50%, #fff5e6 100%);
+  border: 1px solid #ffe0b2;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 12px rgba(255, 152, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.detail-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 152, 0, 0.05) 0%, transparent 70%);
+  animation: rotateGlow 20s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes rotateGlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.detail-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(255, 152, 0, 0.15);
+  border-color: #ffb74d;
+}
+
+/* .bg-aura {
+  position: absolute;
+  inset: -40% -20% -20% -20%;
+  background:
+    radial-gradient(60% 60% at 20% 10%, rgba(255, 214, 10, 0.45), transparent 60%),
+    radial-gradient(50% 50% at 80% 0%, rgba(251, 133, 0, 0.3), transparent 60%),
+    radial-gradient(40% 40% at 50% 100%, rgba(239, 68, 68, 0.18), transparent 60%);
+  filter: blur(50px);
+  z-index: -2;
+  pointer-events: none;
+}
+
+.float {
+  --size: 260px;
+  position: absolute;
+  width: var(--size); height: var(--size);
+  border-radius: 50%;
+  background: conic-gradient(from 180deg,
+    rgba(255, 183, 3, 0.20),
+    rgba(251, 133, 0, 0.20),
+    rgba(239, 68, 68, 0.18),
+    rgba(255, 183, 3, 0.20)
+  );
+  filter: blur(22px);
+  opacity: 0.6;
+  animation: float 18s ease-in-out infinite;
+  z-index: -1;
+} */
+.float-1 { top: 12%; left: -6%; animation-delay: -2s; }
+.float-2 { bottom: -8%; right: -4%; --size: 340px; animation-delay: -6s; }
+.float-3 { top: 40%; right: 18%; --size: 220px; animation-delay: -9s; }
 
 .grid { display: grid; }
 .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
