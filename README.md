@@ -13,7 +13,7 @@
 | Photo | Full Name | Role / Features Responsible For |
 |:--:|:--|:--|
 | <img src="photos/Mikhail.jpg" width="80"> | Muhammad Mikhail Ghazi bin Ridzuan | Team Lead / Developer / Database - Register/Login with Auth & Supabase Integration |
-| <img src="photos/alec.jpg" width="80"> | Ong Zhe Hwee Alec | Core Developer - Matchmaking Algorithm & Chat Functionailty |
+| <img src="photos/alec.jpg" width="80"> | Ong Zhe Hwee Alec | Core Backend/Frontend/Database Main Feature Developer - Matchmaking Views/Algorithm & Chat Functionailty + Logic Flows |
 | <img src="photos/qingling.jpg" width="80"> | Mok Qing Ling | Developer - Profiles, Match History + Review & API endpoints  |
 | <img src="photos/jordan.jpg" width="80"> | Tan Jordan | Developer - Map Integration & API endpoints |
 | <img src="photos/Keith.jpg" width="80"> | Yu Yan Chang | Developer - Onboarding Screens |
@@ -233,7 +233,7 @@ Each member should contribute 2–3 sentences on their learning and project expe
 
 > **Example Template:**  
 > - *Mikhail:* 
-> - *Alec:* 
+> - *Alec:* I am the main feature developer for matchmaking & algorithmns, handling most of front/backend for matchmaking,chat,matchreview functionality. I have learnt to handle error and make dynamic responsive webside (without needing to hard refresh for changes on reactive elements/cards), while developing a robust logic system between multiple users (match declines, and dequeueing of member on both frontend and database) within a live platform. I have also learnt to integrated reactive notification and provide tactile UI responsiveness to provide user clarity. I have also applied enhancement to the backend supabase to cleanse untilisized data to keep the matchmaking fast and effecient. I have also designed learnt to make a Dynamic Navbar so that ChatMatch view only appears when there is a match to reduce clutter, applied animations (e.g Stars/Confetti/logos), and sound effects to the matchmaking experience.
 > - *Jordan:* 
 > - *Parikshit:* I developed the feedback system using Vue and Supabase, which deepened my understanding of database connectivity and real-time data handling. I also learned to optimise UI responsiveness, implement effective form validation, and integrate external APIs. Additionally, I gained hands-on experience in sending automated email feedback to users upon submission.
 > - *QingLing:* 
