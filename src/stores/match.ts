@@ -65,14 +65,14 @@ const SESSION_SLOT_LABELS: Record<SessionSlotId, string> = {
   slot_morning:   'Morning (8:30am - 11:30am)',
   slot_midday:    'Midday (12:00pm - 3:00pm)',
   slot_afternoon: 'Afternoon (3:30pm - 6:30pm)',
-  slot_evening:   'Evening (7:00pm - 1:30am)',    // updated label
+  slot_evening:   'Evening (7:00pm - 10:00pm)',    // remember to update back to 10pm after testing
 }
 
 const SESSION_SLOT_WINDOWS = {
   slot_morning:   { start: [8, 30],  end: [11, 30] },
   slot_midday:    { start: [12, 0],  end: [15, 0]  },
   slot_afternoon: { start: [15, 30], end: [18, 30] },
-  slot_evening:   { start: [19, 0],  end: [4, 48]  }, // overnight to next day
+  slot_evening:   { start: [19, 0],  end: [22, 0]  }, // overnight to next day
 } as const
 type SessionSlotId = keyof typeof SESSION_SLOT_WINDOWS
 

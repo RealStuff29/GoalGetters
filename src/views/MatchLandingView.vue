@@ -121,10 +121,10 @@ const store = useMatchStore()
 const isResuming = ref(true)
 
 const timeSlots = [
-  { id: 'slot_morning',   label: 'Morning',   window: '8:30am – 11:30am' },
-  { id: 'slot_midday',    label: 'Midday',    window: '12:00pm – 3:00pm' },
-  { id: 'slot_afternoon', label: 'Afternoon', window: '3:30pm – 6:30pm' },
-  { id: 'slot_evening',   label: 'Evening',   window: '7:00pm – 10:00pm' },
+  { id: 'slot_morning',   label: 'Morning',   window: '8:30am - 11:30am' },
+  { id: 'slot_midday',    label: 'Midday',    window: '12:00pm - 3:00pm' },
+  { id: 'slot_afternoon', label: 'Afternoon', window: '3:30pm - 6:30pm' },
+  { id: 'slot_evening',   label: 'Evening',   window: '7:00pm - 10:00pm' },   // remember to update back to 10pm after testing
 ]
 
 const selectedSlots = ref<string[]>([])
