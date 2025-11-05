@@ -27,10 +27,6 @@
                 <RouterLink to="/matchlandingview" class="no-decoration">
                   <Button label="Find Study Partner" icon="pi pi-users" class="primary-cta" />
                 </RouterLink>
-                <RouterLink to="/profilesettingsview" class="no-decoration">
-                  <Button label="View Profile" icon="pi pi-user" outlined class="secondary-cta"
-                    @click="navigateTo('/profilesettingsview')" />
-                </RouterLink>
               </div>
             </div>
           </div>
@@ -119,7 +115,7 @@
             </template>
           </Card>
 
-          <Card class="feature-card" @click="navigateTo('/profilesettingsview')">
+          <!-- <Card class="feature-card" @click="navigateTo('/profilesettingsview')">
             <template #content>
               <div class="feature-icon orange">
                 <i class="pi pi-user-edit" style="font-size: 1.3rem;"></i>
@@ -132,7 +128,7 @@
                 <Button label="Edit Profile" icon="pi pi-arrow-right" iconPos="right" text class="feature-btn" />
               </RouterLink>
             </template>
-          </Card>
+          </Card> -->
 
           <Card class="feature-card" @click="navigateTo('/feedbackview')">
             <template #content>

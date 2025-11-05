@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/composables/useAuth'
 import Button from 'primevue/button'
+import Menu from 'primevue/menu'
 import { useMatchStore } from '@/stores/match'
 
 const router = useRouter()
@@ -11,6 +12,33 @@ const { logoutUser } = useAuth()
 const userSession = ref(null)
 const checkedSession = ref(false)
 const store = useMatchStore()
+
+// Menu stuff
+const menu = ref()
+
+const items = ref([
+  {
+    label: 'Profile Settings',
+    icon: 'pi pi-cog',
+    command: () => {
+      router.push('/profilesettingsview') 
+    },
+  },
+  {
+    separator: true
+  },
+  {
+    label: 'Log Out',
+    icon: 'pi pi-sign-out',
+    command: () => {
+      handleLogout()
+    }
+  }
+])
+
+const toggleMenu = (event) => {
+  menu.value.toggle(event)
+}
 
 // Watch authentication state
 onMounted(async () => {
@@ -71,7 +99,7 @@ const showMatchChat = computed(() => store.stage === 'chat')
       <div
         class="center-nav d-flex align-items-center justify-content-center gap-4 position-absolute top-50 start-50 translate-middle">
         <template v-if="userSession">
-          <RouterLink to="/profilesettingsview" class="nav-link">Profile Settings</RouterLink>
+          
           <RouterLink to="/matchlandingview" class="nav-link">Matchmake Now</RouterLink>
           <RouterLink to="/feedbackview" class="nav-link">Feedback</RouterLink>
 
@@ -88,7 +116,34 @@ const showMatchChat = computed(() => store.stage === 'chat')
 
       <!-- Right side buttons (unchanged) -->
       <div v-if="checkedSession">
-        <Button v-if="userSession" label="Log Out" class="btn-gradient" @click="handleLogout" />
+        <div v-if="userSession">
+          <Button 
+            ref="profileButton"
+            label="View Profile" 
+            class="btn-gradient" 
+            @click="toggleMenu"
+            icon="pi pi-user"
+            iconPos="right"
+            aria-haspopup="true"
+            aria-controls="profile_menu"
+          />
+          <Menu 
+            ref="menu" 
+            id="profile_menu" 
+            :model="items" 
+            :popup="true"
+            class="w-full md:w-60 p-0"
+          >
+            <template #item="{ item, props }">
+              <a v-ripple class="flex items-center no-underline text-inherit" v-bind="props.action">
+                <span :class="item.icon" />
+                <span>{{ item.label }}</span>
+                <Badge v-if="item.badge" class="ml-auto" :value="item.badge" />
+                <span v-if="item.shortcut" class="ml-auto border border-surface rounded bg-emphasis text-muted-color text-xs p-0">{{ item.shortcut }}</span>
+              </a>
+            </template>
+          </Menu>
+        </div>
         <div v-else class="d-flex gap-2">
           <Button severity="secondary" label="Log In" @click="handleLogin" class="btn-glass" />
           <Button severity="warn" label="Sign Up" @click="handleRegister" class="btn-gradient" />
@@ -106,6 +161,11 @@ const showMatchChat = computed(() => store.stage === 'chat')
 </template>
 
 <style scoped>
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
 .nav-link {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   text-decoration: none;
