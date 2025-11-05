@@ -10,6 +10,9 @@
             </div>
 
             <div class="hero-content">
+                <div class="logo-display">
+                    <img v-bind:src="logo">
+                </div>
                 <h1 class="hero-title">GoalGetters</h1>
                 <p class="hero-subtitle">
                     Achieve your goals together with accountability partners
@@ -85,7 +88,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
-import logo from '@/assets/images/Logo.png'
+import logo from '@/assets/images/Logo-crop.png'
 
 const scrollToFeatures = () => {
     const featuresSection = document.querySelector('.features-section')
@@ -156,6 +159,53 @@ const changeQuote = () => {
 </script>
 
 <style scoped>
+@keyframes dynamicLogo {
+  0% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translateY(-15px) rotate(-3deg) scale(1.05);
+  }
+  50% {
+    transform: translateY(-25px) rotate(0deg) scale(1.08);
+  }
+  75% {
+    transform: translateY(-15px) rotate(3deg) scale(1.05);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+}
+
+.logo-display img {
+  width: 200px;
+  animation: dynamicLogo 4s ease-in-out infinite;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.15));
+  transition: filter 0.3s ease;
+}
+
+.logo-display img:hover {
+  animation-play-state: paused;
+  filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.25));
+  transform: scale(1.1);
+}
+
+/* Optional: Add a subtle glow effect */
+@keyframes glow {
+  0%, 100% {
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.15));
+  }
+  50% {
+    filter: drop-shadow(0 10px 25px rgba(59, 130, 246, 0.3));
+  }
+}
+
+/* Uncomment below to add the glow effect */
+
+.logo-display img {
+  animation: dynamicLogo 4s ease-in-out infinite, glow 3s ease-in-out infinite;
+}
+
 /* GENERAL */
 .homepage-container {
     min-height: 100vh;
@@ -389,7 +439,7 @@ const changeQuote = () => {
 .avatar3 {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, #ff95003e, #f57c00);
+    background: linear-gradient(135deg, #ff950023, #f57c00);
     border-radius: 50%;
     color: white;
     display: flex;
