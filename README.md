@@ -13,13 +13,12 @@
 | Photo | Full Name | Role / Features Responsible For |
 |:--:|:--|:--|
 | <img src="photos/Mikhail.jpg" width="80"> | Muhammad Mikhail Ghazi bin Ridzuan | Team Lead / Developer / Database - Register/Login with Auth & Supabase Integration |
-| <img src="photos/alec.jpg" width="80"> | Ong Zhe Hwee Alec | Core Backend/Frontend/Database Main Feature Developer - Matchmaking Views/Algorithm & Chat Functionailty + Logic Flows |
+| <img src="photos/alec.jpg" width="80"> | Ong Zhe Hwee Alec | Core Backend/Frontend/Database Main Feature Developer - Matchmaking Views/Algorithm & Chat Functionality + Logic Flows |
 | <img src="photos/qingling.jpg" width="80"> | Mok Qing Ling | Developer/Database - Profile Setup, Profile Settings, Match History + Review & API endpoints  |
-| <img src="photos/jordan.jpg" width="80"> | Tan Jordan | Developer - Map Integration & API endpoints |
+| <img src="photos/jordan.jpg" width="80"> | Tan Jordan | Developer - Map Integration, Chat Functionality & API endpoints |
 | <img src="photos/Keith.jpg" width="80"> | Yu Yan Chang | Developer - Onboarding Screens |
 | <img src="photos/Parikshit.jpg" width="80"> | Parikshit Sanganeria | Developer - App Feedback |
 
-<!-- > Remeber to place your headshot thumbnails in the `/photos` folder (JPEG or PNG). -->
 
 ---
 
@@ -69,7 +68,7 @@ Core features and the benefit each provides:
 
 ---
 
-## Use Case & User Journey (TO DO: Once each of our Individual Functions is done!)
+## Use Case & User Journey
 
 Provide screenshots and captions showing how users interact with your app.
 
