@@ -443,7 +443,6 @@ onMounted(async () => {
   backdrop-filter: blur(20px) !important;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2) !important;
   overflow: hidden !important;
-  min-width: 400px;
 }
 
 .primary-cta::before {

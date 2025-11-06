@@ -13,13 +13,12 @@
 | Photo | Full Name | Role / Features Responsible For |
 |:--:|:--|:--|
 | <img src="photos/Mikhail.jpg" width="80"> | Muhammad Mikhail Ghazi bin Ridzuan | Team Lead / Developer / Database - Register/Login with Auth & Supabase Integration |
-| <img src="photos/alec.jpg" width="80"> | Ong Zhe Hwee Alec | Core Backend/Frontend/Database Main Feature Developer - Matchmaking Views/Algorithm & Chat Functionailty + Logic Flows |
-| <img src="photos/qingling.jpg" width="80"> | Mok Qing Ling | Developer - Profiles, Match History + Review & API endpoints  |
-| <img src="photos/jordan.jpg" width="80"> | Tan Jordan | Developer - Map Integration & API endpoints |
+| <img src="photos/alec.jpg" width="80"> | Ong Zhe Hwee Alec | Core Backend/Frontend/Database Main Feature Developer - Matchmaking Views/Algorithm & Chat Functionality + Logic Flows |
+| <img src="photos/qingling.jpg" width="80"> | Mok Qing Ling | Developer/Database - Profile Setup, Profile Settings, Match History + Review & API endpoints  |
+| <img src="photos/jordan.jpg" width="80"> | Tan Jordan | Developer - Map Integration, Chat Functionality & API endpoints |
 | <img src="photos/Keith.jpg" width="80"> | Yu Yan Chang | Developer - Onboarding Screens |
 | <img src="photos/Parikshit.jpg" width="80"> | Parikshit Sanganeria | Developer - App Feedback |
 
-<!-- > Remeber to place your headshot thumbnails in the `/photos` folder (JPEG or PNG). -->
 
 ---
 
@@ -69,7 +68,7 @@ Core features and the benefit each provides:
 
 ---
 
-## Use Case & User Journey (TO DO: Once each of our Individual Functions is done!)
+## Use Case & User Journey
 
 Provide screenshots and captions showing how users interact with your app.
 
@@ -258,7 +257,7 @@ npm run test
 Additionally, I worked on setting up a Supabase real-time chat system that enables two matched users to communicate seamlessly. This experience strengthened my grasp of real-time data synchronization and database event handling. I also contributed to the UI design by creating and styling the home page using PrimeVue components and CSS, which enhanced both my front-end development and design sense.
 This project taught me the value of clear communication, proper task division, and regular updates within a team. Using GitHub and task boards helped us stay organized and aligned. I also learned to break complex features into smaller milestones and adapt quickly when faced with new frameworks. Overall, the experience strengthened my technical confidence, teamwork, and problem-solving approach.
 
-> - *Qing Ling:* Through developing the profile setup, profile settings and match review page, I gained firsthand experience in integrating frontend and backend systems using Vue and Supabase. I implemented the avatar API, database tables, functions, and triggers to automatically create and link user profiles upon registration and built dynamic data retrieval for displaying user information and module suggestions. I also helped to integrate the match chat timer to track study session durations, display session details from the database and redirect users to the match review page to submit and store their reviews. In addition, I creates a database trigger that triggers when a session ID is generated upon verification, it creates a corresponding session row to ensure reviews are stored and retrieved accurately. Working with Vue and Supabase taught me how to manage data flow effectively between systems while keeping the application responsive. Although our team initially faced coordination challenges, but we still managed to pull together and deliver our final product.
+> - *Qing Ling:* Through developing the profile setup, profile settings and match review page, I manage get hands on experience in integrating frontend and backend systems using Vue, Supabase and integration of API. I implemented the avatar API, database tables, functions and triggers to automatically create and link user profiles upon registration and built dynamic data retrieval for displaying user information and module suggestions. I also helped to integrate the match chat timer to track study session durations, display session details from the database and redirect users to the match review page (with creation of match review page) to submit and store their reviews. In addition to review, a database trigger was also created to trigger when a session ID is generated upon verification, it creates a corresponding session row to ensure reviews are stored and retrieved accurately. Working with Vue and Supabase taught me how to manage data flow effectively between systems while keeping the application responsive. Although our team initially faced coordination challenges, but we still managed to pull together and deliver our final product.
 
 > - *Parikshit:* I developed the feedback system using Vue and Supabase, which deepened my understanding of database connectivity and real-time data handling. I also learned to optimise UI responsiveness, implement effective form validation, and integrate external APIs. Additionally, I gained hands-on experience in sending automated email feedback to users upon submission.
 
@@ -287,6 +286,7 @@ See [Vite Configuration Reference](https://vite.dev/config/).
 
 ```sh
 npm install
+npm install emailjs-com
 ```
 
 ### Compile and Hot-Reload for Development
