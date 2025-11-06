@@ -202,7 +202,7 @@ async function handleSavePersonality() {
 
               <div class="mx-auto w-100" style="max-width: 600px;">
                 <div class="d-flex flex-column flex-sm-row gap-2">
-                  <InputText :value="username" readonly class="flex-grow-1" />
+                  <InputText :disabled="true" :value="username" readonly class="flex-grow-1" />
                   <Button class="align-self-center align-self-sm-auto" icon="pi pi-sync" @click="randomiseUsername" style="border-radius: 5px;"/>
                 </div>
 
@@ -390,13 +390,6 @@ async function handleSavePersonality() {
   font-weight: 800;
   letter-spacing: 0.2px;
   margin: 0;
-  background: linear-gradient(135deg,#333,#777);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
-.title-accent {
-  background: linear-gradient(135deg,#ff9800,#f45b00);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
+.title-accent { color: #f45b00; }
 </style>
