@@ -84,62 +84,83 @@ async function handleGoogleLogin() {
 
 
 <template>
-    <div class="register-page">
-        
-        <Toast position="top-center" group="authToast" />
+  <div class="register-page container-fluid p-0">
+    <Toast position="top-center" group="authToast" />
 
-        <!-- Left Side: Register Form -->
-        <div class="register-left">
-            <div class="register-container">
-                <div class="logo-section">
-                    <img :src="logo" class="register-logo" alt="GoalGetters Logo" />
-                    <h1 class="app-title">Join GoalGetters</h1>
-                    <p class="quote-text fade">{{ currentQuote.text }}</p>
-                </div>
+    <div class="row g-0">
+      <!-- LEFT: Register form (full width on mobile, right side on md+) -->
+      <div class="col-12 col-md-5 d-flex align-items-center justify-content-center order-md-1 min-vh-100">
+        <div class="register-container">
+          <div class="logo-section">
+            <img :src="logo" class="register-logo" alt="GoalGetters Logo" />
+            <h1 class="app-title">Join GoalGetters</h1>
+            <p class="quote-text fade">{{ currentQuote.text }}</p>
+          </div>
 
-                <div class="form-section">
-                    <form @submit.prevent="handleRegister" class="register-form">
-                        <label>Email</label>
-                        <InputText type="email" v-model="email" placeholder="you@smu.edu.sg" class="w-full" />
+          <div class="form-section">
+            <form @submit.prevent="handleRegister" class="register-form">
+              <label>Email</label>
+              <InputText
+                type="email"
+                v-model="email"
+                placeholder="you@smu.edu.sg"
+                class="w-full"
+              />
 
-                        <label>Password</label>
-                        <InputText type="password" v-model="password" placeholder="••••••••" class="w-full" />
+              <label>Password</label>
+              <InputText
+                type="password"
+                v-model="password"
+                placeholder="••••••••"
+                class="w-full"
+              />
 
-                        <div class="register-text">
-                            Already have an account?
-                            <RouterLink :to="{ name: 'login' }" class="highlight-link">Log in</RouterLink>
-                        </div>
+              <div class="register-text">
+                Already have an account?
+                <RouterLink :to="{ name: 'login' }" class="highlight-link">
+                  Log in
+                </RouterLink>
+              </div>
 
-                        <Button type="submit" label="Sign Up" class="w-full register-btn" />
+              <Button type="submit" label="Sign Up" class="w-full register-btn" />
 
-                        <div class="divider">
-                            <hr /><span>or</span>
-                            <hr />
-                        </div>
+              <div class="divider">
+                <hr /><span>or</span><hr />
+              </div>
 
-                        <button class="google-btn" type="button" @click="handleGoogleLogin" :disabled="loading">
-                            <i class="pi pi-google"></i>
-                            Continue with Google
-                        </button>
-                    </form>
-                </div>
-            </div>
+              <button
+                class="google-btn"
+                type="button"
+                @click="handleGoogleLogin"
+                :disabled="loading"
+              >
+                <i class="pi pi-google"></i>
+                Continue with Google
+              </button>
+            </form>
+          </div>
         </div>
+      </div>
 
-        <!-- Right Side: Background Slideshow -->
-        <div class="register-right">
-            <transition name="bgfade" mode="out-in">
-                <div class="bg-image" :key="currentBackground"
-                    :style="{ backgroundImage: `url(${currentBackground})` }"></div>
-            </transition>
-            <div class="overlay"></div>
-        </div>
+      <!-- RIGHT: Background slideshow (hidden on mobile) -->
+      <div class="col-12 col-md-7 d-none d-md-block position-relative order-md-2">
+        <transition name="bgfade" mode="out-in">
+          <div
+            class="bg-image"
+            :key="currentBackground"
+            :style="{ backgroundImage: `url(${currentBackground})` }"
+          ></div>
+        </transition>
+        <div class="overlay"></div>
+      </div>
     </div>
+  </div>
 </template>
+
 
 <style scoped>
 .register-page {
-    display: flex;
+    /* display: flex; */
     height: 100vh;
     overflow: hidden;
 }
@@ -364,4 +385,9 @@ async function handleGoogleLogin() {
         width: 96px;
     }
 }
+
+
+
+
+
 </style>
