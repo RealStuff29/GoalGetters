@@ -1829,7 +1829,17 @@ onUnmounted(() => {
   background: var(--chip-bg) !important;
   border: 1px solid var(--chip-border) !important;
   color: var(--chip-ink) !important;
+
+  /* Add some breathing room */
+  margin: 4px 6px !important;   /* space between tags (vertical, horizontal) */
+  padding: 4px 10px !important; /* space inside the tag */
 }
+
+/* Add top margin for the entire tag section */
+.status-tags {
+  margin-top: 10px !important;  /* space above the group of tags */
+}
+
 /* Let severity colors show for the three status tags only */
 .status-tags :deep(.p-tag-success) {
   background: #e8f5e9 !important;   /* light green */
@@ -1842,6 +1852,7 @@ onUnmounted(() => {
   border-color: #d93025 !important;  /* red border */
   color: #7f1d1d !important;         /* dark red text */
 }
+
 
 
 /* 9) Verify code box */
