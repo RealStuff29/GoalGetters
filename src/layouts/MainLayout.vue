@@ -13,40 +13,29 @@ const userSession = ref(null)
 const checkedSession = ref(false)
 const store = useMatchStore()
 
-/* --- Single hamburger menu --- */
 const navMenu = ref()
-
-// Only show MatchChat when users are actually in chat (both accepted and entered chat)
 const showMatchChat = computed(() => store.stage === 'chat')
 
-// Build the hamburger list in your requested order
 const allMenuItems = computed(() => {
   if (!userSession.value) return []
   const items = [
-    { label: 'Profile Settings', icon: 'pi pi-cog',      command: () => router.push('/profilesettingsview') },
-    { label: 'Matchmake Now',    icon: 'pi pi-sparkles', command: () => router.push('/matchlandingview') },
-    { label: 'Feedback',         icon: 'pi pi-comment',  command: () => router.push('/feedbackview') },
+    { label: 'Profile Settings', icon: 'pi pi-cog', command: () => router.push('/profilesettingsview') },
+    { label: 'Matchmake Now', icon: 'pi pi-sparkles', command: () => router.push('/matchlandingview') },
+    { label: 'Feedback', icon: 'pi pi-comment', command: () => router.push('/feedbackview') },
   ]
-  if (showMatchChat.value) {
-    items.push({ label: 'MatchChat', icon: 'pi pi-comments', command: () => router.push('/matchchatview') })
-  }
+  if (showMatchChat.value) items.push({ label: 'MatchChat', icon: 'pi pi-comments', command: () => router.push('/matchchatview') })
   items.push({ label: 'Log Out', icon: 'pi pi-sign-out', command: () => handleLogout() })
   return items
 })
 
-const toggleNav = (event) => {
-  navMenu.value?.toggle(event)
-}
+const toggleNav = (event) => navMenu.value?.toggle(event)
 
-/* --- Auth / session wiring --- */
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   userSession.value = session
   checkedSession.value = true
-
   await store.hydrateFromCache()
   store.resumeSilently().catch(() => {})
-
   supabase.auth.onAuthStateChange((_event, session) => {
     userSession.value = session
     checkedSession.value = true
@@ -61,15 +50,14 @@ async function handleLogout() {
   }
 }
 
-function handleLogin()    { router.push({ name: 'login' }) }
+function handleLogin() { router.push({ name: 'login' }) }
 function handleRegister() { router.push({ name: 'register' }) }
-function handleHomeNav()  { userSession.value ? router.push({ name: 'home' }) : router.push({ name: 'landing' }) }
+function handleHomeNav() { userSession.value ? router.push({ name: 'home' }) : router.push({ name: 'landing' }) }
 </script>
 
 <template>
   <div>
     <nav class="nav-shell bg-light shadow-sm px-3">
-      <!-- LEFT: hamburger + brand -->
       <div class="left d-flex align-items-center gap-2">
         <Button
           v-if="userSession"
@@ -89,7 +77,6 @@ function handleHomeNav()  { userSession.value ? router.push({ name: 'home' }) : 
         </h3>
       </div>
 
-      <!-- RIGHT: auth buttons (no profile button anymore) -->
       <div class="right">
         <template v-if="checkedSession">
           <template v-if="!userSession">
@@ -104,7 +91,6 @@ function handleHomeNav()  { userSession.value ? router.push({ name: 'home' }) : 
         </template>
       </div>
 
-      <!-- HAMBURGER POPUP (all items) -->
       <Menu
         ref="navMenu"
         id="nav_menu"
@@ -125,11 +111,19 @@ function handleHomeNav()  { userSession.value ? router.push({ name: 'home' }) : 
     <div class="mx-0 p-0">
       <router-view />
     </div>
+
+    <Button
+      v-if="userSession"
+      icon="pi pi-comment"
+      class="feedback-icon-btn"
+      @click="router.push('/feedbackview')"
+      rounded
+      text
+    />
   </div>
 </template>
 
 <style scoped>
-/* GRID shell: left | center | right */
 .nav-shell {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -139,9 +133,10 @@ function handleHomeNav()  { userSession.value ? router.push({ name: 'home' }) : 
   background: rgba(255, 255, 255, 0.7);
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   gap: 12px;
+  position: relative;
 }
-.left  { justify-self: start; }
-.center{ justify-self: center; }
+.left { justify-self: start; }
+.center { justify-self: center; }
 .right { justify-self: end; display: flex; align-items: center; gap: 8px; }
 
 a { text-decoration: none; color: inherit; }
@@ -169,29 +164,39 @@ a { text-decoration: none; color: inherit; }
 .btn-gradient{ background: linear-gradient(90deg,#ff9800,#ffb347); border:none; color:#fff !important; }
 .btn-glass{ background: rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.4); color:#333; }
 
-/* Hide center links on small screens (hamburger covers them) */
+.feedback-icon-btn {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  z-index: 2000;
+  background: linear-gradient(90deg, #ff9800, #ffb347);
+  border: none;
+  color: white !important;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.feedback-icon-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+}
+
 @media (max-width: 991.98px) { .center { display: none; } }
 </style>
 
-<!-- Unscoped: styles for the popup appended to <body> -->
 <style>
-/* Popup container (tighter) */
 .app-menu.p-menu {
   border-radius: 12px;
   padding: 6px;
   border: 1px solid rgba(0,0,0,0.06);
-  box-shadow:
-    0 10px 24px rgba(0,0,0,0.08),
-    0 2px 6px rgba(0,0,0,0.04);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
   background: #fff;
 }
-
-/* normalize PrimeVue internals so our spacing rules apply cleanly */
-.app-menu .p-menu-list        { padding: 4px; margin: 0; }
-.app-menu .p-menuitem         { margin: 0; }
+.app-menu .p-menu-list { padding: 4px; margin: 0; }
+.app-menu .p-menuitem { margin: 0; }
 .app-menu .p-menuitem-content { padding: 0; }
-
-/* Items (compact, consistent tap target) */
 .app-menu-item {
   display: flex;
   align-items: center;
@@ -207,26 +212,13 @@ a { text-decoration: none; color: inherit; }
 }
 .app-menu-item:hover { background: #f6f7f9; }
 .app-menu-item:active { transform: translateY(1px); }
-
-/* Icons */
-.app-menu-icon {
-  font-size: 1rem;
-  width: 20px;
-  text-align: center;
-  color: #6b7280;
-}
-
-/* Label */
+.app-menu-icon { font-size: 1rem; width: 20px; text-align: center; color: #6b7280; }
 .app-menu-label { font-weight: 600; letter-spacing: .1px; }
-
-/* Keyboard focus */
 .app-menu-item:focus-visible {
   outline: 2px solid #ff9800;
   outline-offset: 2px;
   background: #fff7ed;
 }
-
-/* Keep above blurred navbar/backdrops */
 .p-menu { z-index: 2005; }
 html, body { margin: 0; }
 </style>
