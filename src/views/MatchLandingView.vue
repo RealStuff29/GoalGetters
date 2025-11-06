@@ -158,10 +158,10 @@ watch(
   () => store.landingNotice,
   (val) => {
     if (val) {
-      // auto-hide after 2 seconds
+      // auto-hide after 1 seconds
       setTimeout(() => {
         store.clearLandingNotice()
-      }, 2000)
+      }, 1000)
     }
   }
 )
