@@ -148,15 +148,31 @@
                       />
                     </div>
 
-                    <div class="flex items-center gap-2 status-tags">
-                      <Tag :severity="store.myVerified ? 'success' : 'danger'"
-                          :value="store.myVerified ? 'You: Verified' : 'You: Not verified'"
-                          class="status-tag"/>
-                      <Tag style="margin-left: 5px;" :severity="store.partnerVerified ? 'success' : 'warn'"
-                          :value="store.partnerVerified ? 'Partner: Verified' : 'Partner: Pending'"
-                          class="status-tag"/>
-                      <Tag style="margin-left: 5px;" v-if="store.sessionId" severity="success" :value="`Session: ${store.sessionId.slice(0,8)}…`" class="status-tag"/>
-                    </div>
+                   <div class="flex items-center gap-2 status-tags">
+                    <!-- You -->
+                    <Tag
+                      :severity="store.myVerified ? 'success' : 'danger'"
+                      :value="store.myVerified ? 'You: Verified' : 'You: Not verified'"
+                      class="status-tag"
+                    />
+
+                    <!-- Partner -->
+                    <Tag
+                      style="margin-left: 5px;"
+                      :severity="store.partnerVerified ? 'success' : 'danger'"
+                      :value="store.partnerVerified ? 'Partner: Verified' : 'Partner: Not verified'"
+                      class="status-tag"
+                    />
+
+                    <!-- Session (green only when BOTH verified; red otherwise) -->
+                    <Tag
+                      v-if="store.sessionId"
+                      style="margin-left: 5px;"
+                      :severity="(store.myVerified && store.partnerVerified) ? 'success' : 'danger'"
+                      :value="`Session: ${store.sessionId.slice(0, 8)}…`"
+                      class="status-tag"
+                    />
+                  </div>
                   </div>
                 </template>
               </Card>
@@ -1669,7 +1685,7 @@ onUnmounted(() => {
   --tile-spot-accent: #f57c00;
 
   --verify-code-bg-a: #fff3e0;
-  --verify-code-bg-b: #ffe0b2;
+  --verify-code-bg-b: #f10a0a;
   --verify-code-ink:  #e65100;
 
   --timer-bg-a:       #fff3e0;
@@ -1781,6 +1797,19 @@ onUnmounted(() => {
   border: 1px solid var(--chip-border) !important;
   color: var(--chip-ink) !important;
 }
+/* Let severity colors show for the three status tags only */
+.status-tags :deep(.p-tag-success) {
+  background: #e8f5e9 !important;   /* light green */
+  border-color: #34a853 !important;  /* green border */
+  color: #1b5e20 !important;         /* dark green text */
+}
+
+.status-tags :deep(.p-tag-danger) {
+  background: #fdecea !important;    /* light red */
+  border-color: #d93025 !important;  /* red border */
+  color: #7f1d1d !important;         /* dark red text */
+}
+
 
 /* 9) Verify code box */
 .verify-code-box {
