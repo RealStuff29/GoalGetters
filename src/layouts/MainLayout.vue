@@ -1,12 +1,14 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/composables/useAuth'
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
 import { useMatchStore } from '@/stores/match'
 
+const route = useRoute()
 const router = useRouter()
 const { logoutUser } = useAuth()
 const userSession = ref(null)
@@ -57,7 +59,8 @@ function handleHomeNav() { userSession.value ? router.push({ name: 'home' }) : r
 
 <template>
   <div>
-    <nav class="nav-shell bg-light shadow-sm px-3">
+    <nav class="nav-shell shadow-sm px-3">
+      <!-- LEFT: hamburger + brand -->
       <div class="left d-flex align-items-center gap-2">
         <Button
           v-if="userSession"
@@ -113,7 +116,7 @@ function handleHomeNav() { userSession.value ? router.push({ name: 'home' }) : r
     </div>
 
     <Button
-      v-if="userSession"
+      v-if="userSession && route.path !== '/feedbackview'"
       icon="pi pi-comment"
       class="feedback-icon-btn"
       @click="router.push('/feedbackview')"
@@ -125,6 +128,7 @@ function handleHomeNav() { userSession.value ? router.push({ name: 'home' }) : r
 
 <style scoped>
 .nav-shell {
+
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -166,14 +170,14 @@ a { text-decoration: none; color: inherit; }
 
 .feedback-icon-btn {
   position: fixed;
-  bottom: 25px;
-  right: 25px;
+  bottom: 1.5rem;
+  right: 1.5rem;
   z-index: 2000;
   background: linear-gradient(90deg, #ff9800, #ffb347);
   border: none;
   color: white !important;
-  width: 52px;
-  height: 52px;
+  width: 3.25rem;
+  height: 3.25rem;
   border-radius: 50%;
   box-shadow: 0 4px 10px rgba(0,0,0,0.15);
   transition: transform .2s ease, box-shadow .2s ease;
@@ -185,40 +189,104 @@ a { text-decoration: none; color: inherit; }
 
 @media (max-width: 991.98px) { .center { display: none; } }
 </style>
-
 <style>
+:root {
+  /* menu */
+  --menu-bg: #fff;
+  --menu-fg: #1f2937;
+  --menu-border: rgba(0,0,0,.06);
+  --menu-hover: #f6f7f9;
+  --menu-icon: #6b7280;
+  --menu-focus-bg: #fff7ed;
+  --menu-shadow-1: 0 10px 24px rgba(0,0,0,.08);
+  --menu-shadow-2: 0 2px 6px rgba(0,0,0,.04);
+
+  /* trigger button */
+  --ham-fg: #1f2937;
+  --ham-bg: rgba(255,255,255,.6);
+  --ham-border: rgba(0,0,0,.15);
+  --ham-hover: rgba(255,255,255,.8);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --menu-bg: #0f172a;
+    --menu-fg: #e5e7eb;
+    --menu-border: rgba(255,255,255,.08);
+    --menu-hover: rgba(255,255,255,.06);
+    --menu-icon: #9ca3af;
+    --menu-focus-bg: rgba(251,146,60,.12);
+    --menu-shadow-1: 0 10px 24px rgba(0,0,0,.4);
+    --menu-shadow-2: 0 2px 6px rgba(0,0,0,.3);
+
+    --ham-fg: #1f2937;
+    --ham-bg: rgba(255,255,255,.08);
+    --ham-border: rgba(255,255,255,.18);
+    --ham-hover: rgba(255,255,255,.14);
+  }
+}
+
+
+.dark, [data-theme="dark"] {
+  --menu-bg: #0f172a;
+  --menu-fg: #e5e7eb;
+  --menu-border: rgba(255,255,255,.08);
+  --menu-hover: rgba(255,255,255,.06);
+  --menu-icon: #9ca3af;
+  --menu-focus-bg: rgba(251,146,60,.12);
+  --menu-shadow-1: 0 10px 24px rgba(0,0,0,.4);
+  --menu-shadow-2: 0 2px 6px rgba(0,0,0,.3);
+
+  --ham-fg: #1f2937;
+  --ham-bg: rgba(255,255,255,.08);
+  --ham-border: rgba(255,255,255,.18);
+  --ham-hover: rgba(255,255,255,.14);
+
+}
+
+/* ---------- TRIGGER BUTTON (hamburger) ---------- */
+.btn-glass {
+  color: var(--ham-fg) !important;
+  background: var(--ham-bg) !important;
+  border: 1px solid var(--ham-border) !important;
+  backdrop-filter: blur(8px);
+}
+.btn-glass:hover { background: var(--ham-hover) !important; }
+
+/* PrimeVue icon inside the button should inherit */
+.btn-glass .p-button-icon, .btn-glass .pi { color: currentColor; }
+
+/* ---------- MENU POPUP ---------- */
 .app-menu.p-menu {
   border-radius: 12px;
   padding: 6px;
-  border: 1px solid rgba(0,0,0,0.06);
-  box-shadow: 0 10px 24px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
-  background: #fff;
+  border: 1px solid var(--menu-border);
+  box-shadow: var(--menu-shadow-1), var(--menu-shadow-2);
+  background: var(--menu-bg);
+  color: var(--menu-fg);
 }
-.app-menu .p-menu-list { padding: 4px; margin: 0; }
-.app-menu .p-menuitem { margin: 0; }
+.app-menu .p-menu-list        { padding: 4px; margin: 0; }
+.app-menu .p-menuitem         { margin: 0; }
 .app-menu .p-menuitem-content { padding: 0; }
+
 .app-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  color: #1f2937;
-  text-decoration: none;
-  line-height: 1.1;
-  min-width: 200px;
-  min-height: 36px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 10px;
+  color: var(--menu-fg); text-decoration: none;
+  min-width: 200px; min-height: 36px; line-height: 1.1;
   transition: background .15s ease, transform .06s ease;
 }
-.app-menu-item:hover { background: #f6f7f9; }
+.app-menu-item:hover  { background: var(--menu-hover); }
 .app-menu-item:active { transform: translateY(1px); }
-.app-menu-icon { font-size: 1rem; width: 20px; text-align: center; color: #6b7280; }
-.app-menu-label { font-weight: 600; letter-spacing: .1px; }
+
+.app-menu-icon { font-size: 1rem; width: 20px; text-align: center; color: var(--menu-icon); }
+
 .app-menu-item:focus-visible {
-  outline: 2px solid #ff9800;
-  outline-offset: 2px;
-  background: #fff7ed;
+  outline: 2px solid #ff9800; outline-offset: 2px; background: var(--menu-focus-bg);
 }
+
+/* Make sure it's above your blurred navbar */
 .p-menu { z-index: 2005; }
-html, body { margin: 0; }
 </style>
+
+

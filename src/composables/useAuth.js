@@ -79,8 +79,7 @@ export function useAuth() {
         const { error: err } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: `${window.location.origin}/auth/callback`
-
+                redirectTo: `${import.meta.env.VITE_APP_URL}/auth/callback`
             }
 
         });
