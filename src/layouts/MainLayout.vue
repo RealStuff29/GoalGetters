@@ -1,12 +1,14 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/composables/useAuth'
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
 import { useMatchStore } from '@/stores/match'
 
+const route = useRoute()
 const router = useRouter()
 const { logoutUser } = useAuth()
 const userSession = ref(null)
@@ -114,7 +116,7 @@ function handleHomeNav() { userSession.value ? router.push({ name: 'home' }) : r
     </div>
 
     <Button
-      v-if="userSession"
+      v-if="userSession && route.path !== '/feedbackview'"
       icon="pi pi-comment"
       class="feedback-icon-btn"
       @click="router.push('/feedbackview')"
@@ -168,14 +170,14 @@ a { text-decoration: none; color: inherit; }
 
 .feedback-icon-btn {
   position: fixed;
-  bottom: 25px;
-  right: 25px;
+  bottom: 1.5rem;
+  right: 1.5rem;
   z-index: 2000;
   background: linear-gradient(90deg, #ff9800, #ffb347);
   border: none;
   color: white !important;
-  width: 52px;
-  height: 52px;
+  width: 3.25rem;
+  height: 3.25rem;
   border-radius: 50%;
   box-shadow: 0 4px 10px rgba(0,0,0,0.15);
   transition: transform .2s ease, box-shadow .2s ease;
