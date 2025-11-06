@@ -449,14 +449,9 @@ onMounted(async () => {
   letter-spacing: 0.2px;
   margin: 0;
   line-height: 1.1;
-  background: linear-gradient(135deg, #333, #777);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 .page-header .title-accent {
-  background: linear-gradient(135deg, #ff9800, #f45b00);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #f45b00;
 }
 .page-header .subtitle {
   margin: 2px 0 0;
@@ -528,7 +523,10 @@ onMounted(async () => {
 .title-stack { display: grid; justify-items: center; gap: 8px; }
 .card-heading { font-size: 18px; font-weight: 700; }
 .tag-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-.card-body { padding: 20px 24px 24px; }
+.card-body { 
+    padding: 20px 24px 24px; 
+    background: white;
+}
 
 /* ---------- Toast ---------- */
 :global(.p-toast-detail) { color: #1e293b !important; font-size: 0.875rem; }

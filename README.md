@@ -174,15 +174,16 @@ VITE_AVATAR_BASE=<your_avatar_base_url>
 
 ### 3) Backend / Cloud Service Setup
 
-#### Supabase (To Do: Need to edit this part)
+#### Supabase Setup
 1. Go to [Supabase Console](https://supabase.com/)
 2. Create a new project and note your project URL and anon key.
-3. Enable the following:
+3. Enable:
    - **Authentication** → Email/Password sign-in
-   - **Supabase Database** → Table Editor to create tables
-4. Copy the Supabase configuration into your `.env` file.
+   - **Table Editor** → Create tables for profiles, matches, sessions, and feedback
+4. Copy your Supabase credentials into the `.env` file.
+5. Set up database policies to allow necessary authenticated actions (insert, select, update).
 
-#### Optional: Express.js / MongoDB
+<!-- #### Optional: Express.js / MongoDB
 If your app includes a backend:
 1. Create a `/server` folder for backend code.
 2. Inside `/server`, create a `.env` file with:
@@ -197,7 +198,7 @@ If your app includes a backend:
    npm start
    ```
 
----
+--- -->
 
 ### 4) Run the Frontend
 To start the development server:
@@ -235,7 +236,7 @@ npm run test
 
 ---
 
-### 6) Common Issues & Fixes (Need to do)
+### 6) Common Issues & Fixes
 
 | Issue | Cause | Fix |
 |:--|:--|:--|
@@ -249,22 +250,21 @@ npm run test
 
 ## Group Reflection
 
-Each member should contribute 2–3 sentences on their learning and project experience.
-
-> **Example Template:**  
 > - *Mikhail:* I learned how to handle user creation, session management, and regex with Supabase for our project over the course of working on the login and registration functions. I also got the chance to try my hand at using the Google API to implement the Oauth login using google accounts. For more general functionality, I learned how to setup and work with the routerguard function for our view project, booting the user to specific pages depending on their session/account data, as well as how layouts (Which we used for the navbar) work in a vue project!
+
 > - *Alec:* I am the main feature developer for matchmaking & algorithmns, handling most of front/backend for matchmaking,chat,matchreview functionality. I have learnt to handle error and make dynamic responsive webside (without needing to hard refresh for changes on reactive elements/cards), while developing a robust logic system between multiple users (match declines, and dequeueing of member on both frontend and database) within a live platform. I have also learnt to integrated reactive notification and provide tactile UI responsiveness to provide user clarity. I have also applied enhancement to the backend supabase to cleanse untilisized data to keep the matchmaking fast and effecient. I have also designed learnt to make a Dynamic Navbar so that ChatMatch view only appears when there is a match to reduce clutter, applied animations (e.g Stars/Confetti/logos), and sound effects to the matchmaking experience.
+
 > - *Jordan:* Working on this project allowed me to gain hands-on experience integrating multiple real-world frameworks and APIs. I implemented the Google Maps integration within the chat feature, enabling users to suggest and locate study spots based on a searched location. This deepened my understanding of how to handle external APIs and manage asynchronous data in a web application.
 Additionally, I worked on setting up a Supabase real-time chat system that enables two matched users to communicate seamlessly. This experience strengthened my grasp of real-time data synchronization and database event handling. I also contributed to the UI design by creating and styling the home page using PrimeVue components and CSS, which enhanced both my front-end development and design sense.
 This project taught me the value of clear communication, proper task division, and regular updates within a team. Using GitHub and task boards helped us stay organized and aligned. I also learned to break complex features into smaller milestones and adapt quickly when faced with new frameworks. Overall, the experience strengthened my technical confidence, teamwork, and problem-solving approach.
-> - *Qing Ling:* Through developing the profile setup, profile settings and match review page, I gained firsthand experience in integrating frontend and backend systems using Vue and Supabase. I implemented the avatar API, database tables, functions, and triggers to automatically create and link user profiles upon registration and built dynamic data retrieval for displaying user information and module suggestions. I also helped to integrate the match chat timer to track study session durations, display session details from the database and redirect users to the match review page to submit and store their reviews. In addition, I creates a database trigger that triggers when a session ID is generated upon verification, it creates a corresponding session row to ensure reviews are stored and retrieved accurately. Working with Vue and Supabase taught me how to manage data flow effectively between systems while keeping the application responsive. Although our team initially faced coordination challenges, but we still managed to pull together and deliver our final product.
-> - *Parikshit:* I developed the feedback system using Vue and Supabase, which deepened my understanding of database connectivity and real-time data handling. I also learned to optimise UI responsiveness, implement effective form validation, and integrate external APIs. Additionally, I gained hands-on experience in sending automated email feedback to users upon submission.
-> - *Yan Chang:* 
 
-As a team, reflect on:
-- Key takeaways from working with real-world frameworks  
-- Challenges faced and how they were resolved  
-- Insights on teamwork, project management, and problem-solving  
+> - *Qing Ling:* Through developing the profile setup, profile settings and match review page, I gained firsthand experience in integrating frontend and backend systems using Vue and Supabase. I implemented the avatar API, database tables, functions, and triggers to automatically create and link user profiles upon registration and built dynamic data retrieval for displaying user information and module suggestions. I also helped to integrate the match chat timer to track study session durations, display session details from the database and redirect users to the match review page to submit and store their reviews. In addition, I creates a database trigger that triggers when a session ID is generated upon verification, it creates a corresponding session row to ensure reviews are stored and retrieved accurately. Working with Vue and Supabase taught me how to manage data flow effectively between systems while keeping the application responsive. Although our team initially faced coordination challenges, but we still managed to pull together and deliver our final product.
+
+> - *Parikshit:* I developed the feedback system using Vue and Supabase, which deepened my understanding of database connectivity and real-time data handling. I also learned to optimise UI responsiveness, implement effective form validation, and integrate external APIs. Additionally, I gained hands-on experience in sending automated email feedback to users upon submission.
+
+> - *Yan Chang:* I developed the onboarding screens, where I focused on creating a smooth and engaging user experience. Through this, I improved my skills in interface design and state management using Vue.js. I also learned the importance of cohesive design systems in ensuring a consistent app experience.
+
+**Team Reflection:** As a team, we learned the importance of collaboration and version control while developing a full-stack web application. Working with real-world frameworks such as Vue and Supabase helped us better understand asynchronous operations, database design, and UI optimisation. We faced challenges with API integration and data synchronisation, but managed to overcome them through consistent testing, detailed code reviews, and open communication. Overall, this project strengthened our teamwork, problem-solving, and time management skills, giving us valuable experience for future software development projects.
 
 ## Recommended IDE Setup
 
