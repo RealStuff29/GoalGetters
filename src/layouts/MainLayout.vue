@@ -13,42 +13,38 @@ const userSession = ref(null)
 const checkedSession = ref(false)
 const store = useMatchStore()
 
-// Menu stuff
-const menu = ref()
+/* --- Single hamburger menu --- */
+const navMenu = ref()
 
-const items = ref([
-  {
-    label: 'Profile Settings',
-    icon: 'pi pi-cog',
-    command: () => {
-      router.push('/profilesettingsview') 
-    },
-  },
-  {
-    separator: true
-  },
-  {
-    label: 'Log Out',
-    icon: 'pi pi-sign-out',
-    command: () => {
-      handleLogout()
-    }
+// Only show MatchChat when users are actually in chat (both accepted and entered chat)
+const showMatchChat = computed(() => store.stage === 'chat')
+
+// Build the hamburger list in your requested order
+const allMenuItems = computed(() => {
+  if (!userSession.value) return []
+  const items = [
+    { label: 'Profile Settings', icon: 'pi pi-cog',      command: () => router.push('/profilesettingsview') },
+    { label: 'Matchmake Now',    icon: 'pi pi-sparkles', command: () => router.push('/matchlandingview') },
+    { label: 'Feedback',         icon: 'pi pi-comment',  command: () => router.push('/feedbackview') },
+  ]
+  if (showMatchChat.value) {
+    items.push({ label: 'MatchChat', icon: 'pi pi-comments', command: () => router.push('/matchchatview') })
   }
-])
+  items.push({ label: 'Log Out', icon: 'pi pi-sign-out', command: () => handleLogout() })
+  return items
+})
 
-const toggleMenu = (event) => {
-  menu.value.toggle(event)
+const toggleNav = (event) => {
+  navMenu.value?.toggle(event)
 }
 
-// Watch authentication state
+/* --- Auth / session wiring --- */
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   userSession.value = session
   checkedSession.value = true
 
-  // try to hydrate/auto-resume so the nav reflects reality after refresh
   await store.hydrateFromCache()
-  // fire-and-forget; if nothing to resume, it’s a no-op
   store.resumeSilently().catch(() => {})
 
   supabase.auth.onAuthStateChange((_event, session) => {
@@ -58,100 +54,72 @@ onMounted(async () => {
 })
 
 async function handleLogout() {
-  const logoutOK = await logoutUser()
-  if (logoutOK) {
+  const ok = await logoutUser()
+  if (ok) {
     userSession.value = null
     router.push({ name: 'landing' })
   }
 }
-function handleLogin() { router.push({ name: 'login' }) }
+
+function handleLogin()    { router.push({ name: 'login' }) }
 function handleRegister() { router.push({ name: 'register' }) }
-
-function handleProtectedNavigation(path) {
-  if (!userSession.value) router.push({ name: 'login' })
-  else router.push(path)
-}
-
-function handleHomeNav() {
-  if (userSession.value) {
-    router.push({ name: 'home' })      // goes to /home when logged in
-  } else {
-    router.push({ name: 'landing' })   // goes to / when logged out
-  }
-}
-
-// Only show MatchChat when users are actually in chat (both accepted and entered chat)
-const showMatchChat = computed(() => store.stage === 'chat')
+function handleHomeNav()  { userSession.value ? router.push({ name: 'home' }) : router.push({ name: 'landing' }) }
 </script>
 
 <template>
   <div>
-    <nav class="navbar bg-light px-4 d-flex align-items-center shadow-sm position-relative" style="height: 64px;">
-      <!-- Left -->
-      <div class="d-flex align-items-center gap-2">
-        <h3 class="brand-title mb-0" :class="{ 'brand-clickable': userSession }" @click="userSession && handleHomeNav()"
-          title="Go to Home">
+    <nav class="nav-shell bg-light shadow-sm px-3">
+      <!-- LEFT: hamburger + brand -->
+      <div class="left d-flex align-items-center gap-2">
+        <Button
+          v-if="userSession"
+          class="btn-glass"
+          icon="pi pi-bars"
+          aria-haspopup="true"
+          aria-controls="nav_menu"
+          @click="toggleNav($event)"
+        />
+        <h3
+          class="brand-title mb-0"
+          :class="{ 'brand-clickable': userSession }"
+          @click="userSession && handleHomeNav()"
+          title="Go to Home"
+        >
           GoalGetters
         </h3>
       </div>
 
-      <!-- Center navigation -->
-      <div
-        class="center-nav d-flex align-items-center justify-content-center gap-4 position-absolute top-50 start-50 translate-middle">
-        <template v-if="userSession">
-          
-          <RouterLink to="/matchlandingview" class="nav-link">Find Study Partner</RouterLink>
-          <RouterLink to="/feedbackview" class="nav-link">Feedback</RouterLink>
-
-          <!-- ⬇️ Only show when actually in chat -->
-          <RouterLink
-            v-if="showMatchChat"
-            to="/matchchatview"
-            class="nav-link"
-          >
-            MatchChat
-          </RouterLink>
+      <!-- RIGHT: auth buttons (no profile button anymore) -->
+      <div class="right">
+        <template v-if="checkedSession">
+          <template v-if="!userSession">
+            <div class="d-flex gap-2">
+              <Button severity="secondary" label="Log In" @click="handleLogin" class="btn-glass" />
+              <Button severity="warn" label="Sign Up" @click="handleRegister" class="btn-gradient" />
+            </div>
+          </template>
+        </template>
+        <template v-else>
+          <i class="pi pi-spin pi-spinner text-muted" />
         </template>
       </div>
 
-      <!-- Right side buttons (unchanged) -->
-      <div v-if="checkedSession">
-        <div v-if="userSession">
-          <Button 
-            ref="profileButton"
-            label="View Profile" 
-            class="btn-gradient" 
-            @click="toggleMenu"
-            icon="pi pi-user"
-            iconPos="right"
-            aria-haspopup="true"
-            aria-controls="profile_menu"
-          />
-          <Menu 
-            ref="menu" 
-            id="profile_menu" 
-            :model="items" 
-            :popup="true"
-            class="w-full md:w-60 p-0"
-          >
-            <template #item="{ item, props }">
-              <a v-ripple class="flex items-center no-underline text-inherit" v-bind="props.action">
-                <span :class="item.icon" />
-                <span>{{ item.label }}</span>
-                <Badge v-if="item.badge" class="ml-auto" :value="item.badge" />
-                <span v-if="item.shortcut" class="ml-auto border border-surface rounded bg-emphasis text-muted-color text-xs p-0">{{ item.shortcut }}</span>
-              </a>
-            </template>
-          </Menu>
-        </div>
-        <div v-else class="d-flex gap-2">
-          <Button severity="secondary" label="Log In" @click="handleLogin" class="btn-glass" />
-          <Button severity="warn" label="Sign Up" @click="handleRegister" class="btn-gradient" />
-        </div>
-      </div>
-      <div v-else>
-        <i class="pi pi-spin pi-spinner text-muted"></i>
-      </div>
+      <!-- HAMBURGER POPUP (all items) -->
+      <Menu
+        ref="navMenu"
+        id="nav_menu"
+        :model="allMenuItems"
+        :popup="true"
+        appendTo="body"
+        class="app-menu"
+      >
+        <template #item="{ item, props }">
+          <a v-bind="props.action" class="app-menu-item">
+            <i :class="['app-menu-icon', item.icon]" aria-hidden="true" />
+            <span class="app-menu-label">{{ item.label }}</span>
+          </a>
+        </template>
+      </Menu>
     </nav>
 
     <div class="mx-0 p-0">
@@ -161,80 +129,24 @@ const showMatchChat = computed(() => store.stage === 'chat')
 </template>
 
 <style scoped>
-a {
-  text-decoration: none;
-  color: inherit;
-}
-
-.nav-link {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  text-decoration: none;
-  color: #333;
-}
-
-.nav-link:hover {
-  transform: translateY(-2px);
-}
-
-/* For PrimeVue Button */
-:deep(.p-button) {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-:deep(.p-button:hover) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
-}
-
-.navbar {
+/* GRID shell: left | center | right */
+.nav-shell {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  height: 64px;
   backdrop-filter: blur(12px);
   background: rgba(255, 255, 255, 0.7);
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  gap: 12px;
 }
+.left  { justify-self: start; }
+.center{ justify-self: center; }
+.right { justify-self: end; display: flex; align-items: center; gap: 8px; }
 
-.text-gradient {
-  background: linear-gradient(90deg, #ff9800, #ffb347);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.nav-link {
-  text-decoration: none;
-  color: #333;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.nav-link:hover {
-  color: #ff9800;
-  transform: translateY(-2px);
-}
-
-.btn-gradient {
-  background: linear-gradient(90deg, #ff9800, #ffb347);
-  border: none;
-  color: white !important;
-  transition: all 0.3s ease;
-  border-radius: 50px;
-}
-
-.btn-gradient:hover {
-  opacity: 0.9;
-  transform: translateY(-2px);
-}
-
-.btn-glass {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  color: #333;
-  transition: all 0.3s ease;
-  border-radius: 50px;
-}
-
-.btn-glass:hover {
-  background: rgba(255, 255, 255, 0.4);
-  transform: translateY(-2px);
-}
+a { text-decoration: none; color: inherit; }
+.nav-link { color:#333; font-weight:500; transition: transform .2s ease, color .2s ease; }
+.nav-link:hover { color:#ff9800; transform: translateY(-2px); }
 
 .brand-title {
   font-weight: 800;
@@ -242,60 +154,79 @@ a {
   background: linear-gradient(90deg, #ff9800, #ffb347);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  transition: all 0.3s ease;
-  cursor: default;
+  transition: transform .2s ease;
 }
-
-/* Only clickable (home) when user is logged in */
-.brand-clickable {
-  cursor: pointer;
-  position: relative;
-}
-
+.brand-clickable { cursor: pointer; position: relative; }
+.brand-clickable:hover { transform: translateY(-1px); text-shadow: 0 0 8px rgba(255,152,0,.4); }
 .brand-clickable::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  bottom: -4px;
-  width: 0%;
-  height: 2px;
-  background: linear-gradient(90deg, #ff9800, #ffb347);
-  transition: width 0.3s ease;
+  content: ''; position: absolute; left: 0; bottom: -4px; width: 0%; height: 2px;
+  background: linear-gradient(90deg, #ff9800, #ffb347); transition: width .3s ease;
+}
+.brand-clickable:hover::after { width: 100%; }
+
+:deep(.p-button){ border-radius: 50px; transition: transform .2s ease, box-shadow .2s ease; }
+:deep(.p-button:hover){ transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,.15); }
+.btn-gradient{ background: linear-gradient(90deg,#ff9800,#ffb347); border:none; color:#fff !important; }
+.btn-glass{ background: rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.4); color:#333; }
+
+/* Hide center links on small screens (hamburger covers them) */
+@media (max-width: 991.98px) { .center { display: none; } }
+</style>
+
+<!-- Unscoped: styles for the popup appended to <body> -->
+<style>
+/* Popup container (tighter) */
+.app-menu.p-menu {
+  border-radius: 12px;
+  padding: 6px;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow:
+    0 10px 24px rgba(0,0,0,0.08),
+    0 2px 6px rgba(0,0,0,0.04);
+  background: #fff;
 }
 
-.brand-clickable:hover::after {
-  width: 100%;
+/* normalize PrimeVue internals so our spacing rules apply cleanly */
+.app-menu .p-menu-list        { padding: 4px; margin: 0; }
+.app-menu .p-menuitem         { margin: 0; }
+.app-menu .p-menuitem-content { padding: 0; }
+
+/* Items (compact, consistent tap target) */
+.app-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: #1f2937;
+  text-decoration: none;
+  line-height: 1.1;
+  min-width: 200px;
+  min-height: 36px;
+  transition: background .15s ease, transform .06s ease;
+}
+.app-menu-item:hover { background: #f6f7f9; }
+.app-menu-item:active { transform: translateY(1px); }
+
+/* Icons */
+.app-menu-icon {
+  font-size: 1rem;
+  width: 20px;
+  text-align: center;
+  color: #6b7280;
 }
 
-.brand-clickable:hover {
-  transform: translateY(-1px);
-  text-shadow: 0 0 8px rgba(255, 152, 0, 0.4);
+/* Label */
+.app-menu-label { font-weight: 600; letter-spacing: .1px; }
+
+/* Keyboard focus */
+.app-menu-item:focus-visible {
+  outline: 2px solid #ff9800;
+  outline-offset: 2px;
+  background: #fff7ed;
 }
 
-/* Subtle style for marketing links on landing */
-.nav-link[href^="#"] {
-  opacity: 0.8;
-}
-
-.nav-link[href^="#"]:hover {
-  opacity: 1;
-  color: #ff9800;
-}
-
-.center-nav a {
-  opacity: 0.9;
-  transition: opacity 0.3s ease, transform 0.2s ease;
-}
-
-.center-nav a:hover {
-  opacity: 1;
-  transform: translateY(-2px);
-}
-
-@media (max-width: 768px) {
-  .center-nav {
-    display: none;
-    /* hide nav links on mobile for cleaner design */
-  }
-}
+/* Keep above blurred navbar/backdrops */
+.p-menu { z-index: 2005; }
+html, body { margin: 0; }
 </style>
