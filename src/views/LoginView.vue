@@ -91,9 +91,9 @@ async function handleGoogleLogin() {
   <div class="login-page container-fluid p-0">
     <Toast position="top-center" group="authToast" />
 
-    <div class="row g-0 h-100">
+    <div class="row g-0">
       <!-- LEFT: Form (full width on mobile, right side on md+) -->
-      <div class="col-12 col-md-5 d-flex align-items-center justify-content-center p-4 p-md-5 order-md-1">
+      <div class="col-12 col-md-5 d-flex align-items-center justify-content-center order-md-1 min-vh-100">
         <div class="login-container">
           <div class="logo-section">
             <img :src="logo" class="login-logo" alt="GoalGetters Logo" />
@@ -133,8 +133,8 @@ async function handleGoogleLogin() {
       <!-- RIGHT: Slideshow (hidden on mobile) -->
       <div class="col-12 col-md-7 d-none d-md-block position-relative order-md-2">
         <transition name="bgfade" mode="out-in">
-          <div class="bg-image" :key="currentBackground"
-               :style="{ backgroundImage: `url(${currentBackground})` }"></div>
+          <div class="bg-image" :key="currentBackground" 
+               :style="{ backgroundImage: `url(${currentBackground})`}"></div>
         </transition>
         <div class="overlay"></div>
       </div>
@@ -177,6 +177,7 @@ async function handleGoogleLogin() {
     background-repeat: no-repeat;
     transition: opacity 0.6s ease-in-out;
     z-index: 0;
+    height: auto;
 }
 
 .overlay {
@@ -389,7 +390,7 @@ async function handleGoogleLogin() {
 html, body, #app { height: 100%; margin: 0; }
 
 
-.login-page { display: block; height: auto; min-height: 100vh; }
+.login-page { display: block;  }
 .login-left, .login-right { flex: initial; } /* cancel old flex:2 / flex:3 if present */
 
 @supports not (min-height: 100dvh) {
