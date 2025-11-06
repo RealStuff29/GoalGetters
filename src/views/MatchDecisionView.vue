@@ -140,8 +140,6 @@
         </template>
       </Card>
 
-      <!-- ⛔️ removed the old ProgressBar that was below the card -->
-
       <div class="grid grid-cols-2 gap-3">
         <Button outlined @click="onDecline" :icon="pi('times')" label="Decline" style="border-radius: 5px;"/>
         <Button @click="onAccept" severity="primary" :icon="pi('check')" label="Accept & Chat" style="border-radius: 5px;"/>
@@ -158,7 +156,7 @@
 
     <!-- Fallback -->
     <div v-else class="opacity-70 text-center">
-      <p>Loading…</p>
+      <p>Oops seems like you did not respond and the timer has ran out! Lets Matchmake Again</p>
       <Button class="mt-3" label="Back to Matchmaking" @click="startOver" style="border-radius: 5px;"/>
     </div>
   </div>
