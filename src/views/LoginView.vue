@@ -88,57 +88,58 @@ async function handleGoogleLogin() {
 
 
 <template>
-    <div class="login-page">
+  <div class="login-page container-fluid p-0">
+    <Toast position="top-center" group="authToast" />
 
-        <Toast position="top-center" group="authToast" />
+    <div class="row g-0 h-100">
+      <!-- LEFT: Form (full width on mobile, right side on md+) -->
+      <div class="col-12 col-md-5 d-flex align-items-center justify-content-center p-4 p-md-5 order-md-1">
+        <div class="login-container">
+          <div class="logo-section">
+            <img :src="logo" class="login-logo" alt="GoalGetters Logo" />
+            <h1 class="app-title">Welcome to GoalGetters</h1>
+            <p class="quote-text fade">{{ currentQuote.text }}</p>
+          </div>
 
-        <!-- 🧭 Left side: Login form -->
-        <div class="login-left">
-            <div class="login-container">
-                <div class="logo-section">
-                    <img :src="logo" class="login-logo" alt="GoalGetters Logo" />
-                    <h1 class="app-title">Welcome to GoalGetters</h1>
-                    <p class="quote-text fade">{{ currentQuote.text }}</p>
-                </div>
+          <div class="form-section">
+            <form @submit.prevent="handleLogin" class="login-form">
+              <label>Email</label>
+              <InputText type="email" v-model="email" placeholder="you@smu.edu.sg" class="w-full" />
 
-                <div class="form-section">
-                    <form @submit.prevent="handleLogin" class="login-form">
-                        <label>Email</label>
-                        <InputText type="email" v-model="email" placeholder="you@smu.edu.sg" class="w-full" />
+              <label>Password</label>
+              <InputText type="password" v-model="password" placeholder="••••••••" class="w-full" />
 
-                        <label>Password</label>
-                        <InputText type="password" v-model="password" placeholder="••••••••" class="w-full" />
+              <div class="register-text">
+                New to GoalGetters?
+                <RouterLink :to="{ name: 'register' }" class="highlight-link">Sign up</RouterLink>
+              </div>
 
-                        <div class="register-text">
-                            New to GoalGetters?
-                            <RouterLink :to="{ name: 'register' }" class="highlight-link">Sign up</RouterLink>
-                        </div>
+              <Button type="submit" label="Log In" class="w-full login-btn" />
 
-                        <Button type="submit" label="Log In" class="w-full login-btn" />
+              <div class="divider">
+                <hr /><span>or</span>
+                <hr />
+              </div>
 
-                        <div class="divider">
-                            <hr /><span>or</span>
-                            <hr />
-                        </div>
-
-                        <button class="google-btn" type="button" @click="handleGoogleLogin" :disabled="loading">
-                            <i class="pi pi-google"></i>
-                            Continue with Google
-                        </button>
-                    </form>
-                </div>
-            </div>
+              <button class="google-btn" type="button" @click="handleGoogleLogin" :disabled="loading">
+                <i class="pi pi-google"></i>
+                Continue with Google
+              </button>
+            </form>
+          </div>
         </div>
+      </div>
 
-        <!-- 🖼️ Right side: Background slideshow -->
-        <div class="login-right">
-            <transition name="bgfade" mode="out-in">
-                <div class="bg-image" :key="currentBackground"
-                    :style="{ backgroundImage: `url(${currentBackground})` }"></div>
-            </transition>
-            <div class="overlay"></div>
-        </div>
+      <!-- RIGHT: Slideshow (hidden on mobile) -->
+      <div class="col-12 col-md-7 d-none d-md-block position-relative order-md-2">
+        <transition name="bgfade" mode="out-in">
+          <div class="bg-image" :key="currentBackground"
+               :style="{ backgroundImage: `url(${currentBackground})` }"></div>
+        </transition>
+        <div class="overlay"></div>
+      </div>
     </div>
+  </div>
 </template>
 
 
@@ -382,4 +383,17 @@ async function handleGoogleLogin() {
         width: 96px;
     }
 }
+
+
+/* --- Bootstrap grid overrides (minimal) --- */
+html, body, #app { height: 100%; margin: 0; }
+
+
+.login-page { display: block; height: auto; min-height: 100vh; }
+.login-left, .login-right { flex: initial; } /* cancel old flex:2 / flex:3 if present */
+
+@supports not (min-height: 100dvh) {
+  .login-page { min-height: 100vh; }
+}
+
 </style>
