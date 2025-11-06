@@ -13,7 +13,10 @@ import login1 from '@/assets/images/login1.jpg';
 import login2 from '@/assets/images/login2.jpg';
 import login3 from '@/assets/images/login3.jpg';
 import login4 from '@/assets/images/login4.jpg';
+import { useNotify } from '@/composables/useNotify'
 
+
+const notify = useNotify('authToast')
 const { registerUser, error, loading, loginUserWithGoogle } = useAuth();
 const SMU_EMAIL = /^[A-Za-z0-9._%+-]+@smu\.edu\.sg$/i;
 
@@ -55,14 +58,16 @@ onUnmounted(() => {
 // Register Logic (same logic as before)
 async function handleRegister() {
     if (!SMU_EMAIL.test(email.value)) {
-        alert('Please use your SMU email (must end with @smu.edu.sg).');
+        // alert('Please use your SMU email (must end with @smu.edu.sg).');
+        notify.error('Please use your SMU email (must end with @smu.edu.sg).')
         return;
     }
 
     await registerUser(email.value, password.value);
 
     if (error.value) {
-        alert(error.value);
+        // alert(error.value);
+        notify.error(error.value)
         return;
     }
 
@@ -80,6 +85,9 @@ async function handleGoogleLogin() {
 
 <template>
     <div class="register-page">
+        
+        <Toast position="top-center" group="authToast" />
+
         <!-- Left Side: Register Form -->
         <div class="register-left">
             <div class="register-container">

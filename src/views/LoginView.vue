@@ -13,8 +13,10 @@ import login2 from '@/assets/images/login2.jpg'
 import login3 from '@/assets/images/login3.jpg'
 import login4 from '@/assets/images/login4.jpg'
 import router from '@/router';
+import { useNotify } from '@/composables/useNotify'
 
 
+const notify = useNotify('authToast')
 const { loginUser, loginUserWithGoogle, error, loading } = useAuth();
 
 const SMU_EMAIL = /^[A-Za-z0-9._%+-]+@smu\.edu\.sg$/i;
@@ -59,14 +61,16 @@ onUnmounted(() => {
 async function handleLogin() {
 
     if (!SMU_EMAIL.test(email.value)) {
-        alert('Please log in with your SMU email (must end with @smu.edu.sg).');
+        // alert('Please log in with your SMU email (must end with @smu.edu.sg).');
+        notify.error('Please log in with your SMU email (must end with @smu.edu.sg).')
         return;
     }
 
     await loginUser(email.value, password.value);
 
     if (error.value) {
-        alert(error.value);
+        notify.error(error.value)
+        // alert(error.value);
     } else {
         router.push('/');
     }
@@ -85,6 +89,9 @@ async function handleGoogleLogin() {
 
 <template>
     <div class="login-page">
+
+        <Toast position="top-center" group="authToast" />
+
         <!-- 🧭 Left side: Login form -->
         <div class="login-left">
             <div class="login-container">
