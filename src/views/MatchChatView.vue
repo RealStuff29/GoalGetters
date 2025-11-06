@@ -23,7 +23,24 @@
                 <template #content>
                   <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
-                      <Avatar :label="store.partnerInitials" shape="circle" class="partner-avatar" />
+                      <!-- UPDATED: match DecisionView avatar logic -->
+                      <div class="mdv-avatar-wrap">
+                        <Avatar
+                          v-if="store.match?.partner?.photo"
+                          :image="store.match.partner.photo"
+                          size="large"
+                          shape="circle"
+                          class="mb-3"
+                        />
+                        <Avatar
+                          v-else
+                          :label="store.partnerInitials"
+                          size="large"
+                          shape="circle"
+                          class="mb-3"
+                        />
+                        <span class="mdv-glow" aria-hidden="true"></span>
+                      </div>
                       <div>
                         <div class="font-medium">
                           {{ store.match.partner.name || 'Study partner' }}
@@ -213,7 +230,23 @@
                 <template #content>
                   <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
-                      <Avatar :label="store.partnerInitials" shape="circle" class="partner-avatar" />
+                      <div class="mdv-avatar-wrap">
+                        <Avatar
+                          v-if="store.match?.partner?.photo"
+                          :image="store.match.partner.photo"
+                          size="large"
+                          shape="circle"
+                          class="mb-3"
+                        />
+                        <Avatar
+                          v-else
+                          :label="store.partnerInitials"
+                          size="large"
+                          shape="circle"
+                          class="mb-3"
+                        />
+                        <span class="mdv-glow" aria-hidden="true"></span>
+                      </div>
                       <div>
                         <div class="font-medium">
                           {{ store.match.partner.name || 'Study partner' }}
@@ -1857,4 +1890,13 @@ onUnmounted(() => {
       linear-gradient(180deg, var(--bg-page-a), var(--bg-page-b));
   }
 }
+
+/* ===== Avatar glow used by both tabs ===== */
+.mdv-avatar-wrap { position: relative; }
+.mdv-glow {
+  position: absolute; inset: -6px; border-radius: 999px;
+  background: radial-gradient(60px 60px at 50% 50%, rgba(59,130,246,.25), transparent 60%);
+  filter: blur(6px); animation: mdvGlow 2.6s ease-in-out infinite;
+}
+@keyframes mdvGlow { 0%,100%{opacity:.55} 50%{opacity:1} }
 </style>
