@@ -108,7 +108,7 @@ Provide screenshots and captions showing how users interact with your app.
    - The website searching for the user's match.
 
 7. **Match Found Feature**  
-   <img src="screenshots/matchmaking.png" width="600">  
+   <img src="screenshots/matchfound.png" width="600">  
    - Users can decline or accept the match.
 
 8. **Session Details Feature**  
