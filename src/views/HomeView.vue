@@ -25,7 +25,7 @@
               </p>
               <div class="cta-buttons">
                 <RouterLink to="/matchlandingview" class="no-decoration">
-                  <Button label="Find Study Partner" icon="pi pi-users" class="primary-cta" />
+                  <Button label="Find A Study Partner" class="primary-cta"/>
                 </RouterLink>
               </div>
             </div>
@@ -425,20 +425,113 @@ onMounted(async () => {
 }
 
 .primary-cta {
-  background: linear-gradient(135deg, #ff9800, #f57c00) !important;
-  border: none !important;
-  padding: 0.875rem 2rem !important;
-  font-size: 1rem !important;
+  background: linear-gradient(135deg, 
+    rgba(255, 184, 92, 0.9) 0%, 
+    rgba(255, 125, 125, 0.9) 50%, 
+    rgba(255, 167, 209, 0.9) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+  padding: 1.5rem 4rem !important;
+  font-size: 1.3rem !important;
   font-weight: 600 !important;
-  border-radius: 50px !important;
-  box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3) !important;
-  transition: all 0.3s ease !important;
+  border-radius: 25px !important;
+  box-shadow: 
+    0 20px 40px rgba(255, 125, 125, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+  transition: all 0.4s ease !important;
+  position: relative !important;
+  backdrop-filter: blur(20px) !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2) !important;
+  overflow: hidden !important;
+  min-width: 400px;
 }
 
-.hero-section .primary-cta:hover {
+.primary-cta::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background-image: 
+    radial-gradient(2px 2px at 20% 30%, white, transparent),
+    radial-gradient(2px 2px at 60% 70%, white, transparent),
+    radial-gradient(1px 1px at 50% 50%, white, transparent),
+    radial-gradient(1px 1px at 80% 10%, white, transparent),
+    radial-gradient(2px 2px at 90% 60%, white, transparent),
+    radial-gradient(1px 1px at 33% 85%, white, transparent),
+    radial-gradient(2px 2px at 15% 60%, white, transparent),
+    radial-gradient(1px 1px at 70% 40%, white, transparent),
+    radial-gradient(1px 1px at 25% 15%, white, transparent),
+    radial-gradient(2px 2px at 45% 90%, white, transparent),
+    radial-gradient(1px 1px at 85% 80%, white, transparent),
+    radial-gradient(1px 1px at 10% 45%, white, transparent),
+    radial-gradient(2px 2px at 55% 25%, white, transparent),
+    radial-gradient(1px 1px at 75% 55%, white, transparent),
+    radial-gradient(1px 1px at 40% 65%, white, transparent),
+    radial-gradient(2px 2px at 65% 15%, white, transparent),
+    radial-gradient(1px 1px at 30% 95%, white, transparent),
+    radial-gradient(1px 1px at 95% 35%, white, transparent),
+    radial-gradient(2px 2px at 12% 75%, white, transparent),
+    radial-gradient(1px 1px at 48% 5%, white, transparent) !important;
+  background-size: 200% 200% !important;
+  background-repeat: no-repeat !important;
+  opacity: 0.7 !important;
+  animation: twinkle 3s ease-in-out infinite, moveStars 8s ease-in-out infinite !important;
+  pointer-events: none !important;
+}
+
+.primary-cta:hover {
+  transform: translateY(-8px) !important;
+  box-shadow: 
+    0 30px 60px rgba(255, 125, 125, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 0 40px rgba(255, 184, 92, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.primary-cta .pi {
+  font-size: 1.5rem !important;
+  margin-right: 0.75rem !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Make text sit above stars */
+.primary-cta .p-button-label {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes moveStars {
+  0% {
+    background-position: 0% 0%;
+  }
+  25% {
+    background-position: 100% 50%;
+  }
+  50% {
+    background-position: 50% 100%;
+  }
+  75% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+/* .hero-section .primary-cta:hover {
   transform: translateY(-4px);
   box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4) !important;
-}
+} */
 
 .secondary-cta {
   padding: 0.875rem 2rem !important;
