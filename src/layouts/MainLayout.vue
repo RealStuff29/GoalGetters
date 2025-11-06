@@ -100,7 +100,7 @@ const showMatchChat = computed(() => store.stage === 'chat')
         class="center-nav d-flex align-items-center justify-content-center gap-4 position-absolute top-50 start-50 translate-middle">
         <template v-if="userSession">
           
-          <RouterLink to="/matchlandingview" class="nav-link">Matchmake Now</RouterLink>
+          <RouterLink to="/matchlandingview" class="nav-link">Find Study Partner</RouterLink>
           <RouterLink to="/feedbackview" class="nav-link">Feedback</RouterLink>
 
           <!-- ⬇️ Only show when actually in chat -->

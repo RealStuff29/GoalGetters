@@ -439,8 +439,8 @@ async function saveMbtiToProfile() {
     <Toast position="top-center" group="settings" />
 
     <!-- Header -->
-    <header class="page-header">
-      <h1 class="title" style="padding-bottom: 1rem;">
+    <header class="page-header mb-3">
+      <h1 class="title" >
         <span class="title-accent">Profile</span> Settings
       </h1>
       <p class="subtitle">Tune your identity, study preferences while viewing your ratings and reviews</p>
@@ -820,14 +820,9 @@ async function saveMbtiToProfile() {
   font-weight: 800;
   letter-spacing: 0.2px;
   margin: 0;
-  background: linear-gradient(135deg,#333,#777);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 .title-accent {
-  background: linear-gradient(135deg,#ff9800,#f45b00);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #f45b00;
 }
 .subtitle {
   margin-top: 6px;

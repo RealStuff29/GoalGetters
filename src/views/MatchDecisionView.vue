@@ -9,14 +9,43 @@
           You have <b>{{ store.countdownText }}</b> to respond
         </p>
       </div>
+
       <Card class="detail-card">
+        <!-- ✅ TOP PROGRESS BAR INSIDE CARD -->
+        <template #header>
+          <ProgressBar
+            class="mdv-topbar"
+            :value="(store.secondsLeft / store.totalSeconds) * 100"
+            :showValue="false"
+            :pt="{
+              root: { class: 'mdv-topbar-root' },
+              value: { class: 'mdv-topbar-value' }
+            }"
+          />
+        </template>
+
         <template #title>
-          <div class="flex flex-col items-center">
+          <div class="mdv-title-wrap">
             <div class="mdv-avatar-wrap">
-              <Avatar :label="store.partnerInitials" size="large" shape="circle" class="mb-3" />
+              <Avatar
+                v-if="store.match?.partner?.photo"
+                :image="store.match.partner.photo"
+                size="large"
+                shape="circle"
+                class="mb-3"
+              />
+              <Avatar
+                v-else
+                :label="store.partnerInitials"
+                size="large"
+                shape="circle"
+                class="mb-3"
+              />
               <span class="mdv-glow" aria-hidden="true"></span>
             </div>
-            <span class="text-lg font-semibold flex items-center gap-2">
+
+            <!-- Name -->
+            <span class="text-lg font-semibold mdv-partner-name">
               {{ store.match.partner.name || 'Study partner' }}
             </span>
           </div>
@@ -24,73 +53,109 @@
 
         <!-- Snapshot -->
         <template #content>
-          <div class="mt-2 p-3 rounded-lg bg-slate-50 border text-sm space-y-4 mdv-snapshot">
-            <p class="font-semibold flex items-center gap-2">
-              <i :class="pi('info-circle')" class="opacity-70" /> Study Session Snapshot
-            </p>
-
-            <!-- Common time slots -->
-            <div class="flex items-start gap-3 detail-item">
-              <div class="flex items-center gap-2 font-medium mb-1">
-                <i :class="pi('clock')" class="opacity-70 detail-icon" />
-                <span>  Common Time Slots</span>
-              </div>
-              <div class="flex-1">
-                <div v-if="commonSlotLabels.length" class="tags-container">
-                  <Tag v-for="s in commonSlotLabels" :key="s" severity="secondary" :value="s" class="mr-2 mb-2 tag-hover" style="margin-left: 5px;"/>
-                </div>
-                <small v-else class="opacity-70">No overlapping availability yet.</small>
+          <div class="mdv-snapshot-pro">
+            <!-- header -->
+            <div class="mdv-snap-head">
+              <div class="mdv-snap-head-left">
+                <i :class="pi('info-circle')" />
+                <div class="mdv-snap-title">Study Session Snapshot</div>
               </div>
             </div>
 
-            <!-- Common modules -->
-            <div class="flex items-start gap-3 detail-item">
-              <div class="flex items-center gap-2 font-medium mb-1">
-                <i :class="pi('book')" class="opacity-70 detail-icon" />
-                <span>  Common Modules</span>
-              </div>
-              <div class="flex-1">
-                <div v-if="commonMods.length">
-                  <Tag v-for="m in commonMods" :key="m" severity="secondary" :value="m" class="mr-2 mb-2 tag-hover" />
+            <!-- body grid -->
+            <div class="mdv-snap-grid">
+              <!-- Common time slots -->
+              <div class="mdv-snap-item">
+                <div class="mdv-snap-item-head">
+                  <span class="mdv-snap-icon">
+                    <i :class="pi('clock')" />
+                  </span>
+                  <span class="mdv-snap-label">Common Time Slots</span>
                 </div>
-                <small v-else class="opacity-70">You have no common modules.</small>
+                <div class="mdv-snap-content">
+                  <div v-if="commonSlotLabels.length" class="mdv-tags">
+                    <Tag
+                      v-for="s in commonSlotLabels"
+                      :key="s"
+                      severity="secondary"
+                      :value="s"
+                      class="mdv-tag"
+                    />
+                  </div>
+                  <small v-else class="mdv-empty">No overlapping availability yet.</small>
+                </div>
+              </div>
+
+              <!-- Common modules -->
+              <div class="mdv-snap-item">
+                <div class="mdv-snap-item-head">
+                  <span class="mdv-snap-icon">
+                    <i :class="pi('book')" />
+                  </span>
+                  <span class="mdv-snap-label">Common Modules</span>
+                </div>
+                <div class="mdv-snap-content">
+                  <div v-if="commonMods.length" class="mdv-tags">
+                    <Tag
+                      v-for="m in commonMods"
+                      :key="m"
+                      severity="secondary"
+                      :value="m"
+                      class="mdv-tag"
+                    />
+                  </div>
+                  <small v-else class="mdv-empty">You have no common modules.</small>
+                </div>
+              </div>
+
+              <!-- School / Degree (two-up mini cards) -->
+              <div class="mdv-snap-item mdv-snap-degree">
+                <div class="mdv-snap-item-head">
+                  <span class="mdv-snap-icon">
+                    <i :class="pi('warehouse')" />
+                  </span>
+                  <span class="mdv-snap-label">School / Degree</span>
+                </div>
+                <div class="mdv-snap-content">
+                  <div class="mdv-degree-grid">
+                    <div class="mdv-degree-tile">
+                      <div class="mdv-tile-k">You</div>
+                      <div class="mdv-tile-v">{{ myProfile?.degree || '-' }}</div>
+                    </div>
+                    <div class="mdv-degree-tile">
+                      <div class="mdv-tile-k">Partner</div>
+                      <div class="mdv-tile-v">{{ partnerProfile?.degree || '-' }}</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- School / Degree -->
-            <div class="flex items-start gap-3 detail-item">
-              <div class="flex items-center gap-2 font-medium mb-1">
-                <i :class="pi('warehouse')" class="opacity-70 detail-icon" />
-                <span>  School / Degree</span>
-              </div>
-              <div class="flex-1 text-sm">
-                <div><b>Your Degree:</b> {{ myProfile?.degree || '-' }}</div>
-                <div><b>Partner Degree:</b> {{ partnerProfile?.degree || '-' }}</div>
-              </div>
+            <!-- subtle footer -->
+            <div class="mdv-snap-foot">
+              <div class="mdv-foot-accent"></div>
+              <span class="mdv-foot-text">Tap <b>Accept & Chat</b> to lock this session in.</span>
             </div>
           </div>
         </template>
       </Card>
 
-      <ProgressBar
-        :value="(store.secondsLeft / store.totalSeconds) * 100"
-        :showValue="false"
-        style="height: 6px"
-        :pt="{ value: { class: 'bg-red-500' } }"
-      />
+      <!-- ⛔️ removed the old ProgressBar that was below the card -->
 
       <div class="grid grid-cols-2 gap-3">
         <Button outlined @click="onDecline" :icon="pi('times')" label="Decline" style="border-radius: 5px;"/>
         <Button @click="onAccept" severity="primary" :icon="pi('check')" label="Accept & Chat" style="border-radius: 5px;"/>
       </div>
     </div>
-      <div v-else-if="store.stage === 'searching'" class="py-16 text-center space-y-4">
-        <div class="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/70 border">
-          <i :class="pi('spinner')" class="pi-spin"></i>
-            <span class="font-medium">Finding your next study partner…</span>
-            </div>
-            <p class="opacity-70 text-sm">We’ll avoid people you’ve just declined.</p>
-              </div>
+
+    <div v-else-if="store.stage === 'searching'" class="py-16 text-center space-y-4">
+      <div class="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/70 border">
+        <i :class="pi('spinner')" class="pi-spin"></i>
+        <span class="font-medium">Finding your next study partner…</span>
+      </div>
+      <p class="opacity-70 text-sm">We’ll avoid people you’ve just declined.</p>
+    </div>
+
     <!-- Fallback -->
     <div v-else class="opacity-70 text-center">
       <p>Loading…</p>
@@ -131,13 +196,10 @@ booyah.preload = 'auto'
 booyah.volume = 0.8
 // 1) Unlock audio on first user interaction (satisfies autoplay policies)
 function unlockAudioOnce() {
-  // Attempt a silent play-then-pause to mark it "user-gestured"
   booyah.play().then(() => {
     booyah.pause()
     booyah.currentTime = 0
-  }).catch(() => {
-    // Ignore; some browsers still need a real click path, but keeping listener helps
-  })
+  }).catch(() => {})
   window.removeEventListener('pointerdown', unlockAudioOnce, true)
   window.removeEventListener('keydown', unlockAudioOnce, true)
 }
@@ -146,13 +208,11 @@ onMounted(() => {
   window.addEventListener('pointerdown', unlockAudioOnce, true)
   window.addEventListener('keydown', unlockAudioOnce, true)
 
-  // 2) If we arrived on this view and we’re already in "match", play once
   if (store.stage === 'match') {
     safePlay()
   }
 })
 
-// 3) Also react to future transitions into "match"
 const lastStage = ref(store.stage)
 watch(
   () => store.stage,
@@ -164,14 +224,11 @@ watch(
   }
 )
 
-// Play with error handling to surface common issues
 function safePlay() {
-  // Guard against muted tab/device
   booyah.muted = false
   booyah.currentTime = 0
   booyah.play().catch((err) => {
     console.warn('Match sound blocked or failed:', err?.message || err)
-    // If you want, show a tiny toast: "Tap anywhere to enable sounds"
   })
 }
 
@@ -179,6 +236,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('pointerdown', unlockAudioOnce, true)
   window.removeEventListener('keydown', unlockAudioOnce, true)
 })
+
 const SLOT_LABELS = {
   slot_morning: 'Morning (8:30am - 11:30am)',
   slot_midday: 'Midday (12:00pm - 3:00pm)',
@@ -200,6 +258,7 @@ function normalizeSlot(raw: string): SlotKey | null {
   const a = SLOT_ALIASES[k.toLowerCase()]
   return a ?? null
 }
+
 const commonSlotLabels = computed<string[]>(() => {
   const a = strToArray(myProfile.value?.timeslot_avail).map(normalizeSlot).filter(Boolean) as SlotKey[]
   const b = strToArray(partnerProfile.value?.timeslot_avail).map(normalizeSlot).filter(Boolean) as SlotKey[]
@@ -364,13 +423,8 @@ function onAccept() {
 }
 
 async function onDecline() {
-  // Re-queue & start polling (store sets stage='searching' + queueAndPoll)
   await store.declineMatch(partnerId.value ?? null, true)
-
-  // Stop the old partner-rejected poll
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
-
-  // Go back to MatchLandingView to show its existing "searching" UI
   router.replace({ name: 'matchlanding' })
 }
 
@@ -381,25 +435,77 @@ function startOver() {
 </script>
 
 <style scoped>
+/* ===== Page background (light/dark aware) ===== */
 .min-h-screen {
   min-height: 100vh;
   background:
     radial-gradient(900px 180px at 50% -60px, rgba(59,130,246,.10), transparent 60%),
     linear-gradient(180deg, #ffffff, #f8fafc);
 }
+.dark .min-h-screen {
+  background:
+    radial-gradient(900px 180px at 50% -60px, rgba(59,130,246,.10), transparent 60%),
+    linear-gradient(180deg, #0b1020, #0f172a);
+}
+
+/* ===== Prime card shell ===== */
 :deep(.p-card) {
   border: 1px solid rgba(15,23,42,.08);
   border-radius: 16px;
   box-shadow: 0 10px 22px rgba(2,6,23,.06), 0 2px 6px rgba(2,6,23,.04);
   backdrop-filter: blur(6px);
+  background: linear-gradient(180deg, rgba(248,250,252,.92), rgba(255,255,255,.86));
 }
+.dark :deep(.p-card) {
+  border-color: rgba(255,255,255,.06);
+  box-shadow: 0 10px 22px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.25);
+  background: linear-gradient(180deg, rgba(15,23,42,.75), rgba(2,6,23,.65));
+}
+
+/* Header slot should be flush for top bar */
+:deep(.p-card .p-card-header){
+  padding: 0;            /* remove default padding so bar is edge-to-edge */
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  overflow: hidden;
+}
+
+/* ===== Card title ===== */
 :deep(.p-card .p-card-title) {
   padding: 18px 22px;
   border-bottom: 1px solid rgba(15,23,42,.08);
   background: linear-gradient(180deg, rgba(248,250,252,.92), rgba(255,255,255,.86));
+  /* center title content (avatar + name) */
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
+.dark :deep(.p-card .p-card-title) {
+  border-bottom-color: rgba(255,255,255,.08);
+  background: linear-gradient(180deg, rgba(15,23,42,.6), rgba(15,23,42,.4));
+}
+
 :deep(.p-card .p-card-content) { padding: 16px 18px 18px; }
 
+/* ===== Top progress bar styling ===== */
+.mdv-topbar { width: 100%; }
+:deep(.mdv-topbar-root){
+  height: 6px;
+  background: transparent;           /* no gray track */
+  border-radius: 0;                  /* squared to match edges */
+}
+:deep(.mdv-topbar-value){
+  height: 6px;
+  border-radius: 0;
+  background: linear-gradient(90deg, #ef4444, #f59e0b);  /* red -> amber */
+}
+.dark :deep(.mdv-topbar-value){
+  background: linear-gradient(90deg, #f87171, #fbbf24);  /* brighter for dark */
+}
+
+/* ===== Avatar glow ===== */
 .mdv-avatar-wrap { position: relative; }
 .mdv-glow {
   position: absolute; inset: -6px; border-radius: 999px;
@@ -409,50 +515,36 @@ function startOver() {
 .mdv-avatar-wrap :deep(.p-avatar) { position: relative; z-index: 1; }
 @keyframes mdvGlow { 0%,100%{opacity:.55} 50%{opacity:1} }
 
+/* ===== Enter animation for the snapshot container (kept) ===== */
 .mdv-snapshot { animation: mdvRise .28s ease-out both; }
 @keyframes mdvRise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Detail items animation */
-.detail-item {
-  animation: fadeInUp 0.5s ease backwards;
-}
-
+/* ===== Detail items animation (kept) ===== */
+.detail-item { animation: fadeInUp 0.5s ease backwards; }
 .detail-item:nth-child(1) { animation-delay: 0.1s; }
 .detail-item:nth-child(2) { animation-delay: 0.2s; }
 .detail-item:nth-child(3) { animation-delay: 0.3s; }
-
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Icons */
+/* ===== Icons (kept) ===== */
 .detail-icon {
   color: #ff9800;
   margin-right: 8px;
   transition: transform 0.3s ease;
 }
+.detail-item:hover .detail-icon { transform: scale(1.2) rotate(5deg); }
 
-.detail-item:hover .detail-icon {
-  transform: scale(1.2) rotate(5deg);
-}
-
-/* Tags */
-.tag-hover {
-  transition: all 0.2s ease;
-}
-
+/* ===== Tags (kept) ===== */
+.tag-hover { transition: all 0.2s ease; }
 .tag-hover:hover {
   transform: scale(1.05);
   box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
 }
 
+/* ===== Outer detail card (light/dark polish) ===== */
 .detail-card {
   background: linear-gradient(135deg, #fff8f0 0%, #ffffff 50%, #fff5e6 100%);
   border: 1px solid #ffe0b2;
@@ -461,7 +553,11 @@ function startOver() {
   position: relative;
   overflow: hidden;
 }
-
+.dark .detail-card {
+  background: linear-gradient(135deg, #1a1720 0%, #0f1320 50%, #1a1420 100%);
+  border-color: rgba(255, 183, 77, .28);
+  box-shadow: 0 2px 12px rgba(0,0,0,.35);
+}
 .detail-card::after {
   content: '';
   position: absolute;
@@ -473,57 +569,209 @@ function startOver() {
   animation: rotateGlow 20s linear infinite;
   pointer-events: none;
 }
-
-@keyframes rotateGlow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
+@keyframes rotateGlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .detail-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 20px rgba(255, 152, 0, 0.15);
   border-color: #ffb74d;
 }
-
-/* .bg-aura {
-  position: absolute;
-  inset: -40% -20% -20% -20%;
-  background:
-    radial-gradient(60% 60% at 20% 10%, rgba(255, 214, 10, 0.45), transparent 60%),
-    radial-gradient(50% 50% at 80% 0%, rgba(251, 133, 0, 0.3), transparent 60%),
-    radial-gradient(40% 40% at 50% 100%, rgba(239, 68, 68, 0.18), transparent 60%);
-  filter: blur(50px);
-  z-index: -2;
-  pointer-events: none;
+.dark .detail-card:hover {
+  box-shadow: 0 6px 22px rgba(0,0,0,.45);
+  border-color: rgba(255, 183, 77, .45);
 }
 
-.float {
-  --size: 260px;
-  position: absolute;
-  width: var(--size); height: var(--size);
-  border-radius: 50%;
-  background: conic-gradient(from 180deg,
-    rgba(255, 183, 3, 0.20),
-    rgba(251, 133, 0, 0.20),
-    rgba(239, 68, 68, 0.18),
-    rgba(255, 183, 3, 0.20)
-  );
-  filter: blur(22px);
-  opacity: 0.6;
-  animation: float 18s ease-in-out infinite;
-  z-index: -1;
-} */
-.float-1 { top: 12%; left: -6%; animation-delay: -2s; }
-.float-2 { bottom: -8%; right: -4%; --size: 340px; animation-delay: -6s; }
-.float-3 { top: 40%; right: 18%; --size: 220px; animation-delay: -9s; }
+/* =========================================================
+   SNAPSHOT PRO (light/dark aware)
+   ========================================================= */
+.mdv-snapshot-pro{
+  --ink:            #1f2937;
+  --ink-dim:        #94a3b8;
+  --glass-bg-a:     rgba(255,255,255,0.88);
+  --glass-bg-b:     rgba(255,255,255,0.70);
+  --border:         rgba(255, 183, 77, .40);
+  --border-strong:  rgba(255, 183, 77, .55);
+  --chip-bg:        #fffdf8;
+  --chip-border:    rgba(255, 183, 77, .45);
+  --chip-text:      #7c2d12;
+  --icon-pill-bg:   linear-gradient(135deg, #fff, #ffe9d0);
+  --accent-a:       #ff9800;
+  --accent-b:       #ffb74d;
+  --tile-bg:        linear-gradient(135deg,#fff,#fff7ec);
+  --item-bg:        radial-gradient(140% 100% at 0% 0%, rgba(255, 245, 230, .75), rgba(255,255,255, .6) 40%, rgba(255,255,255,.5) 70%);
+  --badge-bg:       #fff3e0;
+  --badge-border:   #ffd699;
+  --badge-text:     #b45309;
+  --foot-accent-a:  #ff9800;
+  --foot-accent-b:  #ffcc80;
 
-.grid { display: grid; }
-.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.gap-3 { gap: 0.75rem; }
-.bg-red-500 { background: #ef4444; }
-</style>
+  position: relative;
+  padding: 16px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--glass-bg-a), var(--glass-bg-b)) padding-box;
+  border: 1px solid var(--border);
+  box-shadow:
+    0 10px 24px color-mix(in oklab, var(--accent-a) 15%, transparent),
+    inset 0 0 0 1px rgba(255,255,255,0.35);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  color: var(--ink);
+}
 
-<style>
+.dark .mdv-snapshot-pro{
+  --ink:            #e5e7eb;
+  --ink-dim:        #9ca3af;
+  --glass-bg-a:     rgba(17, 24, 39, 0.85);
+  --glass-bg-b:     rgba(17, 24, 39, 0.70);
+  --border:         rgba(255, 183, 77, .28);
+  --border-strong:  rgba(255, 183, 77, .40);
+  --chip-bg:        rgba(17, 24, 39, 0.7);
+  --chip-border:    rgba(255, 183, 77, .35);
+  --chip-text:      #fde68a;
+  --icon-pill-bg:   linear-gradient(135deg, #1f2937, #2a2f3a);
+  --accent-a:       #ffb156;
+  --accent-b:       #ffd08a;
+  --tile-bg:        linear-gradient(135deg,#121826,#0f172a);
+  --item-bg:        radial-gradient(140% 100% at 0% 0%, rgba(255, 170, 60, .07), rgba(255,255,255, .03) 40%, rgba(255,255,255,.02) 70%);
+  --badge-bg:       rgba(255, 193, 120, .10);
+  --badge-border:   rgba(255, 193, 120, .35);
+  --badge-text:     #ffd28c;
+  --foot-accent-a:  #ffb156;
+  --foot-accent-b:  #ffd08a;
+}
+
+/* gradient border shimmer (mask + compat) */
+.mdv-snapshot-pro::before{
+  content:'';
+  position:absolute; inset:0;
+  padding:1px; border-radius:16px;
+  background: linear-gradient(135deg, var(--accent-b), #ffffff80, var(--accent-a));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask-composite: exclude;
+  opacity:.6; pointer-events:none;
+}
+
+/* sheen */
+.mdv-snapshot-pro::after{
+  content:'';
+  position:absolute; inset:-40% -20% auto -20%; height: 180px;
+  background: linear-gradient(120deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.35) 40%, rgba(255,255,255,0) 80%);
+  transform: translateY(-30%) rotate(2deg);
+  filter: blur(8px);
+  animation: mdvSheen 6s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes mdvSheen{
+  0%, 15% { transform: translateY(-30%) rotate(2deg); opacity: .0; }
+  22%      { opacity: .8; }
+  40%,100% { transform: translateY(30%)  rotate(2deg); opacity: 0; }
+}
+
+/* header */
+.mdv-snap-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px; }
+.mdv-snap-head-left{ display:flex; align-items:center; gap:10px; color: var(--ink); }
+.mdv-snap-head-left i{ opacity:.85; font-size: 1.1rem; }
+.mdv-snap-title{
+  font-weight: 700; letter-spacing:.2px;
+  background: linear-gradient(90deg, var(--accent-a), var(--accent-b));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* grid */
+.mdv-snap-grid{ display:grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 520px){
+  .mdv-snap-grid{ grid-template-columns: 1fr 1fr; }
+  .mdv-snap-degree{ grid-column: 1 / -1; }
+}
+
+/* item (cardlet) */
+.mdv-snap-item{
+  position:relative;
+  border-radius: 14px;
+  padding:12px 12px 10px;
+  background: var(--item-bg) padding-box;
+  border:1px solid var(--border);
+  box-shadow:
+    0 6px 16px color-mix(in oklab, var(--accent-a) 12%, transparent),
+    inset 0 1px 0 rgba(255,255,255,.35);
+  overflow:hidden;
+}
+/* animated accent bar */
+.mdv-snap-item::before{
+  content:'';
+  position:absolute; left:0; top:10px; bottom:10px; width:3px;
+  background: linear-gradient(180deg, var(--accent-b), var(--accent-a));
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.6) inset;
+  opacity:.9;
+  animation: mdvPulse 2.6s ease-in-out infinite;
+}
+@keyframes mdvPulse{ 0%,100%{ transform: scaleY(.95); opacity:.7; } 50%{ transform: scaleY(1); opacity:1; } }
+
+.mdv-snap-item-head{
+  display:flex; align-items:center; gap:8px; margin-left:6px; margin-bottom:6px;
+  color: var(--ink); font-weight: 600;
+}
+.mdv-snap-icon{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:26px; height:26px; border-radius:999px;
+  background: var(--icon-pill-bg);
+  border:1px solid var(--border-strong);
+  box-shadow: 0 2px 6px color-mix(in oklab, var(--accent-a) 15%, transparent);
+}
+.mdv-snap-icon i{ font-size:.9rem; color:var(--accent-a); opacity:.95; }
+
+.mdv-snap-label{ letter-spacing:.2px; color: var(--ink); }
+
+/* tags (PrimeVue <Tag> override only inside snapshot) */
+.mdv-tags{ display:flex; flex-wrap:wrap; gap:8px; }
+:deep(.mdv-tag.p-tag){
+  border-radius: 999px;
+  padding: .3rem .6rem;
+  font-size: .78rem;
+  background: var(--chip-bg);
+  border:1px solid var(--chip-border);
+  color: var(--chip-text);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+:deep(.mdv-tag.p-tag:hover){
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px color-mix(in oklab, var(--accent-a) 22%, transparent);
+}
+
+.mdv-empty{ color: var(--ink-dim); }
+
+/* degree tiles */
+.mdv-degree-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+.mdv-degree-tile{
+  border-radius:12px; padding:10px;
+  background: var(--tile-bg);
+  border:1px solid var(--border);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18);
+}
+.mdv-tile-k{
+  font-size:.72rem; text-transform:uppercase; letter-spacing:.06em;
+  color: color-mix(in oklab, var(--accent-a) 55%, #8b5cf6 0%);
+  margin-bottom:4px; font-weight:700;
+}
+.mdv-tile-v{
+  font-size:.9rem; color: var(--ink); font-weight:600; word-break: break-word;
+}
+
+/* footer cue */
+.mdv-snap-foot{
+  display:flex; align-items:center; gap:10px;
+  margin-top: 12px; padding-top: 10px; position:relative;
+}
+.mdv-foot-accent{
+  width: 50px; height: 4px; border-radius:999px;
+  background: linear-gradient(90deg,var(--foot-accent-a),var(--foot-accent-b));
+  box-shadow: 0 2px 8px color-mix(in oklab, var(--accent-a) 35%, transparent);
+}
+.mdv-foot-text{ color: var(--ink-dim); font-size:.82rem; }
+
+/* ===== Floating bursts (kept) ===== */
 .mdv-burst-root {
   position: fixed; inset: 0; overflow: clip; pointer-events: none; z-index: 9998;
 }
@@ -536,6 +784,84 @@ function startOver() {
 }
 .mdv-burst.ribbon { border-radius: 3px; }
 .mdv-burst.bubble { border-radius: 999px; filter: saturate(1.1); }
+@keyframes mdv-flight {
+  0%   { opacity: 0; transform: translate(-50%,-50%) translate3d(0,24px,0) rotate(0deg) scale(1); }
+  10%  { opacity: 1; }
+  65%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) rotate(var(--rot)) scale(1); }
+}
+
+/* ===== Utility (kept) ===== */
+.grid { display: grid; }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.gap-3 { gap: 0.75rem; }
+.bg-red-500 { background: #ef4444; }
+
+/* ===== Partner name: light/dark + centering spin ===== */
+.mdv-title-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  gap:.25rem;
+}
+
+/* Partner name color (light/dark friendly) */
+.mdv-partner-name {
+  color: #1f2937 !important;            /* slate-800 for light */
+  display: inline-block;                 /* for transforms */
+  animation: mdvSpinIn 1.5s ease both;    /* entrance spin */
+  will-change: transform;
+  cursor: default;
+}
+.dark .mdv-partner-name {
+  color: #1f2937 !important;            /* slate-200 for dark */
+}
+
+/* spin again on hover */
+.mdv-partner-name:hover{
+  animation: mdvSpinHover .7s ease-in-out both;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce){
+  .mdv-partner-name{ animation:none !important; }
+  .mdv-partner-name:hover{ animation:none !important; }
+}
+
+/* Keyframes for partner name */
+@keyframes mdvSpinIn{
+  0%   { transform: rotate(-8deg) scale(.96); opacity:0; }
+  60%  { transform: rotate(6deg)  scale(1.02); opacity:1; }
+  100% { transform: rotate(0deg)  scale(1); }
+}
+@keyframes mdvSpinHover{
+  0%   { transform: rotate(0deg)   scale(1); }
+  50%  { transform: rotate(360deg) scale(1.04); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+/* Optional: if your app doesn't toggle .dark, honor OS dark mode */
+@media (prefers-color-scheme: dark) {
+  html:not(.dark) .mdv-partner-name { color: #1f2937 !important; }
+}
+</style>
+<style>
+/* Confetti needs to be global because we append to document.body */
+.mdv-burst-root {
+  position: fixed; inset: 0; overflow: clip; pointer-events: none; z-index: 9998;
+}
+.mdv-burst {
+  position: absolute;
+  left: var(--x); top: var(--y);
+  transform: translate(-50%, -50%) translate3d(0,0,0);
+  opacity: 0; border-radius: 6px;
+  animation: mdv-flight var(--time) cubic-bezier(.25,.9,.2,1) var(--delay) forwards;
+}
+.mdv-burst.ribbon { border-radius: 3px; }
+.mdv-burst.bubble { border-radius: 999px; filter: saturate(1.1); }
+
 @keyframes mdv-flight {
   0%   { opacity: 0; transform: translate(-50%,-50%) translate3d(0,24px,0) rotate(0deg) scale(1); }
   10%  { opacity: 1; }

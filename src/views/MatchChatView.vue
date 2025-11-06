@@ -1634,5 +1634,198 @@ onUnmounted(() => {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
 }
+/* 1) Design tokens */
+:root {
+  --ink:              #0b1220;
+  --ink-dim:          #6b7280;
+  --bg-page-a:        #ffffff;
+  --bg-page-b:        #f8fafc;
 
+  --card-bg-a:        rgba(255,255,255,0.92);
+  --card-bg-b:        rgba(255,255,255,0.86);
+  --card-border:      rgba(15,23,42,.10);
+
+  --accent-a:         #ff9800;
+  --accent-b:         #f59e0b;
+
+  --chip-bg:          #fff7ed;
+  --chip-border:      #ffd699;
+  --chip-ink:         #7c2d12;
+
+  --me-bubble-bg:     linear-gradient(135deg, #ff9800, #f57c00);
+  --me-bubble-ink:    #ffffff;
+  --them-bubble-bg:   linear-gradient(135deg, #fff3e0, #ffe0b2);
+  --them-bubble-ink:  #5d4037;
+
+  --divider:          #ffe0b2;
+  --scroll-track:     #fff3e0;
+  --scroll-thumb-a:   #ff9800;
+  --scroll-thumb-b:   #f57c00;
+
+  --map-spot-bg-a:    #ffffff;
+  --map-spot-bg-b:    #fff8f0;
+
+  --tile-spot-name:   #e65100;
+  --tile-spot-accent: #f57c00;
+
+  --verify-code-bg-a: #fff3e0;
+  --verify-code-bg-b: #ffe0b2;
+  --verify-code-ink:  #e65100;
+
+  --timer-bg-a:       #fff3e0;
+  --timer-bg-b:       #ffe0b2;
+
+  --aura-yellow:      rgba(255, 214, 10, 0.45);
+  --aura-orange:      rgba(251, 133, 0, 0.30);
+  --aura-red:         rgba(239, 68, 68, 0.18);
+}
+
+.dark {
+  --ink:              #e5e7eb;
+  --ink-dim:          #9ca3af;
+  --bg-page-a:        #0b1020;
+  --bg-page-b:        #0f172a;
+
+  --card-bg-a:        rgba(15,23,42,.80);
+  --card-bg-b:        rgba(15,23,42,.66);
+  --card-border:      rgba(255,255,255,.10);
+
+  --chip-bg:          rgba(17,24,39,.6);
+  --chip-border:      rgba(255,214,153,.35);
+  --chip-ink:         #fde68a;
+
+  --me-bubble-bg:     linear-gradient(135deg, #ffb156, #ff8a3d);
+  --me-bubble-ink:    #111827;
+  --them-bubble-bg:   linear-gradient(135deg, #1e2636, #111827);
+  --them-bubble-ink:  #e5e7eb;
+
+  --divider:          rgba(255,214,153,.28);
+  --scroll-track:     rgba(255,255,255,.06);
+  --scroll-thumb-a:   #ffb156;
+  --scroll-thumb-b:   #ffd08a;
+
+  --map-spot-bg-a:    #121826;
+  --map-spot-bg-b:    #0f172a;
+
+  --tile-spot-name:   #ffd08a;
+  --tile-spot-accent: #ffb156;
+
+  --verify-code-bg-a: rgba(255,193,120,.14);
+  --verify-code-bg-b: rgba(255,193,120,.06);
+  --verify-code-ink:  #ffd08a;
+
+  --timer-bg-a:       rgba(255,193,120,.14);
+  --timer-bg-b:       rgba(255,193,120,.06);
+
+  --aura-yellow:      rgba(255, 214, 10, 0.22);
+  --aura-orange:      rgba(251, 133, 0, 0.18);
+  --aura-red:         rgba(239, 68, 68, 0.10);
+}
+
+/* 2) Page background + ink (keeps your gradients) */
+.min-h-screen {
+  color: var(--ink);
+}
+.dark .min-h-screen {
+  color: var(--ink);
+  background:
+    radial-gradient(900px 180px at 50% -60px, rgba(59,130,246,.10), transparent 60%),
+    linear-gradient(180deg, var(--bg-page-a), var(--bg-page-b));
+}
+
+/* 3) Aura brightness tuning for dark */
+.dark .bg-aura {
+  background:
+    radial-gradient(60% 60% at 20% 10%, var(--aura-yellow), transparent 60%),
+    radial-gradient(50% 50% at 80% 0%, var(--aura-orange), transparent 60%),
+    radial-gradient(40% 40% at 50% 100%, var(--aura-red), transparent 60%);
+}
+
+/* 4) Prime card shells (reuse your classes, just recolor) */
+:deep(.p-card) {
+  background: linear-gradient(180deg, var(--card-bg-a), var(--card-bg-b)) !important;
+  border-color: var(--card-border) !important;
+  color: var(--ink);
+}
+
+/* 5) Chat bubbles (your class names kept) */
+.message-bubble-me {
+  background: var(--me-bubble-bg) !important;
+  color: var(--me-bubble-ink) !important;
+}
+.message-bubble-partner {
+  background: var(--them-bubble-bg) !important;
+  color: var(--them-bubble-ink) !important;
+}
+
+/* 6) Scrollbar colors */
+.messages-container::-webkit-scrollbar-track {
+  background: var(--scroll-track);
+}
+.messages-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--scroll-thumb-a), var(--scroll-thumb-b));
+}
+
+/* 7) Divider and inputs */
+.chat-divider { border-color: var(--divider) !important; }
+.chat-input:focus,
+.verify-input:focus {
+  border-color: var(--accent-a) !important;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent-a) 20%, transparent) !important;
+}
+
+/* 8) Tags (Prime Tag inside your containers) */
+.tags-container :deep(.p-tag),
+.status-tags :deep(.p-tag) {
+  background: var(--chip-bg) !important;
+  border: 1px solid var(--chip-border) !important;
+  color: var(--chip-ink) !important;
+}
+
+/* 9) Verify code box */
+.verify-code-box {
+  background: linear-gradient(135deg, var(--verify-code-bg-a), var(--verify-code-bg-b)) !important;
+  border-color: var(--chip-border) !important;
+  color: var(--verify-code-ink) !important;
+}
+
+/* 10) Timer card */
+.timer-card {
+  background: linear-gradient(135deg, var(--timer-bg-a), var(--timer-bg-b)) !important;
+  border-color: var(--chip-border) !important;
+  color: var(--ink) !important;
+}
+
+/* 11) Map / spots cards + spot rows */
+.map-card, .spots-card, .detail-card, .verify-card, .chat-card, .partner-card {
+  background: linear-gradient(180deg, var(--card-bg-a), var(--card-bg-b)) !important;
+  border-color: var(--card-border) !important;
+  color: var(--ink) !important;
+}
+.spot-item {
+  background: linear-gradient(135deg, var(--map-spot-bg-a), var(--map-spot-bg-b)) !important;
+  border-color: var(--card-border) !important;
+}
+.spot-name { color: var(--tile-spot-name) !important; }
+.spot-rating { color: var(--tile-spot-accent) !important; }
+.spots-count { color: var(--accent-a) !important; }
+
+/* 12) Optional: Tabs header colors */
+:deep(.p-tabview .p-tabview-nav li .p-tabview-nav-link) {
+  color: var(--ink-dim);
+}
+:deep(.p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link) {
+  color: var(--ink);
+  border-color: var(--accent-a);
+}
+
+/* 13) Respect OS dark if you don't toggle .dark yourself */
+@media (prefers-color-scheme: dark) {
+  html:not(.dark) .min-h-screen {
+    color: var(--ink);
+    background:
+      radial-gradient(900px 180px at 50% -60px, rgba(59,130,246,.10), transparent 60%),
+      linear-gradient(180deg, var(--bg-page-a), var(--bg-page-b));
+  }
+}
 </style>

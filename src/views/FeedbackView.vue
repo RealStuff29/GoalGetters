@@ -3,6 +3,10 @@
     <div class="bg-blob blob-1"></div>
     <div class="bg-blob blob-2"></div>
     <div class="bg-blob blob-3"></div>
+
+    <!-- Added toast below in final cut -->
+    <Toast position="top-center" group="feedbackToast" />
+
     <transition name="fade-in-out">
       <div v-if="messageText" :class="['message-box', messageType]">
         <span class="message-icon">{{ messageIcon }}</span>
@@ -58,7 +62,10 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase.js'
 import emailjs from 'emailjs-com'
+import { useNotify } from '@/composables/useNotify' //Added in final cut
 
+
+const notify = useNotify('feedbackToast') //Added in final cut
 const router = useRouter()
 const rating = ref(0)
 const selectedFeature = ref('')
@@ -116,7 +123,9 @@ const submitFeedback = async () => {
 
     const { error } = await supabase.from('feedback').insert([feedbackData])
     if (error) {
-      showMessage(`Supabase submission failed: ${error.message}`, 'error')
+      // showMessage(`Supabase submission failed: ${error.message}`, 'error')
+      notify.error(`Supabase submission failed: ${error.message}`, 'error') //Added in final cut
+
       submitting.value = false
       return
     }
@@ -135,12 +144,16 @@ const submitFeedback = async () => {
 
     await emailjs.send(serviceID, templateID, templateParams, publicKey)
 
-    showMessage('✅ Feedback submitted and email sent successfully!', 'success')
+    // showMessage('✅ Feedback submitted and email sent successfully!', 'success') //Changing this to QL's Toast
+    notify.success('✅ Feedback submitted and email sent successfully!')
+
     clearForm()
 
   } catch (err) {
     console.error(err)
-    showMessage('Network error. Please try again later.', 'error')
+    // showMessage('Network error. Please try again later.', 'error')
+    notify.error(`Supabase submission failed: ${error.message}`, 'error') //Added in final cut
+
   } finally {
     submitting.value = false
   }
