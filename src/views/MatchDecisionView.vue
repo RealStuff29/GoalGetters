@@ -60,7 +60,6 @@
                 <i :class="pi('info-circle')" />
                 <div class="mdv-snap-title">Study Session Snapshot</div>
               </div>
-              <div class="mdv-snap-badge">new match</div>
             </div>
 
             <!-- body grid -->
@@ -679,15 +678,6 @@ function startOver() {
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 
-/* badge */
-.mdv-snap-badge{
-  font-size:.70rem; font-weight:600; text-transform: uppercase; letter-spacing:.06em;
-  padding:.22rem .5rem; border-radius:999px;
-  background: var(--badge-bg);
-  border: 1px solid var(--badge-border);
-  color: var(--badge-text);
-}
-
 /* grid */
 .mdv-snap-grid{ display:grid; grid-template-columns: 1fr; gap: 12px; }
 @media (min-width: 520px){
@@ -821,12 +811,12 @@ function startOver() {
 .mdv-partner-name {
   color: #1f2937 !important;            /* slate-800 for light */
   display: inline-block;                 /* for transforms */
-  animation: mdvSpinIn .5s ease both;    /* entrance spin */
+  animation: mdvSpinIn 1.5s ease both;    /* entrance spin */
   will-change: transform;
   cursor: default;
 }
 .dark .mdv-partner-name {
-  color: #e5e7eb !important;            /* slate-200 for dark */
+  color: #1f2937 !important;            /* slate-200 for dark */
 }
 
 /* spin again on hover */
@@ -854,7 +844,7 @@ function startOver() {
 
 /* Optional: if your app doesn't toggle .dark, honor OS dark mode */
 @media (prefers-color-scheme: dark) {
-  html:not(.dark) .mdv-partner-name { color: #e5e7eb !important; }
+  html:not(.dark) .mdv-partner-name { color: #1f2937 !important; }
 }
 </style>
 <style>
