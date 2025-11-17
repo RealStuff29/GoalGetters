@@ -200,8 +200,6 @@ const changeQuote = () => {
   }
 }
 
-/* Uncomment below to add the glow effect */
-
 .logo-display img {
   animation: dynamicLogo 4s ease-in-out infinite, glow 3s ease-in-out infinite;
 }
@@ -272,7 +270,7 @@ const changeQuote = () => {
     background: radial-gradient(circle at top left, #fff5e8, #ffffff 70%);
 }
 
-/* Live Apple-style bubbles */
+/* Bubbles */
 .hero-bg {
     position: absolute;
     top: 0;
@@ -490,7 +488,7 @@ const changeQuote = () => {
     margin-bottom: 3rem;
 }
 
-/* ✅ FIXED GRID: Always 3 per row on desktop */
+/* FIXED GRID */
 .features-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);

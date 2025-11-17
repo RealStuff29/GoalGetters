@@ -1,4 +1,3 @@
-<!-- src/views/ProfileSetupView.vue -->
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -96,8 +95,7 @@ async function handleAcademicNext(activateCallback) {
 
 
 
-// CHANGE 1
-// --- Step 3: MBTI state + logic (NEW) ---
+// --- Step 3: MBTI state + logic ---
 const mbtiAnswers = ref(Array(  mbtiQuestions.length).fill(null))
 const mbtiResult = ref("");
 const isStep3Answered = computed(() => mbtiAnswers.value.every(a => a !== null));
@@ -295,7 +293,6 @@ async function handleSavePersonality() {
             </div>
 
 
-            <!--CHANGE 2-->
             <!-- Next: save steps 1+2, then proceed to Step 3 -->
             <div class="d-flex justify-content-center mt-4">
               <Button label="Next" icon="pi pi-arrow-right" :disabled="!isStep2Valid || saving" :loading="saving"
@@ -306,8 +303,7 @@ async function handleSavePersonality() {
         </StepPanel>
       </StepItem>
 
-      <!--CHANGE 3-->
-      <!-- Step 3 Personality Info (NEW) -->
+      <!-- Step 3 Personality Info -->
       <StepItem value="3">
         <Step>Personality Info</Step>
         <StepPanel v-slot="{ activateCallback }">

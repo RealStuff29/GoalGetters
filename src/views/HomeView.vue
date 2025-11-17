@@ -116,21 +116,6 @@
             </template>
           </Card>
 
-          <!-- <Card class="feature-card" @click="navigateTo('/profilesettingsview')">
-            <template #content>
-              <div class="feature-icon orange">
-                <i class="pi pi-user-edit" style="font-size: 1.3rem;"></i>
-              </div>
-              <h3 class="feature-title">Update Profile</h3>
-              <p class="feature-description">
-                Keep your profile up-to-date with your current subjects and study preferences.
-              </p>
-              <RouterLink to="/profilesettingsview" class="no-decoration">
-                <Button label="Edit Profile" icon="pi pi-arrow-right" iconPos="right" text class="feature-btn" />
-              </RouterLink>
-            </template>
-          </Card> -->
-
           <Card class="feature-card" @click="navigateTo('/feedbackview')">
             <template #content>
               <div class="feature-icon orange">
@@ -150,29 +135,6 @@
         </div>
       </div>
     </section>
-
-    <!-- Recent Activity Section -->
-    <!-- <section class="activity-section">
-      <div class="container">
-        <h2 class="section-title">Recent Activity</h2>
-        <div class="activity-list">
-          <Card v-for="activity in recentActivities" :key="activity.id" class="activity-card">
-            <template #content>
-              <div class="activity-content">
-                <div class="activity-icon" :class="activity.type">
-                  <i :class="activity.icon"></i>
-                </div>
-                <div class="activity-details">
-                  <h4 class="activity-title">{{ activity.title }}</h4>
-                  <p class="activity-description">{{ activity.description }}</p>
-                  <small class="activity-time">{{ activity.time }}</small>
-                </div>
-              </div>
-            </template>
-          </Card>
-        </div>
-      </div>
-    </section> -->
 
     <!-- Motivational Quote Section -->
     <section class="quote-section">
@@ -245,33 +207,6 @@ const changeQuote = () => {
   motivationalQuote.value = newQuote;
   console.log('New quote:', motivationalQuote.value.text);
 };
-
-// const recentActivities = ref([
-//   {
-//     id: 1,
-//     type: 'match',
-//     icon: 'pi pi-users',
-//     title: 'New Study Match',
-//     description: 'You matched with Alex for Calculus study session',
-//     time: '2 hours ago'
-//   },
-//   {
-//     id: 2,
-//     type: 'session',
-//     icon: 'pi pi-calendar',
-//     title: 'Study Session Completed',
-//     description: 'Completed a 2-hour session with Jamie',
-//     time: '1 day ago'
-//   },
-//   {
-//     id: 3,
-//     type: 'achievement',
-//     icon: 'pi pi-star',
-//     title: 'Achievement Unlocked',
-//     description: 'Earned "Study Streak" badge - 7 days in a row!',
-//     time: '2 days ago'
-//   }
-// ]);
 
 const navigateTo = (path) => {
   router.push(path);
@@ -557,11 +492,6 @@ onMounted(async () => {
   }
 }
 
-/* .hero-section .primary-cta:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4) !important;
-} */
-
 .secondary-cta {
   padding: 0.875rem 2rem !important;
   font-size: 1rem !important;
@@ -640,13 +570,10 @@ onMounted(async () => {
 .logo-icon {
   width: 200px;
   height: 200px;
-  /* background: linear-gradient(135deg, #ff9800, #f57c00); */
-  /* opacity: 50%; */
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* box-shadow: 0 10px 40px rgba(255, 152, 0, 0.4); */
   animation: bounce 3s ease-in-out infinite;
 }
 
