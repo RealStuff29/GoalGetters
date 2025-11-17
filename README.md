@@ -272,24 +272,15 @@ This project taught me the value of clear communication, proper task division, a
 - Generating website concepts, layouts, or themes
    - Yes (Skeleton for landing and home page)
    - Yes (Login/Register, assisted with finding prime icon for google login)
-- Exlporing different UI/UX design inspirations
+- Exploring different UI/UX design inspirations
    - Yes (Drew inspirations from claude for landing page and home page design)
+- Explaining coding errors and debugging hints
+   - Yes (MBTI portion)
+   - Yes (Login and Register)
 - Boilerplate code generation – starter code and code snippets
    - Yes (Got a walkthrough on how to code initial routerguard setup early on)
 - Generating unit test cases, sample inputs, or mock data
 
-
-
-· Information search
-   Yes (General usage)
-· Generating website concepts, layouts, or themes
-   Yes (Skeleton for landing and home page)
-· Exploring different UI/UX design inspirations
-   Yes (Drew inspirations from claude for landing page and home page design)
-· Explaining coding errors and debugging hints
-   Yes (MBTI portion)
-· Boilerplate code generation – starter code and code snippets
-· Generating unit test cases, sample inputs, or mock data
 
 ## Recommended IDE Setup
 
