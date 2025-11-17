@@ -267,6 +267,19 @@ This project taught me the value of clear communication, proper task division, a
 **Team Reflection:** As a team, we learned the importance of collaboration and version control while developing a full-stack web application. Working with real-world frameworks such as Vue and Supabase helped us better understand asynchronous operations, database design, and UI optimisation. We faced challenges with API integration and data synchronisation, but managed to overcome them through consistent testing, detailed code reviews, and open communication. Overall, this project strengthened our teamwork, problem-solving, and time management skills, giving us valuable experience for future software development projects.
 
 ## Use of AI/LLMs
+- Information Search
+   - Yes (General usage)
+- Generating website concepts, layouts, or themes
+   - Yes (Skeleton for landing and home page)
+   - Yes (Login/Register, assisted with finding prime icon for google login)
+- Exlporing different UI/UX design inspirations
+   - Yes (Drew inspirations from claude for landing page and home page design)
+- Boilerplate code generation – starter code and code snippets
+   - Yes (Got a walkthrough on how to code initial routerguard setup early on)
+- Generating unit test cases, sample inputs, or mock data
+
+
+
 · Information search
    Yes (General usage)
 · Generating website concepts, layouts, or themes
